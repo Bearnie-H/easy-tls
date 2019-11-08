@@ -4,7 +4,7 @@ import "net/http"
 
 // SimpleHandler represents a simplification to the standard http handlerFuncs, allowing simpler registration and logging with Routers.
 type SimpleHandler struct {
-	Handler http.Handler
+	Handler http.HandlerFunc
 	Path    string
 	Methods []string
 }

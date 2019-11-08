@@ -43,7 +43,7 @@ func AddMiddlewares(r *mux.Router, middlewares ...MiddlewareHandler) {
 func AddHandlers(verbose bool, r *mux.Router, Handlers ...SimpleHandler) {
 	// Register the routes, this IS order dependent.
 	for _, Node := range Handlers {
-		r.Handle(Node.Path, Node.Handler).Methods(Node.Methods...)
+		r.HandleFunc(Node.Path, Node.Handler).Methods(Node.Methods...)
 		if verbose {
 			log.Printf("Registered route %s with accepted methods %v", Node.Path, Node.Methods)
 		}

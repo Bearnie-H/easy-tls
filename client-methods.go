@@ -66,12 +66,12 @@ func (C *SimpleClient) Head(URL *url.URL, Headers map[string]string) (http.Heade
 	return nil, fmt.Errorf("Invalid status code - expected 2xx, got %d", resp.StatusCode)
 }
 
-// Post represents the abstraction of the HTTP Post request, accounting for creating the request, setting headers, and asserting a valid status code.  Closing the response body is the responsibility of this function.
-func (C *SimpleClient) Post(URL *url.URL, contents io.Reader, Headers map[string]string) error {
+// Post represents the abstraction of the HTTP Post request, accounting for creating the request, setting headers, and asserting a valid status code.  Closing the response body is the responsibility of the caller.
+func (C *SimpleClient) Post(URL *url.URL, contents io.Reader, Headers map[string]string) (*http.Response, error) {
 
 	req, err := http.NewRequest(http.MethodPost, URL.String(), contents)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// Set the given headers
@@ -82,17 +82,17 @@ func (C *SimpleClient) Post(URL *url.URL, contents io.Reader, Headers map[string
 	// Perform the request
 	resp, err := C.client.Do(req)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	defer resp.Body.Close()
 
 	/// If the status code is OK, return
 	if 200 <= resp.StatusCode && resp.StatusCode < 300 {
-		return nil
+		return resp, nil
 	}
 
 	// Otherwise, attempt to close whatever body we got, and return an error.
-	return fmt.Errorf("Invalid status code - expected 2xx, got %d", resp.StatusCode)
+	resp.Body.Close()
+	return nil, fmt.Errorf("Invalid status code - expected 2xx, got %d", resp.StatusCode)
 }
 
 // Put represents the abstraction of the HTTP Put request, accounting for creating the request, setting headers, and asserting a valid status code.  Closing the response body is the responsibility of this function.
