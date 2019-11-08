@@ -1,9 +1,10 @@
 package client
 
 import (
-	tlsbundle "easy-tls/tls-bundle"
 	"net/http"
 	"time"
+
+	"github.com/Bearnie-H/easy-tls/tlsbundle"
 )
 
 // SimpleClient is a renaming of the Standard http.Client for this package, to allow the ease-of-use extensions provided here.

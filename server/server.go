@@ -4,7 +4,7 @@
 package server
 
 import (
-	tlsbundle "easy-tls/tls-bundle"
+	"easy-tls/tlsbundle"
 	"net/http"
 	"time"
 )
