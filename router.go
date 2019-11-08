@@ -8,7 +8,7 @@ import (
 )
 
 // NewRouter will initialize a new HTTP Router, based on the gorilla/mux implementation.
-func NewRouter(Handlers []SimpleHandler, Middlewares ...MiddlewareHandler) *mux.Router {
+func NewRouter() *mux.Router {
 	r := mux.NewRouter()
 
 	// Don't be pedantic about possible trailing slashes in the routes.
@@ -18,17 +18,23 @@ func NewRouter(Handlers []SimpleHandler, Middlewares ...MiddlewareHandler) *mux.
 	r.NotFoundHandler = http.HandlerFunc(notFoundHandler)
 	r.MethodNotAllowedHandler = http.HandlerFunc(methodNotAllowedHandler)
 
-	// Register the middlwares, this IS order dependent.
-	r.Use(defaultLoggingMiddleware)
-	for _, middleware := range Middlewares {
-		r.Use(mux.MiddlewareFunc(middleware))
-	}
+	return r
+}
 
+// AddMiddlewares is a convenience wrapper for the mux.Router "Use" function
+func AddMiddlewares(r *mux.Router, middlewares ...MiddlewareHandler) {
+	for _, mwf := range middlewares {
+		r.Use(mux.MiddlewareFunc(mwf))
+	}
+}
+
+// AddHandlers will add the given handlers to the router, with the verbose flag determining if a log message should be generated for each added route.
+func AddHandlers(verbose bool, r *mux.Router, Handlers ...SimpleHandler) {
 	// Register the routes, this IS order dependent.
 	for _, Node := range Handlers {
 		r.Handle(Node.Path, Node.Handler).Methods(Node.Methods...)
-		log.Printf("Registered route %s with accepted methods %v", Node.Path, Node.Methods)
+		if verbose {
+			log.Printf("Registered route %s with accepted methods %v", Node.Path, Node.Methods)
+		}
 	}
-
-	return r
 }

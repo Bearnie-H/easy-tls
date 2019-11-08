@@ -7,8 +7,8 @@ import (
 
 // SimpleClient is a renaming of the Standard http.Client for this package, to allow the ease-of-use extensions provided here.
 type SimpleClient struct {
-	Client     *http.Client
-	TLSEnabled bool
+	client *http.Client
+	tls    bool
 }
 
 // NewClientHTTP will create a new SimpleClient, with no TLS settings enabled.  This will accept raw HTTP only.
@@ -24,10 +24,10 @@ func NewClientHTTPS(TLS *TLSBundle) (*SimpleClient, error) {
 	}
 
 	s := &SimpleClient{
-		Client: &http.Client{
+		client: &http.Client{
 			Timeout:   time.Hour * 1,
 			Transport: &http.Transport{TLSClientConfig: tls}},
-		TLSEnabled: TLS.Enabled,
+		tls: TLS.Enabled,
 	}
 
 	return s, nil

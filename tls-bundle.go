@@ -18,7 +18,7 @@ type TLSBundle struct {
 	AuthorityCertificates []string
 	KeyPairs              []KeyPair
 	Auth                  tls.ClientAuthType
-	Enabled               bool
+	Enabled               bool `json:"-"`
 }
 
 // NewTLSConfig will convert the TLSBundle, containing the filenames of the relevant certificates and Authorization policy, into a workable tls.Config object, ready to be used by either a Client or Server application.
@@ -27,7 +27,7 @@ func NewTLSConfig(TLS *TLSBundle) (*tls.Config, error) {
 	var returnConfig *tls.Config
 
 	// If no TLS bundle is provided, or is it marked invalid, don't set any TLS settings.
-	if TLS == nil || TLS.Enabled == false {
+	if TLS == nil {
 		return &tls.Config{}, nil
 	}
 
@@ -44,6 +44,7 @@ func NewTLSConfig(TLS *TLSBundle) (*tls.Config, error) {
 
 		// If there are Certificates, the TLS min version can be set (1.2 is used here for backwards-compatability)
 		returnConfig.MinVersion = tls.VersionTLS12
+		TLS.Enabled = true
 	}
 
 	// If no CA Certificates are provided, don't attempt to load any
@@ -67,6 +68,7 @@ func NewTLSConfig(TLS *TLSBundle) (*tls.Config, error) {
 
 		// Set this, if it wasn't set before, as there are now CA certs.
 		returnConfig.MinVersion = tls.VersionTLS12
+		TLS.Enabled = true
 	}
 
 	// Define how the Client Certificates will be checked.

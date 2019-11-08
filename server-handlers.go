@@ -9,9 +9,6 @@ type SimpleHandler struct {
 	Methods []string
 }
 
-// MiddlewareHandler represents the general format for a Middleware handler.
-type MiddlewareHandler func(http.Handler) http.Handler
-
 // notFoundHandler represents the function to call if the path requested has not been registered.
 func notFoundHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotFound)
