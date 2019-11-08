@@ -9,21 +9,18 @@ import (
 	"time"
 )
 
-// SimpleServer is a renaming of the Standard http.Server for this package, to allow the ease-of-use extensions provided here.
-type SimpleServer http.Server
-
-// NewServerHTTP will create a new SimpleServer, with no TLS settings enabled.  This will accept raw HTTP only.
-func NewServerHTTP(Addr string, Handlers []SimpleHandler, Middlewares ...MiddlewareHandler) (*SimpleServer, error) {
+// NewServerHTTP will create a new http.Server, with no TLS settings enabled.  This will accept raw HTTP only.
+func NewServerHTTP(Addr string, Handlers []SimpleHandler, Middlewares ...MiddlewareHandler) (*http.Server, error) {
 	return NewServerHTTPS(nil, Addr, Handlers, Middlewares...)
 }
 
-// NewServerHTTPS will create a new TLS-Enabled SimpleServer.  This will
-func NewServerHTTPS(TLS *tlsbundle.TLSBundle, Addr string, Handlers []SimpleHandler, Middlewares ...MiddlewareHandler) (*SimpleServer, error) {
+// NewServerHTTPS will create a new TLS-Enabled http.Server.  This will
+func NewServerHTTPS(TLS *tlsbundle.TLSBundle, Addr string, Handlers []SimpleHandler, Middlewares ...MiddlewareHandler) (*http.Server, error) {
 	tls, err := tlsbundle.NewTLSConfig(TLS)
 	if err != nil {
 		return nil, err
 	}
-	s := &SimpleServer{
+	s := &http.Server{
 		Addr:              Addr,
 		Handler:           NewRouter(Handlers, Middlewares...),
 		TLSConfig:         tls,
