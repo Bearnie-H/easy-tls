@@ -7,8 +7,8 @@ import (
 	"github.com/gorilla/mux"
 )
 
-// NewRouter will initialize a new HTTP Router, based on the gorilla/mux implementation.
-func NewRouter() *mux.Router {
+// NewDefaultRouter will initialize a new HTTP Router, based on the gorilla/mux implementation.
+func NewDefaultRouter() *mux.Router {
 	r := mux.NewRouter()
 
 	// Don't be pedantic about possible trailing slashes in the routes.
@@ -17,6 +17,17 @@ func NewRouter() *mux.Router {
 	// Register some default handlers
 	r.NotFoundHandler = http.HandlerFunc(notFoundHandler)
 	r.MethodNotAllowedHandler = http.HandlerFunc(methodNotAllowedHandler)
+
+	return r
+}
+
+// NewRouter will build a new complex router, with the given routes, and middlewares.  More can be added later, if needed.
+func NewRouter(Handlers []SimpleHandler, Middlewares ...MiddlewareHandler) *mux.Router {
+	r := NewDefaultRouter()
+
+	AddMiddlewares(r, Middlewares...)
+
+	AddHandlers(false, r, Handlers...)
 
 	return r
 }
