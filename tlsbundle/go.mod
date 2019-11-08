@@ -1,3 +1,3 @@
-module easy-tls/tls-bundle
+module github.com/Bearnie-H/easy-tls/tlsbundle
 
 go 1.13
