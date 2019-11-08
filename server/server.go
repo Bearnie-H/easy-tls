@@ -4,9 +4,10 @@
 package server
 
 import (
-	"easy-tls/tlsbundle"
 	"net/http"
 	"time"
+
+	"github.com/Bearnie-H/easy-tls/tlsbundle"
 )
 
 // NewServerHTTP will create a new http.Server, with no TLS settings enabled.  This will accept raw HTTP only.
