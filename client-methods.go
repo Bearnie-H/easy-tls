@@ -1,4 +1,4 @@
-package client
+package easytls
 
 import (
 	"errors"

@@ -1,7 +1,4 @@
-// Package tlsbundle implements a simple mechanism for creating a valid TLS Config under normal circumstances.
-//
-// This is intended to allow easier integration of full TLS into web services, by making it simple to ensure the TLS settings are configured correctly and safely.
-package tlsbundle
+package easytls
 
 import (
 	"crypto/tls"

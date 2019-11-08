@@ -1,4 +1,4 @@
-module github.com/Bearnie-H/easy-tls/server
+module github.com/Bearnie-H/easy-tls
 
 go 1.13
 

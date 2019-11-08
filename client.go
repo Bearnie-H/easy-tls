@@ -1,10 +1,8 @@
-package client
+package easytls
 
 import (
 	"net/http"
 	"time"
-
-	"github.com/Bearnie-H/easy-tls/tlsbundle"
 )
 
 // SimpleClient is a renaming of the Standard http.Client for this package, to allow the ease-of-use extensions provided here.
@@ -19,8 +17,8 @@ func NewClientHTTP() (*SimpleClient, error) {
 }
 
 // NewClientHTTPS will create a new TLS-Enabled SimpleClient.  This will
-func NewClientHTTPS(TLS *tlsbundle.TLSBundle) (*SimpleClient, error) {
-	tls, err := tlsbundle.NewTLSConfig(TLS)
+func NewClientHTTPS(TLS *TLSBundle) (*SimpleClient, error) {
+	tls, err := NewTLSConfig(TLS)
 	if err != nil {
 		return nil, err
 	}

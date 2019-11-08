@@ -1,13 +1,8 @@
-// Package server implements a simple TLS-enabled HTTP server, along with a number of common helper functions to quickly iterating and creating Web services.
-//
-//
-package server
+package easytls
 
 import (
 	"net/http"
 	"time"
-
-	"github.com/Bearnie-H/easy-tls/tlsbundle"
 )
 
 // NewServerHTTP will create a new http.Server, with no TLS settings enabled.  This will accept raw HTTP only.
@@ -16,8 +11,8 @@ func NewServerHTTP(Addr string, Handlers []SimpleHandler, Middlewares ...Middlew
 }
 
 // NewServerHTTPS will create a new TLS-Enabled http.Server.  This will
-func NewServerHTTPS(TLS *tlsbundle.TLSBundle, Addr string, Handlers []SimpleHandler, Middlewares ...MiddlewareHandler) (*http.Server, error) {
-	tls, err := tlsbundle.NewTLSConfig(TLS)
+func NewServerHTTPS(TLS *TLSBundle, Addr string, Handlers []SimpleHandler, Middlewares ...MiddlewareHandler) (*http.Server, error) {
+	tls, err := NewTLSConfig(TLS)
 	if err != nil {
 		return nil, err
 	}
