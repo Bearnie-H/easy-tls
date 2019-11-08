@@ -35,9 +35,17 @@ func NewServerHTTPS(TLS *TLSBundle, Addr string) (*SimpleServer, error) {
 		IdleTimeout:       time.Minute * 5,
 	}
 
+	if TLS != nil {
+		return &SimpleServer{
+			server: s,
+			tls:    TLS,
+		}, nil
+	}
 	return &SimpleServer{
 		server: s,
-		tls:    TLS,
+		tls: &TLSBundle{
+			Enabled: false,
+		},
 	}, nil
 }
 

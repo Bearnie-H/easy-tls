@@ -18,7 +18,7 @@ type TLSBundle struct {
 	AuthorityCertificates []string
 	KeyPairs              []KeyPair
 	Auth                  tls.ClientAuthType
-	Enabled               bool `json:"-"`
+	Enabled               bool
 }
 
 // NewTLSConfig will convert the TLSBundle, containing the filenames of the relevant certificates and Authorization policy, into a workable tls.Config object, ready to be used by either a Client or Server application.
