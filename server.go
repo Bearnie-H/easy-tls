@@ -54,8 +54,10 @@ func (S *SimpleServer) ListenAndServe() error {
 	S.stopped.Store(false)
 	var err error
 	if S.tls.Enabled {
+		log.Printf("Serving HTTPS at: %s\n", S.server.Addr)
 		err = S.server.ListenAndServeTLS(S.tls.KeyPairs[0].Certificate, S.tls.KeyPairs[0].Key)
 	} else {
+		log.Printf("Serving HTTP at: %s\n", S.server.Addr)
 		err = S.server.ListenAndServe()
 	}
 	for !S.stopped.Load().(bool) {
