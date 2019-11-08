@@ -4,15 +4,19 @@ import (
 	"context"
 	"log"
 	"net/http"
+	"strings"
 	"sync/atomic"
 	"time"
+
+	"github.com/gorilla/mux"
 )
 
 // SimpleServer represents an extension to the standard http.Server
 type SimpleServer struct {
-	server  *http.Server
-	tls     *TLSBundle
-	stopped atomic.Value
+	server           *http.Server
+	registeredRoutes []string
+	tls              *TLSBundle
+	stopped          atomic.Value
 }
 
 // NewServerHTTP will create a new http.Server, with no TLS settings enabled.  This will accept raw HTTP only.
@@ -80,4 +84,13 @@ func (S *SimpleServer) Shutdown() {
 // RegisterRouter will register the given Handler (typically an *http.ServeMux or *mux.Router) as the http Handler for the server.
 func (S *SimpleServer) RegisterRouter(r http.Handler) {
 	S.server.Handler = r
+}
+
+// EnableAboutHandler will enable and set up the "about" handler, to display the available routes.
+func (S *SimpleServer) EnableAboutHandler(r *mux.Router) {
+	routeList := strings.Join(S.registeredRoutes, "\n")
+	aboutHandler := func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte(routeList))
+	}
+	r.HandleFunc("/about", aboutHandler)
 }

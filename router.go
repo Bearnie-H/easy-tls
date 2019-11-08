@@ -1,6 +1,7 @@
 package easytls
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 
@@ -22,12 +23,12 @@ func NewDefaultRouter() *mux.Router {
 }
 
 // NewRouter will build a new complex router, with the given routes, and middlewares.  More can be added later, if needed.
-func NewRouter(Handlers []SimpleHandler, Middlewares ...MiddlewareHandler) *mux.Router {
+func NewRouter(s *SimpleServer, Handlers []SimpleHandler, Middlewares ...MiddlewareHandler) *mux.Router {
 	r := NewDefaultRouter()
 
 	AddMiddlewares(r, Middlewares...)
 
-	AddHandlers(false, r, Handlers...)
+	AddHandlers(false, s, r, Handlers...)
 
 	return r
 }
@@ -40,12 +41,13 @@ func AddMiddlewares(r *mux.Router, middlewares ...MiddlewareHandler) {
 }
 
 // AddHandlers will add the given handlers to the router, with the verbose flag determining if a log message should be generated for each added route.
-func AddHandlers(verbose bool, r *mux.Router, Handlers ...SimpleHandler) {
+func AddHandlers(verbose bool, s *SimpleServer, r *mux.Router, Handlers ...SimpleHandler) {
 	// Register the routes, this IS order dependent.
 	for _, Node := range Handlers {
 		r.Handle(Node.Path, Node.Handler).Methods(Node.Methods...)
 		if verbose {
 			log.Printf("Registered route %s with accepted methods %v", Node.Path, Node.Methods)
 		}
+		s.registeredRoutes = append(s.registeredRoutes, fmt.Sprintf("%-30s|%v", Node.Path, Node.Methods))
 	}
 }
