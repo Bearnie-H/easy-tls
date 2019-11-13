@@ -78,6 +78,7 @@ func (S *SimpleServer) ListenAndServe() error {
 func (S *SimpleServer) Shutdown() {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*15)
 	defer cancel()
+	defer func() { S.stopped.Store(true) }()
 	S.server.Shutdown(ctx)
 }
 
