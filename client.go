@@ -23,12 +23,19 @@ func NewClientHTTPS(TLS *TLSBundle) (*SimpleClient, error) {
 		return nil, err
 	}
 
+	Enabled := !(TLS == nil)
+
 	s := &SimpleClient{
 		client: &http.Client{
 			Timeout:   time.Hour * 1,
 			Transport: &http.Transport{TLSClientConfig: tls}},
-		tls: TLS.Enabled,
+		tls: Enabled,
 	}
 
 	return s, nil
+}
+
+// IsTLS exposes whether the SimpleClient is TLS or not.
+func (C *SimpleClient) IsTLS() bool {
+	return C.tls
 }

@@ -95,3 +95,8 @@ func (S *SimpleServer) EnableAboutHandler(r *mux.Router) {
 	}
 	r.HandleFunc("/about", aboutHandler)
 }
+
+// Addr exposes the underlying TCP address of the SimpleServer.
+func (S *SimpleServer) Addr() string {
+	return S.server.Addr
+}

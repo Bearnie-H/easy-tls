@@ -96,10 +96,10 @@ func (C *SimpleClient) Post(URL *url.URL, contents io.Reader, Headers map[string
 }
 
 // Put represents the abstraction of the HTTP Put request, accounting for creating the request, setting headers, and asserting a valid status code.  Closing the response body is the responsibility of this function.
-func (C *SimpleClient) Put(URL *url.URL, contents io.Reader, Headers map[string]string) error {
+func (C *SimpleClient) Put(URL *url.URL, contents io.Reader, Headers map[string]string) (*http.Response, error) {
 	req, err := http.NewRequest(http.MethodPut, URL.String(), contents)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// Set the given headers
@@ -110,17 +110,17 @@ func (C *SimpleClient) Put(URL *url.URL, contents io.Reader, Headers map[string]
 	// Perform the request
 	resp, err := C.client.Do(req)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	defer resp.Body.Close()
 
 	/// If the status code is OK, return
 	if 200 <= resp.StatusCode && resp.StatusCode < 300 {
-		return nil
+		return resp, nil
 	}
 
+	defer resp.Body.Close()
 	// Otherwise, attempt to close whatever body we got, and return an error.
-	return fmt.Errorf("Invalid status code - expected 2xx, got %d", resp.StatusCode)
+	return nil, fmt.Errorf("Invalid status code - expected 2xx, got %d", resp.StatusCode)
 }
 
 // Delete represents the abstraction of the HTTP Delete request, accounting for creating the request, setting headers, and asserting a valid status code.  Closing the response body is the responsibility of this function.
@@ -149,7 +149,7 @@ func (C *SimpleClient) Delete(URL *url.URL, Headers map[string]string) error {
 	}
 
 	// Otherwise, attempt to close whatever body we got, and return an error.
-
+	defer resp.Body.Close()
 	return fmt.Errorf("Invalid status code - expected 2xx, got %d", resp.StatusCode)
 }
 

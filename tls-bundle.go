@@ -18,16 +18,20 @@ type TLSBundle struct {
 	AuthorityCertificates []string
 	KeyPairs              []KeyPair
 	Auth                  tls.ClientAuthType
-	Enabled               bool
+	Enabled               bool `json:"-"`
 }
 
 // NewTLSConfig will convert the TLSBundle, containing the filenames of the relevant certificates and Authorization policy, into a workable tls.Config object, ready to be used by either a Client or Server application.
 func NewTLSConfig(TLS *TLSBundle) (*tls.Config, error) {
 
-	var returnConfig *tls.Config
+	returnConfig := &tls.Config{}
 
 	// If no TLS bundle is provided, or is it marked invalid, don't set any TLS settings.
 	if TLS == nil {
+		return &tls.Config{}, nil
+	}
+
+	if !TLS.Enabled {
 		return &tls.Config{}, nil
 	}
 
