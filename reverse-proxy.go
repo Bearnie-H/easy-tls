@@ -10,6 +10,7 @@ import (
 // ReverseProxyRouterFunc will take a request, and determine which URL Host to forward it to.  This result must be an IP:Port combination as standard in the http package.
 type ReverseProxyRouterFunc func(*http.Request) string
 
+// doReverseProxy will forward all traffic coming in through the SimpleClient, swapping to/from TLS as specified by the SimpleClient, and determining which remote host to forward to based on the Matcher function.  This provides an opaque connection, and neither side should know they are talking through a proxy, aside from the headers explicitly placed into the ProxyRequest.
 func doReverseProxy(C *SimpleClient, IsTLS bool, Matcher ReverseProxyRouterFunc) http.HandlerFunc {
 
 	// If no client is provided, create one.
