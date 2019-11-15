@@ -172,3 +172,18 @@ func (C *SimpleClient) Options(URL *url.URL, Headers map[string]string) error {
 func (C *SimpleClient) Trace(URL *url.URL, Headers map[string]string) error {
 	return errors.New("Method TRACE not yet implemented")
 }
+
+// Do will perform a single pre-formatted request.
+func (C *SimpleClient) Do(req *http.Request) (*http.Response, error) {
+	resp, err := C.client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+
+	if 200 <= resp.StatusCode && resp.StatusCode < 300 {
+		return resp, nil
+	}
+
+	defer resp.Body.Close()
+	return nil, fmt.Errorf("Invalid status code - expected 2xx, got %d", resp.StatusCode)
+}
