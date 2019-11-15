@@ -5,18 +5,6 @@ import (
 	"net/http"
 )
 
-// ReverseProxy will impleement a full reverse proxy, forwarding the requests via the SimpleClient (Creating a default HTTP client if non-existent)
-func ReverseProxy(Client *SimpleClient, Addr string, IsTLS bool) SimpleHandler {
-	Path := "/"
-	Methods := []string{http.MethodGet, http.MethodHead, http.MethodPost, http.MethodPut, http.MethodPatch, http.MethodDelete, http.MethodConnect, http.MethodOptions, http.MethodTrace}
-	Handler := doReverseProxy(Client, Addr, IsTLS)
-	return SimpleHandler{
-		Path:    Path,
-		Methods: Methods,
-		Handler: Handler,
-	}
-}
-
 func doReverseProxy(C *SimpleClient, Addr string, IsTLS bool) http.HandlerFunc {
 
 	// If no client is provided, create one.
