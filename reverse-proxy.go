@@ -5,7 +5,10 @@ import (
 	"net/http"
 )
 
-func doReverseProxy(C *SimpleClient, Addr string, IsTLS bool) http.HandlerFunc {
+// ReverseProxyRouterFunc will take a request, and determine which URL Host to forward it to.  This result must be an IP:Port combination as standard in the http package.
+type ReverseProxyRouterFunc func(*http.Request) string
+
+func doReverseProxy(C *SimpleClient, Addr string, IsTLS bool, Matcher ReverseProxyRouterFunc) http.HandlerFunc {
 
 	// If no client is provided, create one.
 	if C == nil {
@@ -18,7 +21,7 @@ func doReverseProxy(C *SimpleClient, Addr string, IsTLS bool) http.HandlerFunc {
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		url := r.URL
-		url.Host = Addr
+		url.Host = Matcher(r)
 		if IsTLS {
 			url.Scheme = "https"
 		} else {
