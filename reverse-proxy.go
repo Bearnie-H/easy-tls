@@ -3,6 +3,7 @@ package easytls
 import (
 	"log"
 	"net/http"
+	"net/url"
 )
 
 // ReverseProxyRouterFunc will take a request, and determine which URL Host to forward it to.  This result must be an IP:Port combination as standard in the http package.
@@ -20,8 +21,8 @@ func doReverseProxy(C *SimpleClient, IsTLS bool, Matcher ReverseProxyRouterFunc)
 	}
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		IncomingURL := *r.URL
-		url := r.URL
+		var url *url.URL
+		*url = *r.URL
 		url.Host = Matcher(r)
 		if IsTLS {
 			url.Scheme = "https"
@@ -29,11 +30,9 @@ func doReverseProxy(C *SimpleClient, IsTLS bool, Matcher ReverseProxyRouterFunc)
 			url.Scheme = "http"
 		}
 
-		log.Printf("Got incoming request with URL: %s, forwarding to: %s", IncomingURL.String(), url.String())
-
 		proxyReq, err := http.NewRequest(r.Method, url.String(), r.Body)
 		if err != nil {
-			log.Printf("Failed to create proxy request - %s", err)
+			log.Printf("Failed to create proxy forwarding request for %s from %s - %s", r.URL.String(), r.Host, err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
@@ -49,13 +48,13 @@ func doReverseProxy(C *SimpleClient, IsTLS bool, Matcher ReverseProxyRouterFunc)
 
 		proxyResp, err := C.Do(proxyReq)
 		if err != nil {
-			log.Printf("Failed to perform proxy request - %s", err)
+			log.Printf("Failed to perform proxy request for %s from %s - %s", r.URL.String(), r.Host, err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 
 		if err := proxyResp.Write(w); err != nil {
-			log.Printf("Failed to write back proxy response - %s", err)
+			log.Printf("Failed to write back proxy response for %s from %s - %s", r.URL.String(), r.Host, err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
