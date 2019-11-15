@@ -1,6 +1,7 @@
 package easytls
 
 import (
+	"io"
 	"log"
 	"net/http"
 	"net/url"
@@ -21,7 +22,7 @@ func doReverseProxy(C *SimpleClient, IsTLS bool, Matcher ReverseProxyRouterFunc)
 	}
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		var url *url.URL
+		url := &url.URL{}
 		*url = *r.URL
 		url.Host = Matcher(r)
 		if IsTLS {
@@ -32,7 +33,7 @@ func doReverseProxy(C *SimpleClient, IsTLS bool, Matcher ReverseProxyRouterFunc)
 
 		proxyReq, err := http.NewRequest(r.Method, url.String(), r.Body)
 		if err != nil {
-			log.Printf("Failed to create proxy forwarding request for %s from %s - %s", r.URL.String(), r.Host, err)
+			log.Printf("Failed to create proxy forwarding request for %s from %s - %s", r.URL.String(), r.RemoteAddr, err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
@@ -48,13 +49,21 @@ func doReverseProxy(C *SimpleClient, IsTLS bool, Matcher ReverseProxyRouterFunc)
 
 		proxyResp, err := C.Do(proxyReq)
 		if err != nil {
-			log.Printf("Failed to perform proxy request for %s from %s - %s", r.URL.String(), r.Host, err)
+			log.Printf("Failed to perform proxy request for %s from %s - %s", r.URL.String(), r.RemoteAddr, err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 
-		if err := proxyResp.Write(w); err != nil {
-			log.Printf("Failed to write back proxy response for %s from %s - %s", r.URL.String(), r.Host, err)
+		// Write the response back as if it were generated at the proxy.
+		defer proxyResp.Body.Close()
+		for header, values := range proxyResp.Header {
+			for _, value := range values {
+				proxyResp.Header.Add(header, value)
+			}
+		}
+		w.WriteHeader(proxyResp.StatusCode)
+		if _, err := io.Copy(w, proxyResp.Body); err != nil {
+			log.Printf("Failed to write back proxy response for %s from %s - %s", r.URL.String(), r.RemoteAddr, err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
