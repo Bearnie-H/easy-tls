@@ -48,6 +48,6 @@ func AddHandlers(verbose bool, s *SimpleServer, r *mux.Router, Handlers ...Simpl
 		if verbose {
 			log.Printf("Registered route %s with accepted methods %v", Node.Path, Node.Methods)
 		}
-		s.registeredRoutes = append(s.registeredRoutes, fmt.Sprintf("%-30s|    %v", Node.Path, Node.Methods))
+		s.registeredRoutes = append(s.registeredRoutes, fmt.Sprintf("%-50s|    %v", Node.Path, Node.Methods))
 	}
 }
