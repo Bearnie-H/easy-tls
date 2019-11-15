@@ -8,7 +8,7 @@ import (
 // ReverseProxyRouterFunc will take a request, and determine which URL Host to forward it to.  This result must be an IP:Port combination as standard in the http package.
 type ReverseProxyRouterFunc func(*http.Request) string
 
-func doReverseProxy(C *SimpleClient, Addr string, IsTLS bool, Matcher ReverseProxyRouterFunc) http.HandlerFunc {
+func doReverseProxy(C *SimpleClient, IsTLS bool, Matcher ReverseProxyRouterFunc) http.HandlerFunc {
 
 	// If no client is provided, create one.
 	if C == nil {
@@ -20,6 +20,7 @@ func doReverseProxy(C *SimpleClient, Addr string, IsTLS bool, Matcher ReversePro
 	}
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		IncomingURL := *r.URL
 		url := r.URL
 		url.Host = Matcher(r)
 		if IsTLS {
@@ -27,6 +28,9 @@ func doReverseProxy(C *SimpleClient, Addr string, IsTLS bool, Matcher ReversePro
 		} else {
 			url.Scheme = "http"
 		}
+
+		log.Printf("Got incoming request with URL: %s, forwarding to: %s", IncomingURL.String(), url.String())
+
 		proxyReq, err := http.NewRequest(r.Method, url.String(), r.Body)
 		if err != nil {
 			log.Printf("Failed to create proxy request - %s", err)

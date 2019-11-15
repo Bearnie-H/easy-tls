@@ -101,9 +101,9 @@ func (S *SimpleServer) Addr() string {
 	return S.server.Addr
 }
 
-// ConfigureReverseProxy will convert a freshly created SimpleServer into a ReverseProxy, forwarding all incoming traffic on to the RemoteAddr given.  This will create the necessary HTTP handler, and configure the necessary routing.
-func (S *SimpleServer) ConfigureReverseProxy(Client *SimpleClient, RemoteAddr string, RouteMatcher ReverseProxyRouterFunc) {
+// ConfigureReverseProxy will convert a freshly created SimpleServer into a ReverseProxy, forwarding all incoming traffic based on the RouteMatcher func provided.  This will create the necessary HTTP handler, and configure the necessary routing.
+func (S *SimpleServer) ConfigureReverseProxy(Client *SimpleClient, RouteMatcher ReverseProxyRouterFunc) {
 	r := NewDefaultRouter()
-	r.PathPrefix("/").HandlerFunc(doReverseProxy(Client, RemoteAddr, Client.IsTLS(), RouteMatcher))
+	r.PathPrefix("/").HandlerFunc(doReverseProxy(Client, Client.IsTLS(), RouteMatcher))
 	S.RegisterRouter(r)
 }
