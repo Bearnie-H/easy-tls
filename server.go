@@ -100,3 +100,8 @@ func (S *SimpleServer) EnableAboutHandler(r *mux.Router) {
 func (S *SimpleServer) Addr() string {
 	return S.server.Addr
 }
+
+// ConfigureReverseProxy will convert a freshly created SimpleServer into a ReverseProxy.  This will create the necessary HTTP handler, and configure the necessary routing.
+func (S *SimpleServer) ConfigureReverseProxy(Client *SimpleClient, RemoteAddr string) {
+	S.RegisterRouter(NewRouter(S, []SimpleHandler{ReverseProxy(Client, RemoteAddr, Client.IsTLS())}))
+}
