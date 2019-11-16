@@ -124,7 +124,7 @@ func (S *SimpleServer) Addr() string {
 // ConfigureReverseProxy will convert a freshly created SimpleServer into a ReverseProxy, forwarding all incoming traffic based on the RouteMatcher func provided.  This will create the necessary HTTP handler, and configure the necessary routing.
 //
 // PathPrefix is variadic to allow for no argument to be specified.  If no argument is specified, this will forward all traffic starting with path "/".  If multiple PathPrefix arguments are provided, only the first will be used.
-func (S *SimpleServer) ConfigureReverseProxy(Client *SimpleClient, RouteMatcher ReverseProxyRouterFunc, PathPrefix ...string) {
+func (S *SimpleServer) ConfigureReverseProxy(Client *SimpleClient, RouteMatcher ReverseProxyRouterFunc, Middlewares []MiddlewareHandler, PathPrefix ...string) {
 
 	r := NewDefaultRouter()
 
@@ -136,5 +136,6 @@ func (S *SimpleServer) ConfigureReverseProxy(Client *SimpleClient, RouteMatcher 
 
 	r.PathPrefix(p).HandlerFunc(doReverseProxy(Client, Client.IsTLS(), RouteMatcher))
 	AddMiddlewares(r, MiddlewareDefaultLogger)
+	AddMiddlewares(r, Middlewares...)
 	S.RegisterRouter(r)
 }
