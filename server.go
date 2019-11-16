@@ -55,6 +55,7 @@ func NewServerHTTPS(TLS *TLSBundle, Addr string) (*SimpleServer, error) {
 
 // SetTimeouts will set the given timeouts of the Server to what is passed.  Set 0 to leave uninitialized.
 func (S *SimpleServer) SetTimeouts(ReadTimeout, ReadHeaderTimeout, WriteTimeout, IdleTimeout time.Duration) {
+
 	if ReadTimeout != 0 {
 		S.server.ReadTimeout = ReadTimeout
 	}
@@ -124,6 +125,7 @@ func (S *SimpleServer) Addr() string {
 //
 // PathPrefix is variadic to allow for no argument to be specified.  If no argument is specified, this will forward all traffic starting with path "/".  If multiple PathPrefix arguments are provided, only the first will be used.
 func (S *SimpleServer) ConfigureReverseProxy(Client *SimpleClient, RouteMatcher ReverseProxyRouterFunc, PathPrefix ...string) {
+
 	r := NewDefaultRouter()
 
 	p := "/"
@@ -131,6 +133,7 @@ func (S *SimpleServer) ConfigureReverseProxy(Client *SimpleClient, RouteMatcher 
 		p = PathPrefix[0]
 
 	}
+
 	r.PathPrefix(p).HandlerFunc(doReverseProxy(Client, Client.IsTLS(), RouteMatcher))
 	AddMiddlewares(r, MiddlewareDefaultLogger)
 	S.RegisterRouter(r)
