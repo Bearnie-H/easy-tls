@@ -24,19 +24,19 @@ func NewServerHTTP(Addr string) (*SimpleServer, error) {
 	return NewServerHTTPS(nil, Addr)
 }
 
-// NewServerHTTPS will create a new TLS-Enabled http.Server.  This will
+// NewServerHTTPS will create a new TLS-Enabled http.Server.  This will accept HTTPS, and fully initialize the server based on the TLSBundle provided.
 func NewServerHTTPS(TLS *TLSBundle, Addr string) (*SimpleServer, error) {
+
+	// Create the TLS settings as defined in the TLSBundle
 	tls, err := NewTLSConfig(TLS)
 	if err != nil {
 		return nil, err
 	}
+
+	// Create the Server
 	s := &http.Server{
-		Addr:              Addr,
-		TLSConfig:         tls,
-		ReadTimeout:       time.Minute * 5,
-		ReadHeaderTimeout: time.Second * 30,
-		WriteTimeout:      time.Minute * 5,
-		IdleTimeout:       time.Minute * 5,
+		Addr:      Addr,
+		TLSConfig: tls,
 	}
 
 	if TLS != nil {
@@ -51,6 +51,25 @@ func NewServerHTTPS(TLS *TLSBundle, Addr string) (*SimpleServer, error) {
 			Enabled: false,
 		},
 	}, nil
+}
+
+// SetTimeouts will set the given timeouts of the Server to what is passed.  Set 0 to leave uninitialized.
+func (S *SimpleServer) SetTimeouts(ReadTimeout, ReadHeaderTimeout, WriteTimeout, IdleTimeout time.Duration) {
+	if ReadTimeout != 0 {
+		S.server.ReadTimeout = ReadTimeout
+	}
+
+	if ReadHeaderTimeout != 0 {
+		S.server.ReadHeaderTimeout = ReadHeaderTimeout
+	}
+
+	if WriteTimeout != 0 {
+		S.server.WriteTimeout = WriteTimeout
+	}
+
+	if IdleTimeout != 0 {
+		S.server.IdleTimeout = IdleTimeout
+	}
 }
 
 // ListenAndServe will start the SimpleServer, serving HTTPS if enabled, or HTTP if not
@@ -102,8 +121,17 @@ func (S *SimpleServer) Addr() string {
 }
 
 // ConfigureReverseProxy will convert a freshly created SimpleServer into a ReverseProxy, forwarding all incoming traffic based on the RouteMatcher func provided.  This will create the necessary HTTP handler, and configure the necessary routing.
-func (S *SimpleServer) ConfigureReverseProxy(Client *SimpleClient, RouteMatcher ReverseProxyRouterFunc) {
+//
+// PathPrefix is variadic to allow for no argument to be specified.  If no argument is specified, this will forward all traffic starting with path "/".  If multiple PathPrefix arguments are provided, only the first will be used.
+func (S *SimpleServer) ConfigureReverseProxy(Client *SimpleClient, RouteMatcher ReverseProxyRouterFunc, PathPrefix ...string) {
 	r := NewDefaultRouter()
-	r.PathPrefix("/").HandlerFunc(doReverseProxy(Client, Client.IsTLS(), RouteMatcher))
+
+	p := "/"
+	if len(PathPrefix) > 1 {
+		p = PathPrefix[0]
+
+	}
+	r.PathPrefix(p).HandlerFunc(doReverseProxy(Client, Client.IsTLS(), RouteMatcher))
+	AddMiddlewares(r, MiddlewareDefaultLogger)
 	S.RegisterRouter(r)
 }

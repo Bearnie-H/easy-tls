@@ -21,7 +21,7 @@ type TLSBundle struct {
 	Enabled               bool `json:"-"`
 }
 
-// NewTLSConfig will convert the TLSBundle, containing the filenames of the relevant certificates and Authorization policy, into a workable tls.Config object, ready to be used by either a Client or Server application.
+// NewTLSConfig will convert the TLSBundle, containing the filenames of the relevant certificates and Authorization policy, into a workable tls.Config object, ready to be used by either a SimpleClient or SimpleServer application.
 func NewTLSConfig(TLS *TLSBundle) (*tls.Config, error) {
 
 	returnConfig := &tls.Config{}

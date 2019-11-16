@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-// SimpleClient is a renaming of the Standard http.Client for this package, to allow the ease-of-use extensions provided here.
+// SimpleClient is an extension of the standard http.Client implementation, with additional utility functions and wrappers to simplify using it.
 type SimpleClient struct {
 	client *http.Client
 	tls    bool
@@ -27,8 +27,11 @@ func NewClientHTTPS(TLS *TLSBundle) (*SimpleClient, error) {
 
 	s := &SimpleClient{
 		client: &http.Client{
-			Timeout:   time.Hour * 1,
-			Transport: &http.Transport{TLSClientConfig: tls}},
+			Timeout: time.Hour,
+			Transport: &http.Transport{
+				TLSClientConfig:   tls,
+				ForceAttemptHTTP2: true,
+			}},
 		tls: Enabled,
 	}
 
