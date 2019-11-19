@@ -23,50 +23,58 @@ func doReverseProxy(C *SimpleClient, IsTLS bool, Matcher ReverseProxyRouterFunc)
 	}
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		url := &url.URL{}
-		*url = *r.URL
-		url.Host = Matcher(r)
-		if IsTLS {
-			url.Scheme = "https"
-		} else {
-			url.Scheme = "http"
-		}
 
-		proxyReq, err := http.NewRequest(r.Method, url.String(), r.Body)
+		// Create the new URL to use
+		proxyURL := formatProxyURL(r, IsTLS, Matcher)
+
+		// Create the new Request to send
+		proxyReq, err := newRequest(r.Method, proxyURL, r.Header, r.Body)
 		if err != nil {
 			log.Printf("Failed to create proxy forwarding request for %s from %s - %s", r.URL.String(), r.RemoteAddr, err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 
-		proxyReq.Header.Set("Host", r.Host)
-		proxyReq.Header.Set("X-Forwarded-For", r.RemoteAddr)
+		// Add in some proxy-specific headers
+		proxyReq.Header.Add("Host", r.Host)
+		proxyReq.Header.Add("X-Forwarded-For", r.RemoteAddr)
 
-		for header, values := range r.Header {
-			for _, value := range values {
-				proxyReq.Header.Add(header, value)
-			}
-		}
-
+		// Perform the full proxy request
 		proxyResp, err := C.Do(proxyReq)
 		if err != nil {
 			log.Printf("Failed to perform proxy request for %s from %s - %s", r.URL.String(), r.RemoteAddr, err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-
-		// Write the response back as if it were generated at the proxy.
 		defer proxyResp.Body.Close()
+
+		// Write back the header fields
 		for header, values := range proxyResp.Header {
 			for _, value := range values {
-				proxyResp.Header.Add(header, value)
+				w.Header().Add(header, value)
 			}
 		}
+
+		// Write back the status code
 		w.WriteHeader(proxyResp.StatusCode)
+
+		// Write back the response body
 		if _, err := io.Copy(w, proxyResp.Body); err != nil {
 			log.Printf("Failed to write back proxy response for %s from %s - %s", r.URL.String(), r.RemoteAddr, err)
-			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 	})
+}
+
+func formatProxyURL(req *http.Request, IsTLS bool, MatcherFunc ReverseProxyRouterFunc) *url.URL {
+	proxyURL := &url.URL{}
+	*proxyURL = *req.URL
+	proxyURL.Host = MatcherFunc(req)
+	if IsTLS {
+		proxyURL.Scheme = "https"
+	} else {
+		proxyURL.Scheme = "http"
+	}
+
+	return proxyURL
 }

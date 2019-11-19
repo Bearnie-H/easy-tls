@@ -75,8 +75,10 @@ func (S *SimpleServer) SetTimeouts(ReadTimeout, ReadHeaderTimeout, WriteTimeout,
 
 // ListenAndServe will start the SimpleServer, serving HTTPS if enabled, or HTTP if not
 func (S *SimpleServer) ListenAndServe() error {
+
 	S.stopped.Store(false)
 	var err error
+
 	if S.tls.Enabled {
 		log.Printf("Serving HTTPS at: %s\n", S.server.Addr)
 		err = S.server.ListenAndServeTLS(S.tls.KeyPairs[0].Certificate, S.tls.KeyPairs[0].Key)
@@ -84,21 +86,27 @@ func (S *SimpleServer) ListenAndServe() error {
 		log.Printf("Serving HTTP at: %s\n", S.server.Addr)
 		err = S.server.ListenAndServe()
 	}
+
 	for !S.stopped.Load().(bool) {
 		log.Println("Waiting for server to shut down...")
 		time.Sleep(time.Second)
 	}
+
 	if err != http.ErrServerClosed {
 		return err
 	}
+
 	return nil
 }
 
 // Shutdown will safely shut down the SimpleServer, returning any errors
 func (S *SimpleServer) Shutdown() {
+
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*15)
+
 	defer cancel()
 	defer func() { S.stopped.Store(true) }()
+
 	S.server.Shutdown(ctx)
 }
 
@@ -111,7 +119,7 @@ func (S *SimpleServer) RegisterRouter(r http.Handler) {
 func (S *SimpleServer) EnableAboutHandler(r *mux.Router) {
 	routeList := strings.Join(S.registeredRoutes, "\n")
 	aboutHandler := func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte(routeList))
+		w.Write([]byte(routeList + "\n"))
 	}
 	r.HandleFunc("/about", aboutHandler)
 }
@@ -122,20 +130,14 @@ func (S *SimpleServer) Addr() string {
 }
 
 // ConfigureReverseProxy will convert a freshly created SimpleServer into a ReverseProxy, forwarding all incoming traffic based on the RouteMatcher func provided.  This will create the necessary HTTP handler, and configure the necessary routing.
-//
-// PathPrefix is variadic to allow for no argument to be specified.  If no argument is specified, this will forward all traffic starting with path "/".  If multiple PathPrefix arguments are provided, only the first will be used.
-func (S *SimpleServer) ConfigureReverseProxy(Client *SimpleClient, RouteMatcher ReverseProxyRouterFunc, Middlewares []MiddlewareHandler, PathPrefix ...string) {
+func (S *SimpleServer) ConfigureReverseProxy(Client *SimpleClient, RouteMatcher ReverseProxyRouterFunc, PathPrefix string, Middlewares ...MiddlewareHandler) {
 
 	r := NewDefaultRouter()
 
-	p := "/"
-	if len(PathPrefix) > 1 {
-		p = PathPrefix[0]
+	r.PathPrefix(PathPrefix).HandlerFunc(doReverseProxy(Client, Client.IsTLS(), RouteMatcher))
 
-	}
-
-	r.PathPrefix(p).HandlerFunc(doReverseProxy(Client, Client.IsTLS(), RouteMatcher))
 	AddMiddlewares(r, MiddlewareDefaultLogger)
 	AddMiddlewares(r, Middlewares...)
+
 	S.RegisterRouter(r)
 }

@@ -23,8 +23,6 @@ func NewClientHTTPS(TLS *TLSBundle) (*SimpleClient, error) {
 		return nil, err
 	}
 
-	Enabled := !(TLS == nil)
-
 	s := &SimpleClient{
 		client: &http.Client{
 			Timeout: time.Hour,
@@ -32,7 +30,7 @@ func NewClientHTTPS(TLS *TLSBundle) (*SimpleClient, error) {
 				TLSClientConfig:   tls,
 				ForceAttemptHTTP2: true,
 			}},
-		tls: Enabled,
+		tls: !(TLS == nil),
 	}
 
 	return s, nil

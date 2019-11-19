@@ -24,6 +24,11 @@ func NewDefaultRouter() *mux.Router {
 
 // NewRouter will build a new complex router, with the given routes, and middlewares.  More can be added later, if needed.
 func NewRouter(s *SimpleServer, Handlers []SimpleHandler, Middlewares ...MiddlewareHandler) *mux.Router {
+
+	if s == nil {
+		panic(nil)
+	}
+
 	r := NewDefaultRouter()
 
 	AddMiddlewares(r, Middlewares...)
