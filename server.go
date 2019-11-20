@@ -100,14 +100,14 @@ func (S *SimpleServer) ListenAndServe() error {
 }
 
 // Shutdown will safely shut down the SimpleServer, returning any errors
-func (S *SimpleServer) Shutdown() {
+func (S *SimpleServer) Shutdown() error {
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*15)
 
 	defer cancel()
 	defer func() { S.stopped.Store(true) }()
 
-	S.server.Shutdown(ctx)
+	return S.server.Shutdown(ctx)
 }
 
 // RegisterRouter will register the given Handler (typically an *http.ServeMux or *mux.Router) as the http Handler for the server.
