@@ -20,9 +20,9 @@ type ServerPluginAgent struct {
 }
 
 // NewServerAgent will create a new Server Plugin agent, ready to register plugins.
-func NewServerAgent(Version SemanticVersion, PluginFolder string, Logger io.WriteCloser) (*ServerPluginAgent, error) {
+func NewServerAgent(PluginFolder string, Logger io.WriteCloser) (*ServerPluginAgent, error) {
 	A := &ServerPluginAgent{
-		frameworkVersion:   Version,
+		frameworkVersion:   ServerFrameworkVersion,
 		PluginSearchFolder: PluginFolder,
 		registeredPlugins:  []ServerPlugin{},
 		logger:             Logger,
