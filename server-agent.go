@@ -12,7 +12,7 @@ import (
 // ServerPluginAgent represents the a Plugin Manager agent to be used with a SimpleServer.
 type ServerPluginAgent struct {
 	frameworkVersion   SemanticVersion
-	registeredPlugins  []ServerPlugin
+	RegisteredPlugins  []ServerPlugin
 	logger             io.WriteCloser
 	PluginSearchFolder string
 
@@ -24,7 +24,7 @@ func NewServerAgent(PluginFolder string, Logger io.WriteCloser) (*ServerPluginAg
 	A := &ServerPluginAgent{
 		frameworkVersion:   ServerFrameworkVersion,
 		PluginSearchFolder: PluginFolder,
-		registeredPlugins:  []ServerPlugin{},
+		RegisteredPlugins:  []ServerPlugin{},
 		logger:             Logger,
 		stopped:            false,
 	}
@@ -48,7 +48,7 @@ func (SA *ServerPluginAgent) RegisterPlugins() error {
 	for _, f := range files {
 		newPlugin, err := InitializeServerPlugin(f, SA.frameworkVersion)
 		if err == nil {
-			SA.registeredPlugins = append(SA.registeredPlugins, *newPlugin)
+			SA.RegisteredPlugins = append(SA.RegisteredPlugins, *newPlugin)
 		}
 	}
 
@@ -69,12 +69,12 @@ func (SA *ServerPluginAgent) Run(blocking bool) error {
 
 func (SA *ServerPluginAgent) run() error {
 
-	if len(SA.registeredPlugins) == 0 {
+	if len(SA.RegisteredPlugins) == 0 {
 		return errors.New("easytls plugin error - Server Plugin Agent has 0 registered plugins")
 	}
 
 	wg := &sync.WaitGroup{}
-	for _, registeredPlugin := range SA.registeredPlugins {
+	for _, registeredPlugin := range SA.RegisteredPlugins {
 		wg.Add(1)
 
 		// Start the plugin...
@@ -117,7 +117,7 @@ func (SA *ServerPluginAgent) Stop() error {
 	defer func() { SA.stopped = true }()
 
 	wg := &sync.WaitGroup{}
-	for _, p := range SA.registeredPlugins {
+	for _, p := range SA.RegisteredPlugins {
 		wg.Add(1)
 
 		go func(p ServerPlugin, wg *sync.WaitGroup) {
