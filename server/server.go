@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
 	"log"
 	"net/http"
@@ -13,21 +14,35 @@ import (
 	"github.com/gorilla/mux"
 )
 
-// SimpleServer represents an extension to the standard http.Server
+// SimpleServer is the extension to the default http.Server this package provides.
 type SimpleServer struct {
-	server           *http.Server
-	registeredRoutes []string
-	tls              *easytls.TLSBundle
-	stopped          atomic.Value
+	server              *http.Server
+	registeredRoutes    []string
+	tls                 *easytls.TLSBundle
+	stopped             atomic.Value
+	aboutHandlerEnabled bool
 }
 
-// NewServerHTTP will create a new http.Server, with no TLS settings enabled.  This will accept raw HTTP only.
+// NewServerHTTP will create a new HTTP-only server which will serve on the specified IP:Port address.  This has NO TLS settings enabled.  The server returned from this function only has the default http.ServeMux as the Router, so should have a dedicated router registered.
 func NewServerHTTP(Addr string) (*SimpleServer, error) {
 	return NewServerHTTPS(nil, Addr)
 }
 
-// NewServerHTTPS will create a new TLS-Enabled http.Server.  This will accept HTTPS, and fully initialize the server based on the TLSBundle provided.
+// NewServerHTTPS will create a new HTTPS-only server which will serve on the specified IP:Port address.  The server returned from this function only has the default http.ServeMux as the Router, so should have a dedicated router registered.
 func NewServerHTTPS(TLS *easytls.TLSBundle, Addr string) (*SimpleServer, error) {
+
+	// If the TLSBundle is nil, just create a server without TLS settings.
+	if TLS == nil {
+		return &SimpleServer{
+			server: &http.Server{
+				Addr:      Addr,
+				TLSConfig: &tls.Config{},
+			},
+			tls: &easytls.TLSBundle{
+				Enabled: false,
+			},
+		}, nil
+	}
 
 	// Create the TLS settings as defined in the TLSBundle
 	tls, err := easytls.NewTLSConfig(TLS)
@@ -35,47 +50,41 @@ func NewServerHTTPS(TLS *easytls.TLSBundle, Addr string) (*SimpleServer, error) 
 		return nil, err
 	}
 
-	// Create the Server
-	s := &http.Server{
-		Addr:      Addr,
-		TLSConfig: tls,
-	}
-
-	if TLS != nil {
-		return &SimpleServer{
-			server: s,
-			tls:    TLS,
-		}, nil
-	}
+	// Create the TLS-Enabled server.
 	return &SimpleServer{
-		server: s,
-		tls: &easytls.TLSBundle{
-			Enabled: false,
+		server: &http.Server{
+			Addr:      Addr,
+			TLSConfig: tls,
 		},
+		tls: TLS,
 	}, nil
 }
 
-// SetTimeouts will set the given timeouts of the Server to what is passed.  Set 0 to leave uninitialized.
+// SetTimeouts will set the given timeouts of the Server.  Set 0 to leave uninitialized.
 func (S *SimpleServer) SetTimeouts(ReadTimeout, ReadHeaderTimeout, WriteTimeout, IdleTimeout time.Duration) {
 
+	// Timeout to read the full request
 	if ReadTimeout != 0 {
 		S.server.ReadTimeout = ReadTimeout
 	}
 
+	// Timeout to read the header of a request
 	if ReadHeaderTimeout != 0 {
 		S.server.ReadHeaderTimeout = ReadHeaderTimeout
 	}
 
+	// Timeout to finish the full response
 	if WriteTimeout != 0 {
 		S.server.WriteTimeout = WriteTimeout
 	}
 
+	// How long to keep connections alive (if keep-alives are enabled.)
 	if IdleTimeout != 0 {
 		S.server.IdleTimeout = IdleTimeout
 	}
 }
 
-// ListenAndServe will start the SimpleServer, serving HTTPS if enabled, or HTTP if not
+// ListenAndServe will start the SimpleServer, serving HTTPS if enabled, or HTTP if not.  This will properly wait for the shutdown to FINISH before returning.
 func (S *SimpleServer) ListenAndServe() error {
 
 	S.stopped.Store(false)
@@ -93,6 +102,7 @@ func (S *SimpleServer) ListenAndServe() error {
 		}
 	}
 
+	// Block while waiting for the server to fully shutdown.
 	for !S.stopped.Load().(bool) {
 		log.Println("Waiting for server to shut down...")
 		time.Sleep(time.Second)
@@ -119,6 +129,7 @@ func (S *SimpleServer) RegisterRouter(r http.Handler) {
 
 // EnableAboutHandler will enable and set up the "about" handler, to display the available routes.  This must be the last route registered in order for the full set of routes to be displayed.
 func (S *SimpleServer) EnableAboutHandler(r *mux.Router) {
+	S.aboutHandlerEnabled = true
 	routeList := append([]string{fmt.Sprintf("%-50s|    %v", "/about", []string{http.MethodGet})}, S.registeredRoutes...)
 	routes := strings.Join(routeList, "\n")
 	aboutHandler := func(w http.ResponseWriter, r *http.Request) {
@@ -127,7 +138,7 @@ func (S *SimpleServer) EnableAboutHandler(r *mux.Router) {
 	r.HandleFunc("/about", aboutHandler)
 }
 
-// Addr exposes the underlying TCP address of the SimpleServer.
+// Addr exposes the underlying IP:Port address of the SimpleServer.
 func (S *SimpleServer) Addr() string {
 	return S.server.Addr
 }

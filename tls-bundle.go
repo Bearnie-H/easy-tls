@@ -7,13 +7,13 @@ import (
 	"log"
 )
 
-// KeyPair represents the filenames to a pair of matching TLS Key/Certificate files.
+// KeyPair represents the filenames to a pair of matching TLS Key/Certificate files.  This can be either a Server-side or Client-side Certificate/Key pair.
 type KeyPair struct {
 	Certificate string
 	Key         string
 }
 
-// TLSBundle represents the set of TLS information required by Dune to assert 2-way TLS verification.
+// TLSBundle represents the set of TLS information required to generate a satisfactory tls.Config struct.
 type TLSBundle struct {
 	AuthorityCertificates []string
 	KeyPair               KeyPair
@@ -27,12 +27,8 @@ func NewTLSConfig(TLS *TLSBundle) (*tls.Config, error) {
 	returnConfig := &tls.Config{}
 
 	// If no TLS bundle is provided, or is it marked invalid, don't set any TLS settings.
-	if TLS == nil {
-		return &tls.Config{}, nil
-	}
-
-	if !TLS.Enabled {
-		return &tls.Config{}, nil
+	if TLS == nil || !TLS.Enabled {
+		return returnConfig, nil
 	}
 
 	// If no KeyPairs are provided, don't attempt to load Client-side certificates
@@ -40,7 +36,7 @@ func NewTLSConfig(TLS *TLSBundle) (*tls.Config, error) {
 		cert, err := tls.LoadX509KeyPair(TLS.KeyPair.Certificate, TLS.KeyPair.Key)
 		if err != nil {
 			log.Printf("Failed to load  certificate - %s\n", err)
-			return &tls.Config{}, err
+			return returnConfig, err
 		}
 		returnConfig.Certificates = append(returnConfig.Certificates, cert)
 
@@ -62,14 +58,15 @@ func NewTLSConfig(TLS *TLSBundle) (*tls.Config, error) {
 			// Create and append the CA Cert to the pool of approved certificate authorities.
 			// This sets up so that ONLY the CA who signed this 's certificate can verify the recieved server certificate.
 			caCertPool.AppendCertsFromPEM(caCert)
-
-			// The way we implement TLS CAs here expects that the full set of accepted CAs is a whitelist, and whether we check or care about certificates is based on the ClientAuth.
-			returnConfig.RootCAs = caCertPool
-			returnConfig.ClientCAs = caCertPool
 		}
 
-		// Set this, if it wasn't set before, as there are now CA certs.
+		// The way we implement TLS CAs here expects that the full set of accepted CAs is a whitelist, and whether we check or care about certificates is based on the ClientAuth.
+		returnConfig.RootCAs = caCertPool
+		returnConfig.ClientCAs = caCertPool
+
 		returnConfig.MinVersion = tls.VersionTLS12
+
+		// Set this, if it wasn't set before, as there are now CA certs.
 		TLS.Enabled = true
 	}
 

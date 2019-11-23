@@ -10,7 +10,7 @@ import (
 	"github.com/Bearnie-H/easy-tls/server"
 )
 
-// ConfigureReverseProxy will convert a freshly created SimpleServer into a ReverseProxy, forwarding all incoming traffic based on the RouteMatcher func provided.  This will create the necessary HTTP handler, and configure the necessary routing.
+// ConfigureReverseProxy will convert a freshly created SimpleServer into a ReverseProxy.  This will use either the provided SimpleClient (or a default HTTP SimpleClient) to perform the requests.  The ReverseProxyRouterFunc defines HOW the routing will be peformed, and must map individual requests to URLs to forward to.  The PathPrefix defines the base path to proxy from, with a default of "/" indicating that ALL incoming requests should be proxied.  Finally, any middlewares desired can be added, noting that the "MiddlewareDefaultLogger" is applied in all cases.
 func ConfigureReverseProxy(S *server.SimpleServer, Client *client.SimpleClient, RouteMatcher ReverseProxyRouterFunc, PathPrefix string, Middlewares ...server.MiddlewareHandler) {
 
 	r := server.NewDefaultRouter()
@@ -23,13 +23,19 @@ func ConfigureReverseProxy(S *server.SimpleServer, Client *client.SimpleClient, 
 	S.RegisterRouter(r)
 }
 
-// ReverseProxyRouterFunc will take a request, and determine which URL Host to forward it to.  This result must be an IP:Port combination as standard in the http package.
+// ReverseProxyRouterFunc represents the Type which must be satisfied by any function which defines the per-request routing behaviours.  This must map a given request to a specific IP:Port host.
 type ReverseProxyRouterFunc func(*http.Request) string
 
-// doReverseProxy will forward all traffic coming in through the SimpleClient, swapping to/from TLS as specified by the SimpleClient, and determining which remote host to forward to based on the Matcher function.  This provides an opaque connection, and neither side should know they are talking through a proxy, aside from the headers explicitly placed into the ProxyRequest.
+// doReverseProxy is the backbone of this package, and the reverse Proxy behaviour in general.
+//
+// This is the http.HandlerFunc which is called on ALL incoming requests to the reverse proxy.  At a high level this function:
+//	1) Determines the forward host, from the incoming request
+//	2) Creates a NEW request, performing a deep copy of the original, excluding the body
+//	3) Performs this new request, using the provided (or default) SimpleClient to the new Host.
+//	4) Receives the corresponding response, and deep copies it back to the original requester.
 func doReverseProxy(C *client.SimpleClient, IsTLS bool, Matcher ReverseProxyRouterFunc) http.HandlerFunc {
 
-	// If no client is provided, create one.
+	// If no client is provided, create a default HTTP Client to perform the requests.
 	if C == nil {
 		var err error
 		C, err = client.NewClientHTTP()
@@ -38,9 +44,10 @@ func doReverseProxy(C *client.SimpleClient, IsTLS bool, Matcher ReverseProxyRout
 		}
 	}
 
+	// Anonymous function to be returned, and is what is actually called when requests come in.
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
-		// Create the new URL to use
+		// Create the new URL to use, based on the TLS settings of the Client, and the incoming request.
 		proxyURL := formatProxyURL(r, IsTLS, Matcher)
 
 		// Create the new Request to send
@@ -64,7 +71,7 @@ func doReverseProxy(C *client.SimpleClient, IsTLS bool, Matcher ReverseProxyRout
 		}
 		defer proxyResp.Body.Close()
 
-		// Write back the header fields
+		// Write the response fields out to the original requester
 		for header, values := range proxyResp.Header {
 			for _, value := range values {
 				w.Header().Add(header, value)
@@ -82,14 +89,17 @@ func doReverseProxy(C *client.SimpleClient, IsTLS bool, Matcher ReverseProxyRout
 	})
 }
 
+// formatProxyURL will look at the original request, the TLS Settings of the SimpleClient, and generate what the new URL must be for the proxied request.
 func formatProxyURL(req *http.Request, IsTLS bool, MatcherFunc ReverseProxyRouterFunc) *url.URL {
 	proxyURL := &url.URL{}
+
+	// Deep Copy
 	*proxyURL = *req.URL
+
 	proxyURL.Host = MatcherFunc(req)
+	proxyURL.Scheme = "http"
 	if IsTLS {
 		proxyURL.Scheme = "https"
-	} else {
-		proxyURL.Scheme = "http"
 	}
 
 	return proxyURL
