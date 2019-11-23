@@ -1,4 +1,4 @@
-package easytls
+package plugins
 
 import (
 	"fmt"

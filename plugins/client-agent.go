@@ -1,4 +1,4 @@
-package easytls
+package plugins
 
 import (
 	"errors"
@@ -7,11 +7,12 @@ import (
 	"path/filepath"
 	"sort"
 	"sync"
+	"github.com/Bearnie-H/easy-tls/client"
 )
 
 // ClientPluginAgent represents the a Plugin Manager agent to be used with a SimpleClient.
 type ClientPluginAgent struct {
-	client             *SimpleClient
+	client             *client.SimpleClient
 	frameworkVersion   SemanticVersion
 	registeredPlugins  []ClientPlugin
 	logger             io.WriteCloser
@@ -21,10 +22,10 @@ type ClientPluginAgent struct {
 }
 
 // NewClientAgent will create a new Client Plugin agent, ready to register plugins.
-func NewClientAgent(Client *SimpleClient, Version SemanticVersion, PluginFolder string, Logger io.WriteCloser) (*ClientPluginAgent, error) {
+func NewClientAgent(Client *client.SimpleClient, PluginFolder string, Logger io.WriteCloser) (*ClientPluginAgent, error) {
 	A := &ClientPluginAgent{
 		client:             Client,
-		frameworkVersion:   Version,
+		frameworkVersion:   ClientFrameworkVersion,
 		PluginSearchFolder: PluginFolder,
 		registeredPlugins:  []ClientPlugin{},
 		logger:             Logger,
@@ -80,7 +81,7 @@ func (CA *ClientPluginAgent) run() error {
 		wg.Add(1)
 
 		// Start the plugin...
-		go func(c *SimpleClient, p ClientPlugin, wg *sync.WaitGroup) {
+		go func(c *client.SimpleClient, p ClientPlugin, wg *sync.WaitGroup) {
 
 			// Start logging plugin status messages.
 			go func(wg *sync.WaitGroup) {

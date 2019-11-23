@@ -16,7 +16,7 @@ type KeyPair struct {
 // TLSBundle represents the set of TLS information required by Dune to assert 2-way TLS verification.
 type TLSBundle struct {
 	AuthorityCertificates []string
-	KeyPairs              []KeyPair
+	KeyPair               KeyPair
 	Auth                  tls.ClientAuthType
 	Enabled               bool `json:"-"`
 }
@@ -36,15 +36,13 @@ func NewTLSConfig(TLS *TLSBundle) (*tls.Config, error) {
 	}
 
 	// If no KeyPairs are provided, don't attempt to load Client-side certificates
-	if len(TLS.KeyPairs) > 0 {
-		for _, Pair := range TLS.KeyPairs {
-			cert, err := tls.LoadX509KeyPair(Pair.Certificate, Pair.Key)
-			if err != nil {
-				log.Printf("Failed to load  certificate - %s\n", err)
-				return &tls.Config{}, err
-			}
-			returnConfig.Certificates = append(returnConfig.Certificates, cert)
+	if TLS.KeyPair.Certificate == "" || TLS.KeyPair.Key == "" {
+		cert, err := tls.LoadX509KeyPair(TLS.KeyPair.Certificate, TLS.KeyPair.Key)
+		if err != nil {
+			log.Printf("Failed to load  certificate - %s\n", err)
+			return &tls.Config{}, err
 		}
+		returnConfig.Certificates = append(returnConfig.Certificates, cert)
 
 		// If there are Certificates, the TLS min version can be set (1.2 is used here for backwards-compatability)
 		returnConfig.MinVersion = tls.VersionTLS12

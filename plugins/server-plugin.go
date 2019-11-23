@@ -1,8 +1,10 @@
-package easytls
+package plugins
 
 import (
 	"path"
 	"plugin"
+
+	"github.com/Bearnie-H/easy-tls/server"
 )
 
 // ServerPlugin represents a EasyTLS-compatible Plugin to be used with an EasyTLS SimpleServer.
@@ -21,7 +23,7 @@ type ServerPluginAPI struct {
 	// Start a plugin.
 	//
 	// This will initialize the plugin, and return the set of Routes it can provide back to the SimpleServer.
-	Init func() ([]SimpleHandler, error)
+	Init func() ([]server.SimpleHandler, error)
 }
 
 // InitializeServerPlugin will initialize and return a Server Plugin, ready to be registered by a Server Plugin Agent.
@@ -70,7 +72,7 @@ func loadServerPluginSymbols(Filename string) (ServerPluginAPI, error) {
 		return API, err
 	}
 
-	initSym, ok := sym.(func() ([]SimpleHandler, error))
+	initSym, ok := sym.(func() ([]server.SimpleHandler, error))
 	if !ok {
 		return API, err
 	}

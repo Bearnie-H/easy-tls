@@ -1,10 +1,10 @@
-package easytls
+package plugins
 
-import "fmt"
-
-import "plugin"
-
-import "errors"
+import (
+	"fmt"
+	"plugin"
+	"errors"
+)
 
 // Plugin represents the most generic features and functionality of a Plugin Object
 type Plugin struct {

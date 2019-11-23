@@ -1,8 +1,11 @@
-package easytls
+package plugins
 
-import "path"
+import (
+	"path"
+	"plugin"
 
-import "plugin"
+	"github.com/Bearnie-H/easy-tls/client"
+)
 
 // ClientPlugin represents a EasyTLS-compatible Plugin to be used with an EasyTLS SimpleClient.
 type ClientPlugin struct {
@@ -22,7 +25,7 @@ type ClientPluginAPI struct {
 	// This will provide a SimpleClient object for the Plugin to use for any HTTP(S) operations it should take.
 	// If a non-nil error is returned, this indicates that the initialization failed, and the Stop command should be used.
 	// No Plugins should function if Init returns a non-nil error.
-	Init func(*SimpleClient) error
+	Init func(*client.SimpleClient) error
 }
 
 // InitializeClientPlugin will initialize and return a Client Plugin, ready to be registered by a Client Plugin Agent.
@@ -71,7 +74,7 @@ func loadClientPluginSymbols(Filename string) (ClientPluginAPI, error) {
 		return API, err
 	}
 
-	initSym, ok := sym.(func(*SimpleClient) error)
+	initSym, ok := sym.(func(*client.SimpleClient) error)
 	if !ok {
 		return API, err
 	}

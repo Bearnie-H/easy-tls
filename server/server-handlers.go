@@ -1,4 +1,4 @@
-package easytls
+package server
 
 import "net/http"
 

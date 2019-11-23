@@ -1,4 +1,4 @@
-package easytls
+package client
 
 import (
 	"errors"
@@ -12,7 +12,7 @@ import (
 func (C *SimpleClient) Get(URL *url.URL, Headers map[string][]string) (*http.Response, error) {
 
 	// Create the request
-	req, err := newRequest(http.MethodGet, URL, Headers, nil)
+	req, err := NewRequest(http.MethodGet, URL, Headers, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -25,7 +25,7 @@ func (C *SimpleClient) Get(URL *url.URL, Headers map[string][]string) (*http.Res
 func (C *SimpleClient) Head(URL *url.URL, Headers map[string][]string) (http.Header, error) {
 
 	// Create the request
-	req, err := newRequest(http.MethodHead, URL, Headers, nil)
+	req, err := NewRequest(http.MethodHead, URL, Headers, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -44,7 +44,7 @@ func (C *SimpleClient) Head(URL *url.URL, Headers map[string][]string) (http.Hea
 func (C *SimpleClient) Post(URL *url.URL, Contents io.ReadCloser, Headers map[string][]string) (*http.Response, error) {
 
 	// Create the request
-	req, err := newRequest(http.MethodPost, URL, Headers, Contents)
+	req, err := NewRequest(http.MethodPost, URL, Headers, Contents)
 	if err != nil {
 		return nil, err
 	}
@@ -57,7 +57,7 @@ func (C *SimpleClient) Post(URL *url.URL, Contents io.ReadCloser, Headers map[st
 func (C *SimpleClient) Put(URL *url.URL, Contents io.ReadCloser, Headers map[string][]string) (*http.Response, error) {
 
 	// Create the request
-	req, err := newRequest(http.MethodPut, URL, Headers, Contents)
+	req, err := NewRequest(http.MethodPut, URL, Headers, Contents)
 	if err != nil {
 		return nil, err
 	}
@@ -70,7 +70,7 @@ func (C *SimpleClient) Put(URL *url.URL, Contents io.ReadCloser, Headers map[str
 func (C *SimpleClient) Delete(URL *url.URL, Headers map[string][]string) error {
 
 	// Create the request
-	req, err := newRequest(http.MethodDelete, URL, Headers, nil)
+	req, err := NewRequest(http.MethodDelete, URL, Headers, nil)
 	if err != nil {
 		return err
 	}
@@ -89,7 +89,7 @@ func (C *SimpleClient) Delete(URL *url.URL, Headers map[string][]string) error {
 func (C *SimpleClient) Patch(URL *url.URL, Contents io.ReadCloser, Headers map[string][]string) (*http.Response, error) {
 
 	// Create the request
-	req, err := newRequest(http.MethodPatch, URL, Headers, Contents)
+	req, err := NewRequest(http.MethodPatch, URL, Headers, Contents)
 	if err != nil {
 		return nil, err
 	}
@@ -107,7 +107,7 @@ func (C *SimpleClient) Connect(URL *url.URL, Headers map[string][]string) error 
 func (C *SimpleClient) Options(URL *url.URL, Headers map[string][]string) (*http.Response, error) {
 
 	// Create the request
-	req, err := newRequest(http.MethodOptions, URL, Headers, nil)
+	req, err := NewRequest(http.MethodOptions, URL, Headers, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -120,7 +120,7 @@ func (C *SimpleClient) Options(URL *url.URL, Headers map[string][]string) (*http
 func (C *SimpleClient) Trace(URL *url.URL, Headers map[string][]string) (*http.Response, error) {
 
 	// Create the request
-	req, err := newRequest(http.MethodTrace, URL, Headers, nil)
+	req, err := NewRequest(http.MethodTrace, URL, Headers, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -142,19 +142,4 @@ func (C *SimpleClient) Do(req *http.Request) (*http.Response, error) {
 
 	defer resp.Body.Close()
 	return nil, fmt.Errorf("Invalid status code - expected 2xx, got %d (%s)", resp.StatusCode, resp.Status)
-}
-
-func newRequest(Method string, URL *url.URL, Headers map[string][]string, Contents io.ReadCloser) (*http.Request, error) {
-	req, err := http.NewRequest(Method, URL.String(), Contents)
-	if err != nil {
-		return nil, err
-	}
-
-	for k, vs := range Headers {
-		for _, v := range vs {
-			req.Header.Add(k, v)
-		}
-	}
-
-	return req, nil
 }

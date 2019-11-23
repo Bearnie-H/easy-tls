@@ -1,4 +1,4 @@
-package easytls
+package server
 
 import (
 	"context"
@@ -9,6 +9,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	easytls "github.com/Bearnie-H/easy-tls"
 	"github.com/gorilla/mux"
 )
 
@@ -16,7 +17,7 @@ import (
 type SimpleServer struct {
 	server           *http.Server
 	registeredRoutes []string
-	tls              *TLSBundle
+	tls              *easytls.TLSBundle
 	stopped          atomic.Value
 }
 
@@ -26,10 +27,10 @@ func NewServerHTTP(Addr string) (*SimpleServer, error) {
 }
 
 // NewServerHTTPS will create a new TLS-Enabled http.Server.  This will accept HTTPS, and fully initialize the server based on the TLSBundle provided.
-func NewServerHTTPS(TLS *TLSBundle, Addr string) (*SimpleServer, error) {
+func NewServerHTTPS(TLS *easytls.TLSBundle, Addr string) (*SimpleServer, error) {
 
 	// Create the TLS settings as defined in the TLSBundle
-	tls, err := NewTLSConfig(TLS)
+	tls, err := easytls.NewTLSConfig(TLS)
 	if err != nil {
 		return nil, err
 	}
@@ -48,7 +49,7 @@ func NewServerHTTPS(TLS *TLSBundle, Addr string) (*SimpleServer, error) {
 	}
 	return &SimpleServer{
 		server: s,
-		tls: &TLSBundle{
+		tls: &easytls.TLSBundle{
 			Enabled: false,
 		},
 	}, nil
@@ -82,7 +83,7 @@ func (S *SimpleServer) ListenAndServe() error {
 
 	if S.tls.Enabled {
 		log.Printf("Serving HTTPS at: %s\n", S.server.Addr)
-		if err := S.server.ListenAndServeTLS(S.tls.KeyPairs[0].Certificate, S.tls.KeyPairs[0].Key); err != nil && err != http.ErrServerClosed {
+		if err := S.server.ListenAndServeTLS(S.tls.KeyPair.Certificate, S.tls.KeyPair.Key); err != nil && err != http.ErrServerClosed {
 			return err
 		}
 	} else {
@@ -129,17 +130,4 @@ func (S *SimpleServer) EnableAboutHandler(r *mux.Router) {
 // Addr exposes the underlying TCP address of the SimpleServer.
 func (S *SimpleServer) Addr() string {
 	return S.server.Addr
-}
-
-// ConfigureReverseProxy will convert a freshly created SimpleServer into a ReverseProxy, forwarding all incoming traffic based on the RouteMatcher func provided.  This will create the necessary HTTP handler, and configure the necessary routing.
-func (S *SimpleServer) ConfigureReverseProxy(Client *SimpleClient, RouteMatcher ReverseProxyRouterFunc, PathPrefix string, Middlewares ...MiddlewareHandler) {
-
-	r := NewDefaultRouter()
-
-	r.PathPrefix(PathPrefix).HandlerFunc(doReverseProxy(Client, Client.IsTLS(), RouteMatcher))
-
-	AddMiddlewares(r, MiddlewareDefaultLogger)
-	AddMiddlewares(r, Middlewares...)
-
-	S.RegisterRouter(r)
 }
