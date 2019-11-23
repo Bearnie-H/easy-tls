@@ -82,7 +82,7 @@ func (C *SimpleClient) EnableTLS(TLS *easytls.TLSBundle) error {
 }
 
 // DisableTLS will turn off the TLS settings for a SimpleClient.
-func (C *SimpleClient) DisableTLS() error {
+func (C *SimpleClient) DisableTLS() {
 	C.client = &http.Client{
 		Timeout: time.Hour,
 		Transport: &http.Transport{
@@ -91,6 +91,4 @@ func (C *SimpleClient) DisableTLS() error {
 		},
 	}
 	C.tls = false
-
-	return nil
 }
