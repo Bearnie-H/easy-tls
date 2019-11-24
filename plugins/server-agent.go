@@ -2,6 +2,7 @@ package plugins
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"path"
 	"path/filepath"
@@ -30,6 +31,20 @@ func NewServerAgent(PluginFolder string, Logger io.WriteCloser) (*ServerPluginAg
 	}
 
 	return A, nil
+}
+
+// GetPluginByName will return a pointer to the requested plugin.  This is typically used to provide input arguments for when the plugin is Initiated.
+func (SA *ServerPluginAgent) GetPluginByName(Name string) (*ServerPlugin, error) {
+	for index, p := range SA.RegisteredPlugins {
+		name, err := p.Name()
+		if err != nil {
+			return nil, err
+		}
+		if name == Name {
+			return &(SA.RegisteredPlugins[index]), nil
+		}
+	}
+	return nil, fmt.Errorf("easytls plugin error - Failed to find plugin %s", Name)
 }
 
 // RegisterPlugins will configure and register all of the plugins in the previously specified PluginFolder.  This will not start any of the plugins, but will only load the necessary symbols from them.
@@ -112,7 +127,7 @@ func (SA *ServerPluginAgent) run() error {
 	return nil
 }
 
-// Stop will SAuse ALL of the currentlyRunning Plugins to safely stop.
+// Stop will cause ALL of the currently Running Plugins to safely stop.
 func (SA *ServerPluginAgent) Stop() error {
 	defer func() { SA.stopped = true }()
 

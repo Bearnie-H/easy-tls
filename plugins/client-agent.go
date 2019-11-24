@@ -2,11 +2,13 @@ package plugins
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"path"
 	"path/filepath"
 	"sort"
 	"sync"
+
 	"github.com/Bearnie-H/easy-tls/client"
 )
 
@@ -14,7 +16,7 @@ import (
 type ClientPluginAgent struct {
 	client             *client.SimpleClient
 	frameworkVersion   SemanticVersion
-	registeredPlugins  []ClientPlugin
+	RegisteredPlugins  []ClientPlugin
 	logger             io.WriteCloser
 	PluginSearchFolder string
 
@@ -27,12 +29,26 @@ func NewClientAgent(Client *client.SimpleClient, PluginFolder string, Logger io.
 		client:             Client,
 		frameworkVersion:   ClientFrameworkVersion,
 		PluginSearchFolder: PluginFolder,
-		registeredPlugins:  []ClientPlugin{},
+		RegisteredPlugins:  []ClientPlugin{},
 		logger:             Logger,
 		stopped:            false,
 	}
 
 	return A, nil
+}
+
+// GetPluginByName will return a pointer to the requested plugin.  This is typically used to provide input arguments for when the plugin is Initiated.
+func (CA *ClientPluginAgent) GetPluginByName(Name string) (*ClientPlugin, error) {
+	for index, p := range CA.RegisteredPlugins {
+		name, err := p.Name()
+		if err != nil {
+			return nil, err
+		}
+		if name == Name {
+			return &(CA.RegisteredPlugins[index]), nil
+		}
+	}
+	return nil, fmt.Errorf("easytls plugin error - Failed to find plugin %s", Name)
 }
 
 // RegisterPlugins will configure and register all of the plugins in the previously specified PluginFolder.  This will not start any of the plugins, but will only load the necessary symbols from them.
@@ -51,7 +67,7 @@ func (CA *ClientPluginAgent) RegisterPlugins() error {
 	for _, f := range files {
 		newPlugin, err := InitializeClientPlugin(f, CA.frameworkVersion)
 		if err == nil {
-			CA.registeredPlugins = append(CA.registeredPlugins, *newPlugin)
+			CA.RegisteredPlugins = append(CA.RegisteredPlugins, *newPlugin)
 		}
 	}
 
@@ -72,12 +88,12 @@ func (CA *ClientPluginAgent) Run(blocking bool) error {
 
 func (CA *ClientPluginAgent) run() error {
 
-	if len(CA.registeredPlugins) == 0 {
+	if len(CA.RegisteredPlugins) == 0 {
 		return errors.New("easytls plugin error - Client Plugin Agent has 0 registered plugins")
 	}
 
 	wg := &sync.WaitGroup{}
-	for _, registeredPlugin := range CA.registeredPlugins {
+	for _, registeredPlugin := range CA.RegisteredPlugins {
 		wg.Add(1)
 
 		// Start the plugin...
@@ -109,7 +125,7 @@ func (CA *ClientPluginAgent) run() error {
 			}(wg)
 
 			// Start the plugin.
-			if err := p.Init(c); err != nil {
+			if err := p.Init(c, p.inputArguments...); err != nil {
 				if err := p.Stop(); err != nil {
 					CA.logger.Write([]byte(err.Error()))
 				}
@@ -127,7 +143,7 @@ func (CA *ClientPluginAgent) Stop() error {
 	defer func() { CA.stopped = true }()
 
 	wg := &sync.WaitGroup{}
-	for _, p := range CA.registeredPlugins {
+	for _, p := range CA.RegisteredPlugins {
 		wg.Add(1)
 
 		go func(p ClientPlugin, wg *sync.WaitGroup) {

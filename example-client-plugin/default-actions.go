@@ -4,10 +4,11 @@ import (
 	"errors"
 	"fmt"
 
-	easytls "github.com/Bearnie-H/easy-tls"
+	"github.com/Bearnie-H/easy-tls/client"
+	"github.com/Bearnie-H/easy-tls/plugins"
 )
 
-func defaultInitialization(Client *easytls.SimpleClient) error {
+func defaultInitialization(Client *client.SimpleClient, args ...interface{}) error {
 
 	// ...
 
@@ -15,7 +16,7 @@ func defaultInitialization(Client *easytls.SimpleClient) error {
 }
 
 // Status will prepare the StatusChannel and return it, a Non-Nil error implies a failure and means the channel is NOT initialized.
-func Status() (<-chan easytls.PluginStatus, error) {
+func Status() (<-chan plugins.PluginStatus, error) {
 
 	// Make this call idempotent.
 	if StatusChannel != nil {
@@ -23,14 +24,14 @@ func Status() (<-chan easytls.PluginStatus, error) {
 	}
 
 	// Create a single non-blocking channel
-	StatusChannel = make(chan easytls.PluginStatus, 1)
+	StatusChannel = make(chan plugins.PluginStatus, 1)
 
 	return StatusChannel, nil
 }
 
 // Version will compare the version of the Framework with what this module is defined to be compatable with.
-func Version(FrameworkVersion easytls.SemanticVersion) error {
-	if easytls.Accepts(FrameworkVersion, RequiresFrameworkMinVersion, RequiresFrameworkMaxVersion) {
+func Version(FrameworkVersion plugins.SemanticVersion) error {
+	if plugins.Accepts(FrameworkVersion, RequiresFrameworkMinVersion, RequiresFrameworkMaxVersion) {
 		return nil
 	}
 	return fmt.Errorf("easytls module error: Incompatable versions - %s !<= %s !<= %s", RequiresFrameworkMinVersion.String(), FrameworkVersion.String(), RequiresFrameworkMaxVersion.String())
@@ -42,7 +43,7 @@ func Name() (string, error) {
 }
 
 // WriteStatus is the standard mechanism for writing a status message out to the framework.  This function can and should be passed in to sub-packages as necessary within the plugin, along with the StatusChannel itself (or at least a pointer to these).
-func WriteStatus(NewStatus easytls.PluginStatus) error {
+func WriteStatus(NewStatus plugins.PluginStatus) error {
 
 	// Cannot write a status to an uninitialized channel
 	if StatusChannel == nil {

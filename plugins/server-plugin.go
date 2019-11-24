@@ -23,7 +23,7 @@ type ServerPluginAPI struct {
 	// Start a plugin.
 	//
 	// This will initialize the plugin, and return the set of Routes it can provide back to the SimpleServer.
-	Init func() ([]server.SimpleHandler, error)
+	Init func(...interface{}) ([]server.SimpleHandler, error)
 }
 
 // InitializeServerPlugin will initialize and return a Server Plugin, ready to be registered by a Server Plugin Agent.
@@ -72,7 +72,7 @@ func loadServerPluginSymbols(Filename string) (ServerPluginAPI, error) {
 		return API, err
 	}
 
-	initSym, ok := sym.(func() ([]server.SimpleHandler, error))
+	initSym, ok := sym.(func(...interface{}) ([]server.SimpleHandler, error))
 	if !ok {
 		return API, err
 	}

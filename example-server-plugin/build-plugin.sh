@@ -49,9 +49,9 @@ function ShouldRun() {
 
 function main() {
 
-    echo -e $BLUE"\nExecuting $0"$CLEAR
-
     buildDir=$(cd "$(dirname "$0")"; pwd)
+
+    echo -e $BLUE"\nExecuting $buildDir/$(basename "$0")"$CLEAR
 
     cd "$buildDir"
 
@@ -80,11 +80,12 @@ function main() {
     mkdir -p "$artefactDirectory"
     echo -e $BLUE"Updating Module Build Number..."$CLEAR
     incrementBuildCount
-    echo -e $BLUE"Finished Updating Module Build Number."$CLEAR
+    echo -e $GREEN"Finished Updating Module Build Number."$CLEAR
 
     pluginName=$(basename "$buildDir")
-    pluginName=$(echo "$ModuleType" | tr '[:upper:]' '[:lower:]')"$pluginName"
+    pluginName=$(echo "$ModuleType" | tr '[:upper:]' '[:lower:]')"-$pluginName"
 
+    echo -e $BLUE"Compiling module $(basename $buildDir)..."$CLEAR
     go build -buildmode=plugin -o "$artefactDirectory/$pluginName.so" -gcflags="all=-N -l"
     if [ $? -eq 0 ]; then
         echo -e $GREEN"Built Module $(basename $buildDir). Artefact located at \"$artefactDirectory/$pluginName.so\" "$CLEAR
@@ -95,7 +96,7 @@ function main() {
         exit 1
     fi
 
-    echo -e $BLUE"Finished Executing $0\n"$CLEAR
+    echo -e $GREEN"Finished Executing $buildDir/$(basename "$0")"$CLEAR
 }
 
 #   Parse the command-line arguments

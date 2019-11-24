@@ -1,9 +1,9 @@
 package plugins
 
 import (
+	"errors"
 	"fmt"
 	"plugin"
-	"errors"
 )
 
 // Plugin represents the most generic features and functionality of a Plugin Object
@@ -15,9 +15,17 @@ type Plugin struct {
 	// Filepath represents the full path to the plugin file.
 	Filepath string
 
+	// Plugins are allowed to have input arguments, which can be stored here to be passed in by the pluginAgent
+	inputArguments []interface{}
+
 	// All Plugins implement the basic API Contract.
 	// This must be a struct and not an interface because the actual function bodies will be returned from loading the plugin file.
 	PluginAPI
+}
+
+// SetInputArguments will set the input arguments passed to a given plugin to be exactly what is passed to this function.
+func (P *Plugin) SetInputArguments(args ...interface{}) {
+	P.inputArguments = args
 }
 
 // PluginAPI represents the base API contract which must be satisfied by ANY plugin.

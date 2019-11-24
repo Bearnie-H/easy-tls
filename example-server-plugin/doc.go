@@ -1,4 +1,2 @@
-// This command represents a generic starting point for a server-side plugin module.
-//
-//
+// This command represents a...
 package main
