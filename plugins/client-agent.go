@@ -25,6 +25,15 @@ type ClientPluginAgent struct {
 
 // NewClientAgent will create a new Client Plugin agent, ready to register plugins.
 func NewClientAgent(Client *client.SimpleClient, PluginFolder string, Logger io.WriteCloser) (*ClientPluginAgent, error) {
+
+	var err error
+	if Client == nil {
+		Client, err = client.NewClientHTTP()
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	A := &ClientPluginAgent{
 		client:             Client,
 		frameworkVersion:   ClientFrameworkVersion,

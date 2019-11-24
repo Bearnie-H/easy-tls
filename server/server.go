@@ -24,12 +24,25 @@ type SimpleServer struct {
 }
 
 // NewServerHTTP will create a new HTTP-only server which will serve on the specified IP:Port address.  This has NO TLS settings enabled.  The server returned from this function only has the default http.ServeMux as the Router, so should have a dedicated router registered.
+//
+// The default address of ":8080" will be used if none is provided
 func NewServerHTTP(Addr string) (*SimpleServer, error) {
+
+	if Addr == "" {
+		Addr = ":8080"
+	}
+
 	return NewServerHTTPS(nil, Addr)
 }
 
 // NewServerHTTPS will create a new HTTPS-only server which will serve on the specified IP:Port address.  The server returned from this function only has the default http.ServeMux as the Router, so should have a dedicated router registered.
+//
+// The default address of ":8080" will be used if none is provided
 func NewServerHTTPS(TLS *easytls.TLSBundle, Addr string) (*SimpleServer, error) {
+
+	if Addr == "" {
+		Addr = ":8080"
+	}
 
 	// If the TLSBundle is nil, just create a server without TLS settings.
 	if TLS == nil {
