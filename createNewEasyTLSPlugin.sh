@@ -32,11 +32,15 @@ function helpMenu() {
 
     $scriptName $YELLOW[-hnpt]$CLEAR
 
-        $BLUE-h$CLEAR  Help Menu    -   Print this help menu and exit
+        $BLUE-h$CLEAR  Help Menu    -   Print this help menu and exit,
         $BLUE-n$CLEAR  Module Name  -   The name of the module.  This defines the folder base 
-                                            of the module and URL base for Server modules
+                                            of the module and root URL for Server modules.
+        $BLUE-r$CLEAR  Refresh      -   Simply refresh the local copy of the EasyTLS library.
         $BLUE-p$CLEAR  Project Path -   The local path (from $GOPATH/src) to the folder to create the new module in.
         $BLUE-t$CLEAR  Module Type  -   \"Server\" or \"Client\"
+
+    The new module folder will be located at exactly: 
+        $YELLOW\"$GOPATH/src/<Project Path>/<Module Type>-plugins/<Module Name>/\"$CLEAR
         "
     exit 0
 }
@@ -56,7 +60,16 @@ function toLower() {
 }
 
 function refreshEasyTLS() {
+
+    echo -e $BLUE"Refreshing EasyTLS library from source..."$CLEAR
+
     go get -u "github.com/Bearnie-H/easy-tls"
+
+    if [ $? -eq 0 ]; then
+        echo -e $GREEN"Successfully refreshed EasyTLS library."$CLEAR
+    else
+        echo -e $RED"ERROR: Failed to refresh EasyTLS library!"$CLEAR
+    fi
 } 
 
 function main() {
@@ -74,13 +87,16 @@ function main() {
 
 #   Parse the command-line arguments
 OPTIND=1
-while getopts "hn:p:t:" opt; do
+while getopts "hn:p:rt:" opt; do
     case "$opt" in
     h)  helpMenu
         ;;
     n)  ModuleName=$OPTARG
         ;;
     p)  ProjectFolder=$OPTARG
+        ;;
+    r)  refreshEasyTLS
+        exit 0
         ;;
     t)  ModuleType=$OPTARG
         ;;
