@@ -37,16 +37,16 @@ func Version(FrameworkVersion plugins.SemanticVersion) error {
 }
 
 // Name will return the name of this module, in a canonical format.
-func Name() (string, error) {
-	return fmt.Sprintf("%s-%s", PluginName, PluginVersion.String()), nil
+func Name() string {
+	return fmt.Sprintf("%s-%s", PluginName, PluginVersion.String())
 }
 
 // WriteStatus is the standard mechanism for writing a status message out to the framework.  This function can and should be passed in to sub-packages as necessary within the plugin, along with the StatusChannel itself (or at least a pointer to these).
-func WriteStatus(Message string, err error, Fatal bool) error {
+func WriteStatus(Message string, Error error, Fatal bool, args ...interface{}) error {
 
 	NewStatus := plugins.PluginStatus{
-		Message: Message,
-		Error:   err,
+		Message: fmt.Sprintf("[%s]: %s", PluginName, fmt.Sprintf(Message, args...)),
+		Error:   Error,
 		IsFatal: Fatal,
 	}
 

@@ -1,17 +1,11 @@
 package main
 
 import (
-	"io"
-	"os"
-
 	"github.com/Bearnie-H/easy-tls/plugins"
 )
 
 // PluginName is the name of the current plugin.
 const PluginName string = "DEFINE_ME"
-
-// LogFile represents how the module should log.  This must be WriteCloser, or be provided a NopClose method.
-var LogFile io.WriteCloser = os.Stdout
 
 // Semantic Versioning Information
 var (

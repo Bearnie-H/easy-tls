@@ -32,10 +32,10 @@ func NewTLSConfig(TLS *TLSBundle) (*tls.Config, error) {
 	}
 
 	// If no KeyPairs are provided, don't attempt to load Client-side certificates
-	if TLS.KeyPair.Certificate == "" || TLS.KeyPair.Key == "" {
+	if TLS.KeyPair.Certificate != "" && TLS.KeyPair.Key != "" {
 		cert, err := tls.LoadX509KeyPair(TLS.KeyPair.Certificate, TLS.KeyPair.Key)
 		if err != nil {
-			log.Printf("Failed to load  certificate - %s\n", err)
+			log.Printf("Failed to load certificate - %s\n", err)
 			return returnConfig, err
 		}
 		returnConfig.Certificates = append(returnConfig.Certificates, cert)
