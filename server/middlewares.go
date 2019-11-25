@@ -25,6 +25,9 @@ func MiddlewareLimitMaxConnections(ConnectionLimit int, Timeout time.Duration, v
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
 			// Set up a timer that will "tick" at some point in the future
+			if Timeout == 0 {
+				Timeout = time.Hour * 6
+			}
 			timer := time.NewTimer(Timeout)
 
 			// Block on one of two channels...
@@ -58,6 +61,9 @@ func MiddlewareLimitConnectionRate(CycleTime time.Duration, Timeout time.Duratio
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
 			// Set up a timer that will "tick" at some point in the future
+			if Timeout == 0 {
+				Timeout = time.Hour * 6
+			}
 			timer := time.NewTimer(Timeout)
 
 			// Block on one of two channels...

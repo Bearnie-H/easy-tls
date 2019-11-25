@@ -36,10 +36,7 @@ func NewServerAgent(PluginFolder string, Logger io.WriteCloser) (*ServerPluginAg
 // GetPluginByName will return a pointer to the requested plugin.  This is typically used to provide input arguments for when the plugin is Initiated.
 func (SA *ServerPluginAgent) GetPluginByName(Name string) (*ServerPlugin, error) {
 	for index, p := range SA.RegisteredPlugins {
-		name, err := p.Name()
-		if err != nil {
-			return nil, err
-		}
+		name := p.Name()
 		if name == Name {
 			return &(SA.RegisteredPlugins[index]), nil
 		}

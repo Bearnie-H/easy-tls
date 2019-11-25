@@ -42,7 +42,13 @@ func Name() (string, error) {
 }
 
 // WriteStatus is the standard mechanism for writing a status message out to the framework.  This function can and should be passed in to sub-packages as necessary within the plugin, along with the StatusChannel itself (or at least a pointer to these).
-func WriteStatus(NewStatus plugins.PluginStatus) error {
+func WriteStatus(Message string, err error, Fatal bool) error {
+
+	NewStatus := plugins.PluginStatus{
+		Message: Message,
+		Error:   err,
+		IsFatal: Fatal,
+	}
 
 	// Cannot write a status to an uninitialized channel
 	if StatusChannel == nil {

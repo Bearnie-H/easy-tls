@@ -45,7 +45,7 @@ type PluginAPI struct {
 	// Query the Name of the Plugin.
 	//
 	// This must return the name of the plugin, in canonical format.
-	Name func() (string, error)
+	Name func() string
 
 	// Stop the plugin.
 	//
@@ -128,13 +128,13 @@ func loadVersionSymbol(p *plugin.Plugin) (func(SemanticVersion) error, error) {
 	return VersionSymbol, nil
 }
 
-func loadNameSymbol(p *plugin.Plugin) (func() (string, error), error) {
+func loadNameSymbol(p *plugin.Plugin) (func() string, error) {
 	sym, err := p.Lookup("Name")
 	if err != nil {
 		return nil, err
 	}
 
-	NameSymbol, ok := sym.(func() (string, error))
+	NameSymbol, ok := sym.(func() string)
 	if !ok {
 		return nil, errors.New("easytls plugin error: Name symbol has invalid signature")
 	}
