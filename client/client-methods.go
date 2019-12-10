@@ -155,5 +155,5 @@ func (C *SimpleClient) Do(req *http.Request) (*http.Response, error) {
 	}
 
 	defer resp.Body.Close()
-	return nil, fmt.Errorf("Invalid status code - expected 2xx, got %d (%s)", resp.StatusCode, resp.Status)
+	return resp, fmt.Errorf("Invalid status code - expected 2xx, got %d (%s)", resp.StatusCode, resp.Status)
 }
