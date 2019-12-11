@@ -30,7 +30,7 @@ func ConfigureReverseProxy(S *server.SimpleServer, Client *client.SimpleClient, 
 
 	r := server.NewDefaultRouter()
 
-	r.PathPrefix(PathPrefix).HandlerFunc(doReverseProxy(Client, Client.IsTLS(), RouteMatcher))
+	r.PathPrefix(PathPrefix).HandlerFunc(DoReverseProxy(Client, Client.IsTLS(), RouteMatcher))
 
 	server.AddMiddlewares(r, server.MiddlewareDefaultLogger)
 	server.AddMiddlewares(r, Middlewares...)
@@ -41,14 +41,14 @@ func ConfigureReverseProxy(S *server.SimpleServer, Client *client.SimpleClient, 
 // ReverseProxyRouterFunc represents the Type which must be satisfied by any function which defines the per-request routing behaviours.  This must map a given request to a specific IP:Port host.
 type ReverseProxyRouterFunc func(*http.Request) string
 
-// doReverseProxy is the backbone of this package, and the reverse Proxy behaviour in general.
+// DoReverseProxy is the backbone of this package, and the reverse Proxy behaviour in general.
 //
 // This is the http.HandlerFunc which is called on ALL incoming requests to the reverse proxy.  At a high level this function:
 //	1) Determines the forward host, from the incoming request
 //	2) Creates a NEW request, performing a deep copy of the original, excluding the body
 //	3) Performs this new request, using the provided (or default) SimpleClient to the new Host.
 //	4) Receives the corresponding response, and deep copies it back to the original requester.
-func doReverseProxy(C *client.SimpleClient, IsTLS bool, Matcher ReverseProxyRouterFunc) http.HandlerFunc {
+func DoReverseProxy(C *client.SimpleClient, IsTLS bool, Matcher ReverseProxyRouterFunc) http.HandlerFunc {
 
 	// If no client is provided, create a default HTTP Client to perform the requests.
 	if C == nil {
