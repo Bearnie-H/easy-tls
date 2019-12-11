@@ -149,6 +149,9 @@ func (S *SimpleServer) EnableAboutHandler(r *mux.Router) {
 		w.Write([]byte(routes + "\n"))
 	}
 	r.HandleFunc("/about", aboutHandler)
+
+	r.NotFoundHandler = http.HandlerFunc(aboutHandler)
+	r.MethodNotAllowedHandler = http.HandlerFunc(aboutHandler)
 }
 
 // Addr exposes the underlying IP:Port address of the SimpleServer.
