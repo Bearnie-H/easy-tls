@@ -8,7 +8,7 @@ BLUE="\e[96m"
 CLEAR="\e[0m"
 
 if [ -z "$GOPATH" ]; then
-    echo -e "\e[91mERROR! GOPATH not set!\e[0m"
+    echo -e $RED"ERROR! GOPATH not set!"$CLEAR
     exit 1
 fi
 
@@ -182,8 +182,8 @@ elif [ ! -z "$ModuleFlag" ]; then
     DestinationFolder="$ProjectFolder/$Type-plugins/$CreatedName"
     createModuleFromTemplate
     exit 0
-fi  
-
-echo -e $YELLOW"Warning: No framework type selected, nothing has been created."$CLEAR
-helpMenu
+else
+    echo -e $YELLOW"Warning: No framework type selected, nothing has been created."$CLEAR
+    helpMenu
+fi
 
