@@ -158,3 +158,8 @@ func (S *SimpleServer) EnableAboutHandler(r *mux.Router) {
 func (S *SimpleServer) Addr() string {
 	return S.server.Addr
 }
+
+// SetKeepAlives will configure the server for whether or not it should use Keep-Alives.  True implies to use Keep-Alives, and false will disable them.
+func (S *SimpleServer) SetKeepAlives(SetTo bool) {
+	S.server.SetKeepAlivesEnabled(SetTo)
+}
