@@ -132,6 +132,7 @@ func (CA *ClientPluginAgent) run() error {
 
 			// Start the plugin.
 			if err := p.Init(c, p.inputArguments...); err != nil {
+				CA.logger.Write([]byte(err.Error()))
 				if err := p.Stop(); err != nil {
 					CA.logger.Write([]byte(err.Error()))
 				}
@@ -156,6 +157,8 @@ func (CA *ClientPluginAgent) Stop() error {
 			defer wg.Done()
 			if err := p.Stop(); err != nil {
 				CA.logger.Write([]byte(err.Error()))
+			} else {
+				CA.logger.Write([]byte(fmt.Sprintf("Successfully stopped plugin %s\n", p.Name())))
 			}
 		}(p, wg)
 
