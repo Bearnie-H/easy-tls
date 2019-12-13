@@ -38,9 +38,6 @@ func ConfigureReverseProxy(S *server.SimpleServer, Client *client.SimpleClient, 
 	S.RegisterRouter(r)
 }
 
-// ReverseProxyRouterFunc represents the Type which must be satisfied by any function which defines the per-request routing behaviours.  This must map a given request to a specific IP:Port host.
-type ReverseProxyRouterFunc func(*http.Request) string
-
 // DoReverseProxy is the backbone of this package, and the reverse Proxy behaviour in general.
 //
 // This is the http.HandlerFunc which is called on ALL incoming requests to the reverse proxy.  At a high level this function:
@@ -63,7 +60,12 @@ func DoReverseProxy(C *client.SimpleClient, IsTLS bool, Matcher ReverseProxyRout
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
 		// Create the new URL to use, based on the TLS settings of the Client, and the incoming request.
-		proxyURL := formatProxyURL(r, IsTLS, Matcher)
+		proxyURL, err := formatProxyURL(r, IsTLS, Matcher)
+		if err != nil {
+			log.Printf("Failed to format proxy forwarding URL from %s - %s", r.RemoteAddr, err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
 
 		// Create the new Request to send
 		proxyReq, err := client.NewRequest(r.Method, proxyURL, r.Header, r.Body)
@@ -105,17 +107,22 @@ func DoReverseProxy(C *client.SimpleClient, IsTLS bool, Matcher ReverseProxyRout
 }
 
 // formatProxyURL will look at the original request, the TLS Settings of the SimpleClient, and generate what the new URL must be for the proxied request.
-func formatProxyURL(req *http.Request, IsTLS bool, MatcherFunc ReverseProxyRouterFunc) *url.URL {
+func formatProxyURL(req *http.Request, IsTLS bool, MatcherFunc ReverseProxyRouterFunc) (*url.URL, error) {
+	var err error
 	proxyURL := &url.URL{}
 
 	// Deep Copy
 	*proxyURL = *req.URL
 
-	proxyURL.Host = MatcherFunc(req)
+	proxyURL.Host, err = MatcherFunc(req)
+	if err != nil {
+		return nil, err
+	}
+
 	proxyURL.Scheme = "http"
 	if IsTLS {
 		proxyURL.Scheme = "https"
 	}
 
-	return proxyURL
+	return proxyURL, nil
 }
