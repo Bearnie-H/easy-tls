@@ -18,9 +18,6 @@ type ReverseProxyRoutingRule struct {
 	DestinationPort int
 }
 
-// ReverseProxyRoutingRuleSet aliases an iterable set of routing rules.
-type ReverseProxyRoutingRuleSet []ReverseProxyRoutingRule
-
 // Simple matching function, abstracted away to allow the "Rules" to become more complex as this library develops.
 func (R *ReverseProxyRoutingRule) matches(Path string) bool {
 
@@ -51,7 +48,7 @@ func LiveFileRouter(RulesFilename string) ReverseProxyRouterFunc {
 		defer f.Close()
 
 		// Read out the Rules
-		RuleSet := ReverseProxyRoutingRuleSet{}
+		RuleSet := []ReverseProxyRoutingRule{}
 		if err := json.NewDecoder(f).Decode(&RuleSet); err != nil {
 			return "", err
 		}
