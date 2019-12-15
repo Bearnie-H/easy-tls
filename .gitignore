@@ -13,3 +13,6 @@
 
 # VS-Code workspace files
 *.code-workspace
+
+# Testing configuration files
+*.conf
