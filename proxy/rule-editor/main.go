@@ -16,6 +16,7 @@ import (
 var (
 	AddRulesFlag    = flag.Bool("add", false, "Flag indicating that you want to add new rules to the given EasyTLS Proxy Rules file.")
 	DeleteRulesFlag = flag.Bool("delete", false, "Flag indicating that you want to remove existing rules from the given EasyTLS Proxy Rules file.")
+	EditRulesFlag   = flag.Bool("edit", false, "Flag indicating whether you want to simply edit existing rules from the given EasyTLS Proxy Rules file.")
 	RulesFilename   = flag.String("file", "EasyTLS-Proxy.rules", "The filename of the EasyTLS Proxy Rules file to work with.")
 )
 
@@ -34,6 +35,11 @@ func main() {
 	}
 
 	ListRules(rules)
+
+	if *EditRulesFlag {
+		*AddRulesFlag = true
+		*DeleteRulesFlag = true
+	}
 
 	if *AddRulesFlag {
 		rules = AddRules(rules)

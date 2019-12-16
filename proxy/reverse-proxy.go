@@ -18,7 +18,7 @@ func ConfigureReverseProxy(S *server.SimpleServer, Client *client.SimpleClient, 
 	// If No server is provided, create a default HTTP Server.
 	var err error
 	if S == nil {
-		S, err = server.NewServerHTTP("")
+		S, err = server.NewServerHTTP()
 		if err != nil {
 			panic(err)
 		}
@@ -29,6 +29,13 @@ func ConfigureReverseProxy(S *server.SimpleServer, Client *client.SimpleClient, 
 	}
 
 	r := server.NewDefaultRouter()
+
+	if Client == nil {
+		Client, err = client.NewClientHTTP()
+		if err != nil {
+			panic(err)
+		}
+	}
 
 	r.PathPrefix(PathPrefix).HandlerFunc(DoReverseProxy(Client, Client.IsTLS(), RouteMatcher, Verbose))
 
