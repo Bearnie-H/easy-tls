@@ -142,12 +142,13 @@ func (CA *ClientPluginAgent) run() error {
 	}
 
 	wg.Wait()
-	return nil
+	return CA.Stop()
 }
 
 // Stop will cause ALL of the currentlyRunning Plugins to safely stop.
 func (CA *ClientPluginAgent) Stop() error {
 	defer func() { CA.stopped = true }()
+	errOccured := false
 
 	wg := &sync.WaitGroup{}
 	for _, p := range CA.RegisteredPlugins {
@@ -157,6 +158,7 @@ func (CA *ClientPluginAgent) Stop() error {
 			defer wg.Done()
 			if err := p.Stop(); err != nil {
 				CA.logger.Write([]byte(err.Error()))
+				errOccured = true
 			} else {
 				CA.logger.Write([]byte(fmt.Sprintf("Successfully stopped plugin %s\n", p.Name())))
 			}
@@ -165,6 +167,9 @@ func (CA *ClientPluginAgent) Stop() error {
 	}
 
 	wg.Wait()
+	if errOccured {
+		return errors.New("easytls agent error - error occured during plugin shutdown")
+	}
 	return nil
 }
 
