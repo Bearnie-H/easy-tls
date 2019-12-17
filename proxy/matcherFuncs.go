@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-// ReverseProxyRouterFunc represents the Type which must be satisfied by any function which defines the per-request routing behaviours.  This must map a given request to a specific IP:Port host.
+// ReverseProxyRouterFunc represents the Type which must be satisfied by any function which defines the per-request routing behaviours.  This must map a given request to a specific IP:Port host and leave the Path unchanged.
 type ReverseProxyRouterFunc func(*http.Request) (string, error)
 
 // ReverseProxyRoutingRule implements a single routing rule to be followed by the Reverse Proxy when re-routing traffic.  This will take in a URL path, and return the Host:Port to forward the corresponding request to.  This implementation is very basic, effectively effectively just re-routing to a new Host:Port based on the Path Prefix.
@@ -36,7 +36,7 @@ func (R *ReverseProxyRoutingRule) String() string {
 	return fmt.Sprintf("Prefix: \"%s\" will forward to \"%s:%d\"", R.PathPrefix, R.DestinationHost, R.DestinationPort)
 }
 
-// LiveFileRouter implements a Reverse Proxy Routing function which will follow rules defined in a JSON file on disk. This rule-set is consulted on each incoming request,
+// LiveFileRouter implements a Reverse Proxy Routing function which will follow rules defined in a JSON file on disk. This rule-set is consulted on each incoming request, allowing any proxy using this to have the routing rules modified without an application restart.
 func LiveFileRouter(RulesFilename string) ReverseProxyRouterFunc {
 	return func(r *http.Request) (string, error) {
 
