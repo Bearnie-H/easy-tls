@@ -8,7 +8,14 @@ import (
 
 	"github.com/Bearnie-H/easy-tls/client"
 	"github.com/Bearnie-H/easy-tls/server"
+	"github.com/gorilla/mux"
 )
+
+// NotFoundHandlerProxyOverride will override the NotFound handler of the Server with a reverse proxy lookup function.
+// This will allow the server to attempt to re-route requests it doesn't have a defined route for, while still falling back to a "NotFound" 404 response if there is no defined place to route to.
+func NotFoundHandlerProxyOverride(r *mux.Router, RouteMatcher ReverseProxyRouterFunc, Verbose bool) {
+	r.NotFoundHandler = DoReverseProxy(nil, false, RouteMatcher, Verbose)
+}
 
 // ConfigureReverseProxy will convert a freshly created SimpleServer into a ReverseProxy.  This will use either the provided SimpleClient (or a default HTTP SimpleClient) to perform the requests.  The ReverseProxyRouterFunc defines HOW the routing will be peformed, and must map individual requests to URLs to forward to.  The PathPrefix defines the base path to proxy from, with a default of "/" indicating that ALL incoming requests should be proxied.  Finally, any middlewares desired can be added, noting that the "MiddlewareDefaultLogger" is applied in all cases.
 //
