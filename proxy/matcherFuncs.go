@@ -46,7 +46,7 @@ func LiveFileRouter(RulesFilename string) ReverseProxyRouterFunc {
 
 		// Open the Rules file for reading.
 		f, err := os.Open(RulesFilename)
-		if err == os.ErrNotExist {
+		if os.IsNotExist(err) {
 			return "", ErrRouteNotFound
 		}
 		if err != nil {

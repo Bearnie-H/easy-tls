@@ -160,7 +160,7 @@ func (CA *ClientPluginAgent) Stop() error {
 				CA.logger.Write([]byte(err.Error()))
 				errOccured = true
 			} else {
-				CA.logger.Write([]byte(fmt.Sprintf("Successfully stopped plugin %s\n", p.Name())))
+				CA.logger.Write([]byte(fmt.Sprintf("Successfully stopped plugin \"%s\"\n", p.Name())))
 			}
 		}(p, wg)
 
@@ -168,8 +168,9 @@ func (CA *ClientPluginAgent) Stop() error {
 
 	wg.Wait()
 	if errOccured {
-		return errors.New("easytls agent error - error occured during plugin shutdown")
+		return errors.New("easytls agent error - error occured during client plugin shutdown")
 	}
+
 	return nil
 }
 

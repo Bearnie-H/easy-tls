@@ -121,12 +121,13 @@ func (SA *ServerPluginAgent) run() error {
 	}
 
 	wg.Wait()
-	return nil
+	return SA.Stop()
 }
 
 // Stop will cause ALL of the currently Running Plugins to safely stop.
 func (SA *ServerPluginAgent) Stop() error {
 	defer func() { SA.stopped = true }()
+	errOccured := false
 
 	wg := &sync.WaitGroup{}
 	for _, p := range SA.RegisteredPlugins {
@@ -136,12 +137,19 @@ func (SA *ServerPluginAgent) Stop() error {
 			defer wg.Done()
 			if err := p.Stop(); err != nil {
 				SA.logger.Write([]byte(err.Error()))
+				errOccured = true
+			} else {
+				SA.logger.Write([]byte(fmt.Sprintf("Successfully stopped plugin \"%s\"\n", p.Name())))
 			}
 		}(p, wg)
 
 	}
 
 	wg.Wait()
+	if errOccured {
+		return errors.New("easytls agent error - error occured during server plugin shutdown")
+	}
+
 	return nil
 }
 

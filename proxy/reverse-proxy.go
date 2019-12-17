@@ -106,7 +106,11 @@ func DoReverseProxy(C *client.SimpleClient, IsTLS bool, Matcher ReverseProxyRout
 		proxyResp, err := C.Do(proxyReq)
 		if err != nil {
 			log.Printf("Failed to perform proxy request for %s from %s - %s", r.URL.String(), r.RemoteAddr, err)
-			w.WriteHeader(http.StatusInternalServerError)
+			if proxyResp != nil {
+				w.WriteHeader(proxyResp.StatusCode)
+			} else {
+				w.WriteHeader(http.StatusInternalServerError)
+			}
 			return
 		}
 		defer proxyResp.Body.Close()

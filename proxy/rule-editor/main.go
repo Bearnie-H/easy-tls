@@ -66,7 +66,7 @@ func DecodeFile(Filename string, rules *[]proxy.ReverseProxyRoutingRule) error {
 	// Open the file for reading
 	f, err := os.Open(Filename)
 	if os.IsNotExist(err) {
-		return nil
+		return EncodeFile(Filename, *rules)
 	}
 	if err != nil {
 		return err
@@ -161,6 +161,7 @@ func ListRules(RuleSet []proxy.ReverseProxyRoutingRule) {
 
 	if len(RuleSet) == 0 {
 		fmt.Println("There are no rules to list.")
+		return
 	}
 
 	fmt.Println("Current proxy rules:")
