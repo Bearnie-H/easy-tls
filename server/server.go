@@ -11,6 +11,7 @@ import (
 	"time"
 
 	easytls "github.com/Bearnie-H/easy-tls"
+	"github.com/Bearnie-H/easy-tls/proxy"
 	"github.com/gorilla/mux"
 )
 
@@ -158,4 +159,10 @@ func (S *SimpleServer) Addr() string {
 // SetKeepAlives will configure the server for whether or not it should use Keep-Alives.  True implies to use Keep-Alives, and false will disable them.
 func (S *SimpleServer) SetKeepAlives(SetTo bool) {
 	S.server.SetKeepAlivesEnabled(SetTo)
+}
+
+// NotFoundHandlerProxyOverride will override the NotFound handler of the Server with a reverse proxy lookup function.
+// This will allow the server to attempt to re-route requests it doesn't have a defined route for, while still falling back to a "NotFound" 404 response if there is no defined place to route to.
+func (S *SimpleServer) NotFoundHandlerProxyOverride(r *mux.Router, RouteMatcher proxy.ReverseProxyRouterFunc, Verbose bool) {
+	r.NotFoundHandler = proxy.DoReverseProxy(nil, false, RouteMatcher, Verbose)
 }

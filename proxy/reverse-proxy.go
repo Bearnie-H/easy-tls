@@ -68,6 +68,11 @@ func DoReverseProxy(C *client.SimpleClient, IsTLS bool, Matcher ReverseProxyRout
 
 		// Create the new URL to use, based on the TLS settings of the Client, and the incoming request.
 		proxyURL, err := formatProxyURL(r, IsTLS, Matcher)
+		if err == ErrRouteNotFound {
+			log.Printf("Failed to find destination host:port for URL %s from %s - %s", r.URL.EscapedPath(), r.RemoteAddr, err)
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
 		if err != nil {
 			log.Printf("Failed to format proxy forwarding URL from %s - %s", r.RemoteAddr, err)
 			w.WriteHeader(http.StatusInternalServerError)

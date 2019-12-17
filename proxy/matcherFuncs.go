@@ -2,6 +2,7 @@ package proxy
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -17,6 +18,9 @@ type ReverseProxyRoutingRule struct {
 	DestinationHost string
 	DestinationPort int
 }
+
+// ErrRouteNotFound is the error code returned when a route cannot be found in the set of given Rules
+var ErrRouteNotFound error = errors.New("easytls routing rule error - No rule defined for route")
 
 // Simple matching function, abstracted away to allow the "Rules" to become more complex as this library develops.
 func (R *ReverseProxyRoutingRule) matches(Path string) bool {
@@ -60,7 +64,7 @@ func LiveFileRouter(RulesFilename string) ReverseProxyRouterFunc {
 			}
 		}
 
-		return "", fmt.Errorf("reverse proxy error - no defined rule for path %s", r.URL.EscapedPath())
+		return "", ErrRouteNotFound
 	}
 }
 
@@ -76,6 +80,6 @@ func DefinedRulesRouter(RuleSet []ReverseProxyRoutingRule) ReverseProxyRouterFun
 			}
 		}
 
-		return "", fmt.Errorf("reverse proxy error - no defined rule for path %s", r.URL.EscapedPath())
+		return "", ErrRouteNotFound
 	}
 }
