@@ -63,3 +63,19 @@ func LiveFileRouter(RulesFilename string) ReverseProxyRouterFunc {
 		return "", fmt.Errorf("reverse proxy error - no defined rule for path %s", r.URL.EscapedPath())
 	}
 }
+
+// DefinedRulesRouter will take in a pre-defined set of rules, and will route based on them.
+//
+// This may buy some efficiencies over the LiveFileRouter, as it doesn't need to perform Disk I/O on each request to search for the rules, but this comes with the tradeoff of not being able to edit the rules without restarting the application using this as the router.
+func DefinedRulesRouter(RuleSet []ReverseProxyRoutingRule) ReverseProxyRouterFunc {
+	return func(r *http.Request) (string, error) {
+		// Search for a match, and if one is found, define the new Host:Port based on what the rule determines.
+		for _, Rule := range RuleSet {
+			if Rule.matches(r.URL.EscapedPath()) {
+				return fmt.Sprintf("%s:%d", Rule.DestinationHost, Rule.DestinationPort), nil
+			}
+		}
+
+		return "", fmt.Errorf("reverse proxy error - no defined rule for path %s", r.URL.EscapedPath())
+	}
+}
