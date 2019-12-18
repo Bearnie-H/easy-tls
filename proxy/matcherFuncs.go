@@ -12,11 +12,11 @@ import (
 // ReverseProxyRouterFunc represents the Type which must be satisfied by any function which defines the per-request routing behaviours.  This must map a given request to a specific IP:Port host and leave the Path unchanged.
 type ReverseProxyRouterFunc func(*http.Request) (Host string, Path string, err error)
 
-// ErrForbiddenRoute represents the error to return when a proxy finds a route which is forbidden.
-var ErrForbiddenRoute error = errors.New("easytls proxy error - Forbidden route")
-
-// ErrRouteNotFound is the error code returned when a route cannot be found in the set of given Rules
-var ErrRouteNotFound error = errors.New("easytls routing rule error - No rule defined for route")
+// Define the set of errors provided by this package
+var (
+	ErrForbiddenRoute error = errors.New("easytls proxy error - Forbidden route")
+	ErrRouteNotFound  error = errors.New("easytls routing rule error - No forwarding rule defined for route")
+)
 
 // ReverseProxyRoutingRule implements a single routing rule to be followed by the Reverse Proxy when re-routing traffic.  This will take in a URL path, and return the Host:Port to forward the corresponding request to.  This implementation is very basic, effectively effectively just re-routing to a new Host:Port based on the Path Prefix.
 type ReverseProxyRoutingRule struct {
