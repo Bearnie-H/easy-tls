@@ -4,12 +4,12 @@ package plugins
 var ServerFrameworkVersion = SemanticVersion{
 	MajorRelease: 1,
 	MinorRelease: 3,
-	Build:        0,
+	Build:        1,
 }
 
 // ClientFrameworkVersion represents the current Semantic Version of the Client-side Plugin agent framework
 var ClientFrameworkVersion = SemanticVersion{
 	MajorRelease: 1,
 	MinorRelease: 3,
-	Build:        0,
+	Build:        1,
 }
