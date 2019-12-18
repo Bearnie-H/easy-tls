@@ -125,9 +125,18 @@ func GetRuleToAdd() (*proxy.ReverseProxyRoutingRule, error) {
 	} else {
 		return nil, err
 	}
+	if strings.ToLower(GetString("Should this rule strip the prefix when forwarding? [y/N]: ")) == "y" {
+		NewRule.StripPrefix = true
+	} else {
+		NewRule.StripPrefix = false
+	}
 
 	if !strings.HasPrefix(NewRule.PathPrefix, "/") {
 		NewRule.PathPrefix = "/" + NewRule.PathPrefix
+	}
+
+	if strings.HasSuffix(NewRule.PathPrefix, "/") {
+		NewRule.PathPrefix = strings.TrimSuffix(NewRule.PathPrefix, "/")
 	}
 
 	if NewRule.DestinationPort < 0 || NewRule.DestinationPort > (256*256) {

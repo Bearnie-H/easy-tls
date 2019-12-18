@@ -80,6 +80,11 @@ func DoReverseProxy(C *client.SimpleClient, IsTLS bool, Matcher ReverseProxyRout
 			w.WriteHeader(http.StatusNotFound)
 			return
 		}
+		if err == ErrForbiddenRoute {
+			log.Printf("Cannot forward route %s - %s", r.URL.EscapedPath(), err)
+			w.WriteHeader(http.StatusForbidden)
+			return
+		}
 		if err != nil {
 			log.Printf("Failed to format proxy forwarding URL from %s - %s", r.RemoteAddr, err)
 			w.WriteHeader(http.StatusInternalServerError)
