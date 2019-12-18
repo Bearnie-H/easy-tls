@@ -116,7 +116,7 @@ func (CA *ClientPluginAgent) run() error {
 
 				// An error retrieving the status channel stops the logging.
 				if err != nil {
-					CA.logger.Write([]byte(err.Error()))
+					CA.logger.Write([]byte(err.Error() + "\n"))
 					return
 				}
 
@@ -132,9 +132,9 @@ func (CA *ClientPluginAgent) run() error {
 
 			// Start the plugin.
 			if err := p.Init(c, p.inputArguments...); err != nil {
-				CA.logger.Write([]byte(err.Error()))
+				CA.logger.Write([]byte(err.Error() + "\n"))
 				if err := p.Stop(); err != nil {
-					CA.logger.Write([]byte(err.Error()))
+					CA.logger.Write([]byte(err.Error() + "\n"))
 				}
 			}
 
@@ -157,7 +157,7 @@ func (CA *ClientPluginAgent) Stop() error {
 		go func(p ClientPlugin, wg *sync.WaitGroup) {
 			defer wg.Done()
 			if err := p.Stop(); err != nil {
-				CA.logger.Write([]byte(err.Error()))
+				CA.logger.Write([]byte(err.Error() + "\n"))
 				errOccured = true
 			} else {
 				CA.logger.Write([]byte(fmt.Sprintf("Successfully stopped plugin \"%s\"\n", p.Name())))
@@ -179,7 +179,7 @@ func (CA *ClientPluginAgent) Close() error {
 
 	if !CA.stopped {
 		if err := CA.Stop(); err != nil {
-			CA.logger.Write([]byte(err.Error()))
+			CA.logger.Write([]byte(err.Error() + "\n"))
 		}
 	}
 

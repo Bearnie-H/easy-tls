@@ -103,7 +103,7 @@ func (SA *ServerPluginAgent) run() error {
 
 				// An error retrieving the status channel stops the logging.
 				if err != nil {
-					SA.logger.Write([]byte(err.Error()))
+					SA.logger.Write([]byte(err.Error() + "\n"))
 					return
 				}
 
@@ -111,6 +111,7 @@ func (SA *ServerPluginAgent) run() error {
 				for M := range statusChan {
 					SA.logger.Write([]byte(M.String()))
 					if M.IsFatal {
+						SA.logger.Write([]byte(M.String()))
 						return
 					}
 				}
@@ -136,7 +137,7 @@ func (SA *ServerPluginAgent) Stop() error {
 		go func(p ServerPlugin, wg *sync.WaitGroup) {
 			defer wg.Done()
 			if err := p.Stop(); err != nil {
-				SA.logger.Write([]byte(err.Error()))
+				SA.logger.Write([]byte(err.Error() + "\n"))
 				errOccured = true
 			} else {
 				SA.logger.Write([]byte(fmt.Sprintf("Successfully stopped plugin \"%s\"\n", p.Name())))
@@ -158,7 +159,7 @@ func (SA *ServerPluginAgent) Close() error {
 
 	if !SA.stopped {
 		if err := SA.Stop(); err != nil {
-			SA.logger.Write([]byte(err.Error()))
+			SA.logger.Write([]byte(err.Error() + "\n"))
 		}
 	}
 
