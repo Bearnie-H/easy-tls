@@ -146,7 +146,7 @@ func formatProxyURL(req *http.Request, IsTLS bool, MatcherFunc ReverseProxyRoute
 	// Deep Copy
 	*proxyURL = *req.URL
 
-	proxyURL.Host, err = MatcherFunc(req)
+	proxyURL.Host, proxyURL.Path, err = MatcherFunc(req)
 	if err != nil {
 		return nil, err
 	}

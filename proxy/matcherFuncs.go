@@ -10,7 +10,7 @@ import (
 )
 
 // ReverseProxyRouterFunc represents the Type which must be satisfied by any function which defines the per-request routing behaviours.  This must map a given request to a specific IP:Port host and leave the Path unchanged.
-type ReverseProxyRouterFunc func(*http.Request) (string, error)
+type ReverseProxyRouterFunc func(*http.Request) (Host string, Path string, err error)
 
 // ErrForbiddenRoute represents the error to return when a proxy finds a route which is forbidden.
 var ErrForbiddenRoute error = errors.New("easytls proxy error - Forbidden route")
@@ -48,44 +48,45 @@ func (R *ReverseProxyRoutingRule) String() string {
 }
 
 // ToURL will convert a URL path, using the Rule to build a Host:Port/Path URL string.
-func (R *ReverseProxyRoutingRule) ToURL(Path string) string {
+func (R *ReverseProxyRoutingRule) ToURL(PathIn string) (string, string) {
 	if strings.HasSuffix(R.PathPrefix, "/") {
 		R.PathPrefix = strings.TrimSuffix(R.PathPrefix, "/")
 	}
 	if R.StripPrefix {
-		return fmt.Sprintf("%s:%d/%s", R.DestinationHost, R.DestinationPort, strings.TrimPrefix(Path, R.PathPrefix))
+		return fmt.Sprintf("%s:%d", R.DestinationHost, R.DestinationPort), strings.TrimPrefix(PathIn, R.PathPrefix)
 	}
-	return fmt.Sprintf("%s:%d%s", R.DestinationHost, R.DestinationPort, Path)
+	return fmt.Sprintf("%s:%d", R.DestinationHost, R.DestinationPort), PathIn
 }
 
 // LiveFileRouter implements a Reverse Proxy Routing function which will follow rules defined in a JSON file on disk. This rule-set is consulted on each incoming request, allowing any proxy using this to have the routing rules modified without an application restart.
 func LiveFileRouter(RulesFilename string) ReverseProxyRouterFunc {
-	return func(r *http.Request) (string, error) {
+	return func(r *http.Request) (Host string, Path string, err error) {
 
 		// Open the Rules file for reading.
 		f, err := os.Open(RulesFilename)
 		if os.IsNotExist(err) {
-			return "", ErrRouteNotFound
+			return "", "", ErrRouteNotFound
 		}
 		if err != nil {
-			return "", err
+			return "", "", err
 		}
 		defer f.Close()
 
 		// Read out the Rules
 		RuleSet := []ReverseProxyRoutingRule{}
 		if err := json.NewDecoder(f).Decode(&RuleSet); err != nil {
-			return "", err
+			return "", "", err
 		}
 
 		// Search for a match, and if one is found, define the new Host:Port based on what the rule determines.
 		for _, Rule := range RuleSet {
 			if Rule.matches(r.URL.EscapedPath()) {
-				return Rule.ToURL(r.URL.EscapedPath()), nil
+				NewHost, NewPath := Rule.ToURL(r.URL.EscapedPath())
+				return NewHost, NewPath, nil
 			}
 		}
 
-		return "", ErrRouteNotFound
+		return "", "", ErrRouteNotFound
 	}
 }
 
@@ -93,14 +94,16 @@ func LiveFileRouter(RulesFilename string) ReverseProxyRouterFunc {
 //
 // This may buy some efficiencies over the LiveFileRouter, as it doesn't need to perform Disk I/O on each request to search for the rules, but this comes with the tradeoff of not being able to edit the rules without restarting the application using this as the router.
 func DefinedRulesRouter(RuleSet []ReverseProxyRoutingRule) ReverseProxyRouterFunc {
-	return func(r *http.Request) (string, error) {
+	return func(r *http.Request) (Host string, Path string, err error) {
+
 		// Search for a match, and if one is found, define the new Host:Port based on what the rule determines.
 		for _, Rule := range RuleSet {
 			if Rule.matches(r.URL.EscapedPath()) {
-				return fmt.Sprintf("%s:%d", Rule.DestinationHost, Rule.DestinationPort), nil
+				NewHost, NewPath := Rule.ToURL(r.URL.EscapedPath())
+				return NewHost, NewPath, nil
 			}
 		}
 
-		return "", ErrRouteNotFound
+		return "", "", ErrRouteNotFound
 	}
 }
