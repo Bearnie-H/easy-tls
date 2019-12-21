@@ -18,7 +18,7 @@ type ReverseProxyRuleSet []ReverseProxyRoutingRule
 
 func (a ReverseProxyRuleSet) Len() int           { return len(a) }
 func (a ReverseProxyRuleSet) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
-func (a ReverseProxyRuleSet) Less(i, j int) bool { return a[i].PathPrefix < a[j].PathPrefix }
+func (a ReverseProxyRuleSet) Less(i, j int) bool { return a[i].PathPrefix > a[j].PathPrefix }
 
 // Simple matching function, abstracted away to allow the "Rules" to become more complex as this library develops.
 func (R *ReverseProxyRoutingRule) matches(Path string) bool {

@@ -81,8 +81,6 @@ func DecodeFile(Filename string, rules *proxy.ReverseProxyRuleSet) error {
 // EncodeFile will JSON encode the Proxy rules, writing them back to the original file.
 func EncodeFile(Filename string, rules proxy.ReverseProxyRuleSet) error {
 
-	sort.Slice(rules, rules.Less)
-
 	// Create (or truncate) the Rules file.
 	f, err := os.Create(Filename)
 	if err != nil {
@@ -90,7 +88,8 @@ func EncodeFile(Filename string, rules proxy.ReverseProxyRuleSet) error {
 	}
 	defer f.Close()
 
-	//
+	sort.Slice(rules, rules.Less)
+
 	encoder := json.NewEncoder(f)
 	encoder.SetIndent("", "\t")
 	return encoder.Encode(rules)
@@ -175,6 +174,8 @@ func ListRules(RuleSet []proxy.ReverseProxyRoutingRule) {
 		fmt.Println("There are no rules to list.")
 		return
 	}
+
+	sort.Slice(rules, rules.Less)
 
 	fmt.Println("Current proxy rules:")
 	for _, Rule := range RuleSet {
