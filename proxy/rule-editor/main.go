@@ -6,6 +6,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -21,7 +22,7 @@ var (
 )
 
 var (
-	rules []proxy.ReverseProxyRoutingRule = []proxy.ReverseProxyRoutingRule{}
+	rules proxy.ReverseProxyRuleSet = proxy.ReverseProxyRuleSet{}
 )
 
 func main() {
@@ -61,7 +62,7 @@ func main() {
 }
 
 // DecodeFile will read and parse the given Rules file a manageable set of rules to work with.
-func DecodeFile(Filename string, rules *[]proxy.ReverseProxyRoutingRule) error {
+func DecodeFile(Filename string, rules *proxy.ReverseProxyRuleSet) error {
 
 	// Open the file for reading
 	f, err := os.Open(Filename)
@@ -78,7 +79,9 @@ func DecodeFile(Filename string, rules *[]proxy.ReverseProxyRoutingRule) error {
 }
 
 // EncodeFile will JSON encode the Proxy rules, writing them back to the original file.
-func EncodeFile(Filename string, rules []proxy.ReverseProxyRoutingRule) error {
+func EncodeFile(Filename string, rules proxy.ReverseProxyRuleSet) error {
+
+	sort.Slice(rules, rules.Less)
 
 	// Create (or truncate) the Rules file.
 	f, err := os.Create(Filename)
