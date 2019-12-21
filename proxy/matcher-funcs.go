@@ -40,14 +40,7 @@ func LiveFileRouter(RulesFilename string) ReverseProxyRouterFunc {
 		sort.Slice(RuleSet, RuleSet.Less)
 
 		// Search for a match, and if one is found, define the new Host:Port based on what the rule determines.
-		for _, Rule := range RuleSet {
-			if Rule.matches(r.URL.EscapedPath()) {
-				NewHost, NewPath := Rule.ToURL(r.URL.EscapedPath())
-				return NewHost, NewPath, nil
-			}
-		}
-
-		return "", "", ErrRouteNotFound
+		return RuleSet.Find(r.URL.EscapedPath())
 	}
 }
 
@@ -61,13 +54,6 @@ func DefinedRulesRouter(RuleSet ReverseProxyRuleSet) ReverseProxyRouterFunc {
 	return func(r *http.Request) (Host string, Path string, err error) {
 
 		// Search for a match, and if one is found, define the new Host:Port based on what the rule determines.
-		for _, Rule := range RuleSet {
-			if Rule.matches(r.URL.EscapedPath()) {
-				NewHost, NewPath := Rule.ToURL(r.URL.EscapedPath())
-				return NewHost, NewPath, nil
-			}
-		}
-
-		return "", "", ErrRouteNotFound
+		return RuleSet.Find(r.URL.EscapedPath())
 	}
 }

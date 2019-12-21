@@ -20,6 +20,18 @@ func (a ReverseProxyRuleSet) Len() int           { return len(a) }
 func (a ReverseProxyRuleSet) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
 func (a ReverseProxyRuleSet) Less(i, j int) bool { return a[i].PathPrefix > a[j].PathPrefix }
 
+// Find will return either the new Host:Port/Path to forward to, or ErrRouteNotFound
+func (a ReverseProxyRuleSet) Find(PathIn string) (string, string, error) {
+	for _, Rule := range a {
+		if Rule.matches(PathIn) {
+			NewHost, NewPath := Rule.ToURL(PathIn)
+			return NewHost, NewPath, nil
+		}
+	}
+
+	return "", "", ErrRouteNotFound
+}
+
 // Simple matching function, abstracted away to allow the "Rules" to become more complex as this library develops.
 func (R *ReverseProxyRoutingRule) matches(Path string) bool {
 

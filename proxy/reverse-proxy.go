@@ -56,7 +56,7 @@ func ConfigureReverseProxy(S *server.SimpleServer, Client *client.SimpleClient, 
 //
 // This is the http.HandlerFunc which is called on ALL incoming requests to the reverse proxy.  At a high level this function:
 //	1) Determines the forward host, from the incoming request
-//	2) Creates a NEW request, performing a deep copy of the original, excluding the body
+//	2) Creates a NEW request, performing a deep copy of the original, including the body
 //	3) Performs this new request, using the provided (or default) SimpleClient to the new Host.
 //	4) Receives the corresponding response, and deep copies it back to the original requester.
 func DoReverseProxy(C *client.SimpleClient, IsTLS bool, Matcher ReverseProxyRouterFunc, verbose bool) http.HandlerFunc {
