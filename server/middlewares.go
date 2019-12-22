@@ -44,9 +44,9 @@ func MiddlewareLimitMaxConnections(ConnectionLimit int, Timeout time.Duration, v
 
 				// If the timer expires, write a timeout response and exit
 			case <-timer.C:
+				timer.Stop()
 				w.WriteHeader(http.StatusRequestTimeout)
 				log.Printf("[MiddlewareLimitMaxConnections] [ %s ] [ %s ] Request for URL \"%s\" from Address: [ %s ] - Timeout\n", r.Proto, r.Method, r.URL.String(), r.RemoteAddr)
-				timer.Stop()
 			}
 		})
 	}

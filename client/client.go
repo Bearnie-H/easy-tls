@@ -8,6 +8,7 @@ import (
 	"time"
 
 	easytls "github.com/Bearnie-H/easy-tls"
+	"github.com/Bearnie-H/easy-tls/common"
 )
 
 // SimpleClient is the primary object of this library.  This is the implementation of the simplified HTTP Client provided by this package.  The use and functionality of this is opaque to whether or not this is running in HTTP or HTTPS mode, with a basic utility function to check.
@@ -53,11 +54,7 @@ func NewRequest(Method string, URL *url.URL, Headers map[string][]string, Conten
 		return nil, err
 	}
 
-	for k, vs := range Headers {
-		for _, v := range vs {
-			req.Header.Add(k, v)
-		}
-	}
+	common.AddHeaders(&(req.Header), Headers)
 
 	return req, nil
 }
