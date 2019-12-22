@@ -141,6 +141,10 @@ func GetRuleToAdd() (*proxy.ReverseProxyRoutingRule, error) {
 		NewRule.PathPrefix = strings.TrimSuffix(NewRule.PathPrefix, "/")
 	}
 
+	if NewRule.PathPrefix == "" {
+		NewRule.PathPrefix = "/"
+	}
+
 	if NewRule.DestinationPort < 0 || NewRule.DestinationPort > (256*256) {
 		return nil, fmt.Errorf("easytls proxy error - Invalid Destination Port (%d) - Out of range", NewRule.DestinationPort)
 	}

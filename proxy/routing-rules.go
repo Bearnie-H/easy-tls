@@ -55,7 +55,7 @@ func (R *ReverseProxyRoutingRule) String() string {
 
 // ToURL will convert a URL path, using the Rule to build a Host:Port/Path URL string.
 func (R *ReverseProxyRoutingRule) ToURL(PathIn string) (string, string) {
-	if strings.HasSuffix(R.PathPrefix, "/") {
+	if R.PathPrefix != "/" && strings.HasSuffix(R.PathPrefix, "/") {
 		R.PathPrefix = strings.TrimSuffix(R.PathPrefix, "/")
 	}
 	if R.StripPrefix {
