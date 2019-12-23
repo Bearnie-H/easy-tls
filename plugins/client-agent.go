@@ -69,15 +69,23 @@ func (CA *ClientPluginAgent) RegisterPlugins() error {
 	// Sort all files alphabetically, to assert a standard import order
 	sort.Strings(files)
 
+	var loadErrors error
+
 	// Attempt to load all of the plugins.
 	for _, f := range files {
 		newPlugin, err := InitializeClientPlugin(f, CA.frameworkVersion)
 		if err == nil {
 			CA.RegisteredPlugins = append(CA.RegisteredPlugins, *newPlugin)
+		} else {
+			if loadErrors == nil {
+				loadErrors = fmt.Errorf("easytls plugin agent error - %s", err)
+			} else {
+				loadErrors = fmt.Errorf("%s, %s", loadErrors, err)
+			}
 		}
 	}
 
-	return nil
+	return loadErrors
 }
 
 // Run will start the ClientPlugin Agent, starting each of the registered plugins.
@@ -155,12 +163,30 @@ func (CA *ClientPluginAgent) Stop() error {
 		wg.Add(1)
 
 		go func(p ClientPlugin, wg *sync.WaitGroup) {
+
+			// If the plugin exits, decrement the waitgroup
 			defer wg.Done()
+
+			// Extract the status channel
+			statusChan, err := p.Status()
+
+			// An error retrieving the status channel stops the logging.
+			if err != nil {
+				CA.logger.Write([]byte(err.Error() + "\n"))
+				return
+			}
+
 			if err := p.Stop(); err != nil {
 				CA.logger.Write([]byte(err.Error() + "\n"))
 				errOccured = true
-			} else {
-				CA.logger.Write([]byte(fmt.Sprintf("Successfully stopped plugin \"%s\"\n", p.Name())))
+			}
+
+			// Log status messages until the channel is closed, or a fatal error is retrieved.
+			for M := range statusChan {
+				CA.logger.Write([]byte(M.String()))
+				if M.IsFatal {
+					return
+				}
 			}
 		}(p, wg)
 

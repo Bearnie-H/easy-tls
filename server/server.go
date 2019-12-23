@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
-	"log"
 	"net/http"
 	"strings"
 	"sync/atomic"
@@ -100,12 +99,10 @@ func (S *SimpleServer) ListenAndServe() error {
 	defer S.stopped.Store(true)
 
 	if S.tls.Enabled {
-		log.Printf("Serving HTTPS at: %s\n", S.server.Addr)
 		if err := S.server.ListenAndServeTLS(S.tls.KeyPair.Certificate, S.tls.KeyPair.Key); err != nil && err != http.ErrServerClosed {
 			return err
 		}
 	} else {
-		log.Printf("Serving HTTP at: %s\n", S.server.Addr)
 		if err := S.server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			return err
 		}
@@ -113,8 +110,7 @@ func (S *SimpleServer) ListenAndServe() error {
 
 	// Block while waiting for the server to fully shutdown.
 	for !S.stopped.Load().(bool) {
-		log.Println("Waiting for server to shut down...")
-		time.Sleep(time.Second)
+		time.Sleep(time.Millisecond * 250)
 	}
 
 	return nil
