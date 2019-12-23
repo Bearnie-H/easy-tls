@@ -4,8 +4,10 @@ package main
 func Stop() error {
 
 	defer Killed.Store(true)
+	var err error
 
 	// ...
 
-	return nil
+	WriteStatus("Stopped module %s", err, false, PluginName)
+	return err
 }

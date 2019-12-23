@@ -23,7 +23,7 @@ func Status() (<-chan plugins.PluginStatus, error) {
 	}
 
 	// Create a single non-blocking channel
-	StatusChannel = make(chan plugins.PluginStatus, 1)
+	StatusChannel = make(chan plugins.PluginStatus, 10)
 
 	return StatusChannel, nil
 }
@@ -53,12 +53,6 @@ func WriteStatus(Message string, Error error, Fatal bool, args ...interface{}) e
 	// Cannot write a status to an uninitialized channel
 	if StatusChannel == nil {
 		return errors.New("easytls module error: StatusChannel not initialized")
-	}
-
-	// If the channel is holding a message, clear it in a non-blocking way
-	select {
-	case <-StatusChannel:
-	default:
 	}
 
 	// Send the new status message.
