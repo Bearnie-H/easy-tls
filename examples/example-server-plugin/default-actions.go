@@ -7,6 +7,9 @@ import (
 	"github.com/Bearnie-H/easy-tls/plugins"
 )
 
+// StatusChannelBufferLength defines how large to buffer the Status Channel for.  This should be large enough to allow multiple go-routines to read and write the channel without blocking overly, but also not take up undue memory.
+const StatusChannelBufferLength int = 10
+
 func defaultInitialization(args ...interface{}) error {
 
 	// ...
@@ -23,7 +26,7 @@ func Status() (<-chan plugins.PluginStatus, error) {
 	}
 
 	// Create a single non-blocking channel
-	StatusChannel = make(chan plugins.PluginStatus, 10)
+	StatusChannel = make(chan plugins.PluginStatus, StatusChannelBufferLength)
 
 	return StatusChannel, nil
 }
