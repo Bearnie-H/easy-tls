@@ -12,6 +12,8 @@ const StatusChannelBufferLength int = 10
 
 func defaultInitialization(args ...interface{}) error {
 
+	Killed.Store(false)
+
 	// ...
 
 	return nil

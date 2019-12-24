@@ -21,6 +21,8 @@ func main() {
 
 	// Start the plugins, and block until they all have stopped.
 	Agent.Run(true)
+
+	Agent.Wait()
 }
 
 func initSafeShutdown(A *plugins.ClientPluginAgent) {

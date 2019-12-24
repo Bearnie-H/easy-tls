@@ -8,6 +8,8 @@ import (
 	"path/filepath"
 	"sort"
 	"sync"
+	"sync/atomic"
+	"time"
 )
 
 // ServerPluginAgent represents the a Plugin Manager agent to be used with a SimpleServer.
@@ -17,18 +19,21 @@ type ServerPluginAgent struct {
 	logger             io.WriteCloser
 	PluginSearchFolder string
 
-	stopped bool
+	stopped atomic.Value
 }
 
 // NewServerAgent will create a new Server Plugin agent, ready to register plugins.
 func NewServerAgent(PluginFolder string, Logger io.WriteCloser) (*ServerPluginAgent, error) {
+
 	A := &ServerPluginAgent{
 		frameworkVersion:   ServerFrameworkVersion,
 		PluginSearchFolder: PluginFolder,
 		RegisteredPlugins:  []ServerPlugin{},
 		logger:             Logger,
-		stopped:            false,
+		stopped:            atomic.Value{},
 	}
+
+	A.stopped.Store(false)
 
 	return A, nil
 }
@@ -42,6 +47,13 @@ func (SA *ServerPluginAgent) GetPluginByName(Name string) (*ServerPlugin, error)
 		}
 	}
 	return nil, fmt.Errorf("easytls plugin error - Failed to find plugin %s", Name)
+}
+
+// Wait for the plugin agent to stop safely.
+func (SA *ServerPluginAgent) Wait() {
+	for !SA.stopped.Load().(bool) {
+		time.Sleep(time.Millisecond * 500)
+	}
 }
 
 // RegisterPlugins will configure and register all of the plugins in the previously specified PluginFolder.  This will not start any of the plugins, but will only load the necessary symbols from them.
@@ -130,12 +142,17 @@ func (SA *ServerPluginAgent) run() error {
 	}
 
 	wg.Wait()
+
+	if !SA.stopped.Load().(bool) {
+		time.Sleep(time.Second)
+	}
+
 	return SA.Stop()
 }
 
 // Stop will cause ALL of the currently Running Plugins to safely stop.
 func (SA *ServerPluginAgent) Stop() error {
-	defer func() { SA.stopped = true }()
+	defer SA.stopped.Store(true)
 	errOccured := false
 
 	wg := &sync.WaitGroup{}
@@ -184,7 +201,7 @@ func (SA *ServerPluginAgent) Stop() error {
 // Close down the plugin agent.
 func (SA *ServerPluginAgent) Close() error {
 
-	if !SA.stopped {
+	if !SA.stopped.Load().(bool) {
 		if err := SA.Stop(); err != nil {
 			SA.logger.Write([]byte(err.Error() + "\n"))
 		}

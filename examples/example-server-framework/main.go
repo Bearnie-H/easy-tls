@@ -64,6 +64,8 @@ func main() {
 	if err := Server.ListenAndServe(); err != nil {
 		log.Println(err)
 	}
+
+	Agent.Wait()
 }
 
 func initSafeShutdown(S *server.SimpleServer, A *plugins.ServerPluginAgent) {

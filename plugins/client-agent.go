@@ -8,6 +8,8 @@ import (
 	"path/filepath"
 	"sort"
 	"sync"
+	"sync/atomic"
+	"time"
 
 	"github.com/Bearnie-H/easy-tls/client"
 )
@@ -20,7 +22,7 @@ type ClientPluginAgent struct {
 	logger             io.WriteCloser
 	PluginSearchFolder string
 
-	stopped bool
+	stopped atomic.Value
 }
 
 // NewClientAgent will create a new Client Plugin agent, ready to register plugins.
@@ -40,8 +42,9 @@ func NewClientAgent(Client *client.SimpleClient, PluginFolder string, Logger io.
 		PluginSearchFolder: PluginFolder,
 		RegisteredPlugins:  []ClientPlugin{},
 		logger:             Logger,
-		stopped:            false,
+		stopped:            atomic.Value{},
 	}
+	A.stopped.Store(false)
 
 	return A, nil
 }
@@ -55,6 +58,13 @@ func (CA *ClientPluginAgent) GetPluginByName(Name string) (*ClientPlugin, error)
 		}
 	}
 	return nil, fmt.Errorf("easytls plugin error - Failed to find plugin %s", Name)
+}
+
+// Wait for the plugin agent to stop safely.
+func (CA *ClientPluginAgent) Wait() {
+	for !CA.stopped.Load().(bool) {
+		time.Sleep(time.Millisecond * 500)
+	}
 }
 
 // RegisterPlugins will configure and register all of the plugins in the previously specified PluginFolder.  This will not start any of the plugins, but will only load the necessary symbols from them.
@@ -150,12 +160,17 @@ func (CA *ClientPluginAgent) run() error {
 	}
 
 	wg.Wait()
+
+	for !CA.stopped.Load().(bool) {
+		time.Sleep(time.Second)
+	}
+
 	return CA.Stop()
 }
 
 // Stop will cause ALL of the currentlyRunning Plugins to safely stop.
 func (CA *ClientPluginAgent) Stop() error {
-	defer func() { CA.stopped = true }()
+	defer CA.stopped.Store(true)
 	errOccured := false
 
 	wg := &sync.WaitGroup{}
@@ -203,7 +218,7 @@ func (CA *ClientPluginAgent) Stop() error {
 // Close down the plugin agent.
 func (CA *ClientPluginAgent) Close() error {
 
-	if !CA.stopped {
+	if !CA.stopped.Load().(bool) {
 		if err := CA.Stop(); err != nil {
 			CA.logger.Write([]byte(err.Error() + "\n"))
 		}
