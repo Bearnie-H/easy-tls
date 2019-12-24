@@ -8,7 +8,7 @@ import (
 	"net/url"
 
 	"github.com/Bearnie-H/easy-tls/client"
-	"github.com/Bearnie-H/easy-tls/common"
+	"github.com/Bearnie-H/easy-tls/header"
 	"github.com/Bearnie-H/easy-tls/server"
 	"github.com/gorilla/mux"
 )
@@ -103,11 +103,11 @@ func DoReverseProxy(C *client.SimpleClient, IsTLS bool, Matcher ReverseProxyRout
 		}
 
 		// Add in some proxy-specific headers
-		proxyHeaders := map[string][]string{
+		proxyHeaders := http.Header{
 			"Host":            []string{r.Host},
 			"X-Forwarded-For": []string{r.RemoteAddr},
 		}
-		common.AddHeaders(&(proxyReq.Header), proxyHeaders)
+		header.Merge(&(proxyReq.Header), &proxyHeaders)
 
 		if verbose {
 			log.Printf("Forwarding %s to %s", r.URL.String(), proxyURL.String())
@@ -129,7 +129,7 @@ func DoReverseProxy(C *client.SimpleClient, IsTLS bool, Matcher ReverseProxyRout
 
 		// Write the response fields out to the original requester
 		responseHeader := w.Header()
-		common.AddHeaders(&responseHeader, proxyResp.Header)
+		header.Merge(&responseHeader, &(proxyResp.Header))
 
 		// Write back the status code
 		w.WriteHeader(proxyResp.StatusCode)

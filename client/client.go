@@ -8,7 +8,7 @@ import (
 	"time"
 
 	easytls "github.com/Bearnie-H/easy-tls"
-	"github.com/Bearnie-H/easy-tls/common"
+	"github.com/Bearnie-H/easy-tls/header"
 )
 
 // SimpleClient is the primary object of this library.  This is the implementation of the simplified HTTP Client provided by this package.  The use and functionality of this is opaque to whether or not this is running in HTTP or HTTPS mode, with a basic utility function to check.
@@ -48,13 +48,13 @@ func (C *SimpleClient) IsTLS() bool {
 }
 
 // NewRequest will create a new HTTP Request, ready to be used by any implementation of an http.Client
-func NewRequest(Method string, URL *url.URL, Headers map[string][]string, Contents io.ReadCloser) (*http.Request, error) {
+func NewRequest(Method string, URL *url.URL, Headers http.Header, Contents io.ReadCloser) (*http.Request, error) {
 	req, err := http.NewRequest(Method, URL.String(), Contents)
 	if err != nil {
 		return nil, err
 	}
 
-	common.AddHeaders(&(req.Header), Headers)
+	header.Merge(&(req.Header), &Headers)
 
 	return req, nil
 }
