@@ -19,6 +19,11 @@ func NewDecoder(v interface{}) *Decoder {
 	return &Decoder{v: v}
 }
 
+// Out will return a copy of the struct being filled in by this Decoder, exactly as it sees it at the time of calling.
+func (D *Decoder) Out() interface{} {
+	return D.v
+}
+
 // Decode will actually decode the Header H.
 func (D *Decoder) Decode(H http.Header) error {
 	D.h = H

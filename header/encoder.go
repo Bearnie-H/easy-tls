@@ -15,7 +15,15 @@ type Encoder struct {
 
 // NewEncoder will create and initialize an encoder, ready to write a Go struct into an HTTP Header
 func NewEncoder(H *http.Header) *Encoder {
+	if H == nil {
+		H = &http.Header{}
+	}
 	return &Encoder{h: *H}
+}
+
+// Header returns a copy of the underlying HTTP Header, as the Encoder currenty sees it.
+func (E *Encoder) Header() http.Header {
+	return E.h
 }
 
 // Encode will actually encode the struct v into the http.Header.
