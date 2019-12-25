@@ -51,7 +51,6 @@ func (E *Encoder) encode() error {
 		case reflect.String:
 			E.encodeString(FieldName, FieldValue)
 		default:
-			return fmt.Errorf("encoder error: Unsupported type - %s", FieldType.String())
 		}
 	}
 	return nil
