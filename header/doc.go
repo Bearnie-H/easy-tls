@@ -14,4 +14,5 @@
 // Since this does not include structs, there is no current mechanism for converting nested structs with this API.
 // This is unlikely be added, as nested structs do not exactly play nicely with the map[string][]string underlying structure,
 //  and an approach like a MIME Multipart message with a JSON preamble is a more standard solution.
+// If unsupported types are found, they are simply ignored.
 package header
