@@ -19,8 +19,13 @@ func Init(Client *client.SimpleClient, args ...interface{}) error {
 		return fmt.Errorf("easytls module error: Failed to perform module-specific initialization - %s", err)
 	}
 
+	// Now the all of the initialization steps are finished, spawn a go-routine to implement the "Main" logic of this plugin.
 	go func(Client *client.SimpleClient, args ...interface{}) {
 		Main(Client, args...)
+		defer func() {
+			err := Stop()
+			WriteStatus("Stopped plugin", err, false)
+		}()
 	}(Client, args...)
 
 	return nil

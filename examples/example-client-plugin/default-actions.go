@@ -3,7 +3,6 @@ package main
 import (
 	"errors"
 	"fmt"
-	"time"
 
 	"github.com/Bearnie-H/easy-tls/client"
 	"github.com/Bearnie-H/easy-tls/plugins"
@@ -51,15 +50,15 @@ func Name() string {
 // WriteStatus is the standard mechanism for writing a status message out to the framework.  This function can and should be passed in to sub-packages as necessary within the plugin, along with the StatusChannel itself (or at least a pointer to these).
 func WriteStatus(Message string, Error error, Fatal bool, args ...interface{}) error {
 
-	NewStatus := plugins.PluginStatus{
-		Message: fmt.Sprintf("%s [%s]: %s\n", time.Now().Format(time.Stamp), PluginName, fmt.Sprintf(Message, args...)),
-		Error:   Error,
-		IsFatal: Fatal,
-	}
-
 	// Cannot write a status to an uninitialized channel
 	if StatusChannel == nil {
 		return errors.New("easytls module error: StatusChannel not initialized")
+	}
+
+	NewStatus := plugins.PluginStatus{
+		Message: fmt.Sprintf("[%s]: %s\n", PluginName, fmt.Sprintf(Message, args...)),
+		Error:   Error,
+		IsFatal: Fatal,
 	}
 
 	// Send the new status message.

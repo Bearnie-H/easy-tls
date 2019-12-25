@@ -11,10 +11,16 @@ import (
 	"github.com/Bearnie-H/easy-tls/server"
 )
 
+// Example Constants, set these based on your application needs
+const (
+	ModuleFolder  = "./active-modules"
+	ServerAddress = ":8080"
+)
+
 func main() {
 
 	// Create a new plugin agent, reading plugins from ./active-modules and logging to stdout
-	Agent, err := plugins.NewServerAgent("./active-modules", os.Stdout)
+	Agent, err := plugins.NewServerAgent(ModuleFolder, os.Stdout)
 	if err != nil {
 		panic(err)
 	}
@@ -27,7 +33,7 @@ func main() {
 	Agent.Run(false)
 
 	// Create a new HTTP Server, which will listen on port 8080 on all interfaces.
-	Server, err := server.NewServerHTTP(":8080")
+	Server, err := server.NewServerHTTP(ServerAddress)
 	if err != nil {
 		panic(err)
 	}
