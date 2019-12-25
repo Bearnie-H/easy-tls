@@ -1,6 +1,8 @@
 package header
 
-import "net/http"
+import (
+	"net/http"
+)
 
 // Decoder will implement the necessary functionality for parsing an http.Header into a Go struct.
 type Decoder struct {
@@ -17,12 +19,5 @@ func NewDecoder(v interface{}) *Decoder {
 // Decode will actually decode the Header H.
 func (D *Decoder) Decode(H http.Header) error {
 	D.h = H
-	return D.decode()
-}
-
-func (D *Decoder) decode() error {
-
-	// ...
-
 	return nil
 }
