@@ -16,8 +16,10 @@ type ReverseProxyRoutingRule struct {
 // ReverseProxyRuleSet implements a sortable interface for a set of Reverse Proxy Rules
 type ReverseProxyRuleSet []ReverseProxyRoutingRule
 
-func (a ReverseProxyRuleSet) Len() int           { return len(a) }
-func (a ReverseProxyRuleSet) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
+func (a ReverseProxyRuleSet) Len() int      { return len(a) }
+func (a ReverseProxyRuleSet) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
+
+// Less is defined is "reverse" order, as longer path-prefixes should be matched against first.
 func (a ReverseProxyRuleSet) Less(i, j int) bool { return a[i].PathPrefix > a[j].PathPrefix }
 
 // Find will return either the new Host:Port/Path to forward to, or ErrRouteNotFound
@@ -53,7 +55,7 @@ func (R *ReverseProxyRoutingRule) String() string {
 	return fmt.Sprintf("Prefix: \"%s\" will forward to \"%s:%d\" without stripping the prefix.", R.PathPrefix, R.DestinationHost, R.DestinationPort)
 }
 
-// ToURL will convert a URL path, using the Rule to build a Host:Port/Path URL string.
+// ToURL will convert a URL path, using the Rule to build a Host:Port string and Path URL string.
 func (R *ReverseProxyRoutingRule) ToURL(PathIn string) (string, string) {
 	if R.PathPrefix != "/" && strings.HasSuffix(R.PathPrefix, "/") {
 		R.PathPrefix = strings.TrimSuffix(R.PathPrefix, "/")
