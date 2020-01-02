@@ -31,9 +31,19 @@ func (D *Decoder) Out() interface{} {
 }
 
 // Decode will actually decode the Header H.
-func (D *Decoder) Decode(H http.Header) error {
+func (D *Decoder) Decode(H http.Header) (err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			var ok bool
+			err, ok = r.(error)
+			if !ok {
+				err = fmt.Errorf("header - encode error - %s", r)
+			}
+		}
+	}()
 	D.h = H
-	return D.decode()
+	err = D.decode()
+	return
 }
 
 func (D *Decoder) decode() error {
