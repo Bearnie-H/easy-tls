@@ -27,18 +27,18 @@ func (E *Encoder) Header() http.Header {
 }
 
 // Encode will actually encode the struct v into the http.Header.
+// This process must flatten any nested structs into a single layer, to match the underlying structure of the HTTP Headers.
 func (E *Encoder) Encode(v interface{}) error {
-	E.v = v
 	if !reflect.ValueOf(v).IsValid() || v == nil {
 		return errors.New("encoder error: Invalid or nil interface provided")
 	}
-	return E.encode()
+	return E.encode(v)
 }
 
-func (E *Encoder) encode() error {
+func (E *Encoder) encode(v interface{}) error {
 
-	InVal := reflect.ValueOf(E.v)
-	InType := reflect.TypeOf(E.v)
+	InVal := reflect.ValueOf(v)
+	InType := reflect.TypeOf(v)
 
 	// Iterate over the fields of the struct to encode
 	for i := 0; i < InVal.NumField(); i++ {
@@ -58,6 +58,11 @@ func (E *Encoder) encode() error {
 			}
 		case reflect.String:
 			E.encodeString(FieldName, FieldValue)
+		case reflect.Struct:
+			sub := FieldValue.Interface()
+			if err := E.encode(sub); err != nil {
+				return err
+			}
 		default:
 		}
 	}
