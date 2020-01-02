@@ -4,13 +4,11 @@ import (
 	"fmt"
 	"log"
 	"math"
-	"net/http"
 	"testing"
 )
 
 func Test_Decoder(t *testing.T) {
 
-	H := &http.Header{}
 	S := TestStruct{
 		IntTest:         420,
 		IntSliceTest:    []int{69, 42069},
@@ -22,19 +20,19 @@ func Test_Decoder(t *testing.T) {
 		FloatSliceTest:  []float64{math.SqrtPi, math.SqrtE},
 	}
 
-	E := NewEncoder(H)
+	fmt.Printf("Struct before any encoding/decoding:\n%+v\n", S)
 
-	if err := E.Encode(S); err != nil {
+	H, err := DefaultEncode(S)
+	if err != nil {
 		log.Fatalln(err)
 	}
+
+	fmt.Printf("Struct to encode:\n%+v\nEncoded Header:\n%+v\n", S, H)
 
 	S2 := TestStruct{}
-
-	D := NewDecoder(&S2)
-
-	if err := D.Decode(*H); err != nil {
+	if err := DefaultDecode(H, &S2); err != nil {
 		log.Fatalln(err)
 	}
 
-	fmt.Printf("Pre-Encoding: %+v\n\nPost-Encoding: %+v\n", S, S2)
+	fmt.Printf("Pre-encoding struct:\n%+v\nStruct decoded from Header:\n%+v\n", S, S2)
 }

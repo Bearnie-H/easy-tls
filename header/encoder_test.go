@@ -1,8 +1,8 @@
 package header
 
 import (
+	"fmt"
 	"log"
-	"net/http"
 	"testing"
 )
 
@@ -20,9 +20,8 @@ type TestStruct struct {
 
 func TestEncoder(t *testing.T) {
 
-	H := &http.Header{}
 	S := TestStruct{
-		IntTest:         0,
+		IntTest:         238947234,
 		IntSliceTest:    []int{0, 1},
 		BoolTest:        true,
 		BoolSliceTest:   []bool{true, false},
@@ -32,11 +31,12 @@ func TestEncoder(t *testing.T) {
 		FloatSliceTest:  []float64{4.55, 420.2},
 	}
 
-	E := NewEncoder(H)
+	fmt.Printf("Struct before any encoding:\n%+v\n", S)
 
-	if err := E.Encode(S); err != nil {
+	H, err := DefaultEncode(S)
+	if err != nil {
 		log.Fatalln(err)
 	}
 
-	log.Printf("%+v", H)
+	fmt.Printf("Struct after encoding:\n%+v\nHeader constructed from Struct:\n%+v\n", S, H)
 }
