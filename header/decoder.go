@@ -19,6 +19,12 @@ func NewDecoder(v interface{}) *Decoder {
 	return &Decoder{v: v}
 }
 
+// DefaultDecode will allow using the default decoder, decoding the header into the value pointed to by v.
+func DefaultDecode(H http.Header, v interface{}) error {
+	dec := NewDecoder(v)
+	return dec.Decode(H)
+}
+
 // Out will return a copy of the struct being filled in by this Decoder, exactly as it sees it at the time of calling.
 func (D *Decoder) Out() interface{} {
 	return D.v

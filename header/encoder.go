@@ -21,6 +21,15 @@ func NewEncoder(H *http.Header) *Encoder {
 	return &Encoder{h: *H}
 }
 
+// DefaultEncode will allow using a default encoding, returning an HTTP Header to be merged with the one to be sent.
+func DefaultEncode(v interface{}) (http.Header, error) {
+	enc := NewEncoder(&http.Header{})
+	if err := enc.Encode(v); err != nil {
+		return nil, err
+	}
+	return enc.Header(), nil
+}
+
 // Header returns a copy of the underlying HTTP Header, as the Encoder currenty sees it.
 func (E *Encoder) Header() http.Header {
 	return E.h
