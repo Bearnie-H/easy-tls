@@ -7,9 +7,19 @@ import (
 	"testing"
 )
 
+type Foo struct {
+	Bar string
+	Baz int
+}
+
+type test2 struct {
+	TestStruct
+	Foo
+}
+
 func Test_Decoder(t *testing.T) {
 
-	S := TestStruct{
+	s := TestStruct{
 		IntTest:         420,
 		IntSliceTest:    []int{69, 42069},
 		BoolTest:        true,
@@ -18,6 +28,14 @@ func Test_Decoder(t *testing.T) {
 		StringSliceTest: []string{"This", "is", "a", "test", "of", "strings"},
 		FloatTest:       math.Pi,
 		FloatSliceTest:  []float64{math.SqrtPi, math.SqrtE},
+	}
+
+	S := test2{
+		TestStruct: s,
+		Foo: Foo{
+			Bar: "rjhwer",
+			Baz: 313,
+		},
 	}
 
 	fmt.Printf("Struct before any encoding/decoding:\n%+v\n", S)
@@ -29,7 +47,7 @@ func Test_Decoder(t *testing.T) {
 
 	fmt.Printf("Struct to encode:\n%+v\nEncoded Header:\n%+v\n", S, H)
 
-	S2 := TestStruct{}
+	S2 := test2{}
 	if err := DefaultDecode(H, &S2); err != nil {
 		log.Fatalln(err)
 	}

@@ -48,8 +48,18 @@ func (D *Decoder) Decode(H http.Header) (err error) {
 
 func (D *Decoder) decode() error {
 
-	OutVal := reflect.ValueOf(D.v).Elem()
-	OutType := reflect.TypeOf(D.v).Elem()
+	var (
+		OutVal  reflect.Value
+		OutType reflect.Type
+	)
+
+	if reflect.TypeOf(D.v).Kind() == reflect.Ptr || reflect.TypeOf(D.v).Kind() == reflect.Interface {
+		OutVal = reflect.ValueOf(D.v).Elem()
+		OutType = reflect.TypeOf(D.v).Elem()
+	} else {
+		OutVal = reflect.ValueOf(D.v)
+		OutType = reflect.TypeOf(D.v)
+	}
 
 	// Iterate over the struct fields...
 	for i := 0; i < OutVal.NumField(); i++ {
@@ -113,6 +123,12 @@ func (D *Decoder) decode() error {
 				return err
 			}
 			FieldValue.SetString(v)
+		case reflect.Struct:
+			sub := FieldValue.Addr().Interface()
+			if err := DefaultDecode(D.h, sub); err != nil {
+				return err
+			}
+			FieldValue.Set(reflect.ValueOf(sub).Elem())
 		default:
 		}
 	}
