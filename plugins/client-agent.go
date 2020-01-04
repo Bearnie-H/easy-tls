@@ -90,7 +90,7 @@ func (CA *ClientPluginAgent) RegisterPlugins() error {
 			if loadErrors == nil {
 				loadErrors = fmt.Errorf("easytls plugin agent error - %s", err)
 			} else {
-				loadErrors = fmt.Errorf("%s, %s", loadErrors, err)
+				loadErrors = fmt.Errorf("%s\n%s", loadErrors, err)
 			}
 		}
 	}

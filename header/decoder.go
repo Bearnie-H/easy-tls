@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"reflect"
 	"strconv"
+	"strings"
 )
 
 // Decoder will implement the necessary functionality for parsing an http.Header into a Go struct.
@@ -66,7 +67,10 @@ func (D *Decoder) decode() error {
 		FieldName := OutType.Field(i).Name
 		FieldType := OutType.Field(i).Type.Kind()
 		FieldValue := OutVal.Field(i)
-		HeaderValue := D.h[http.CanonicalHeaderKey(FieldName)]
+		var HeaderValue []string
+		if len(D.h[http.CanonicalHeaderKey(FieldName)]) > 0 {
+			HeaderValue = strings.Split(D.h[http.CanonicalHeaderKey(FieldName)][0], ";")
+		}
 		switch FieldType {
 		case reflect.Bool:
 			v, err := D.decodeBool(HeaderValue)
