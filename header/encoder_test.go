@@ -33,7 +33,7 @@ func TestEncoder(t *testing.T) {
 
 	fmt.Printf("Struct before any encoding:\n%+v\n", S)
 
-	H, err := DefaultEncode(&S)
+	H, err := DefaultEncode(S)
 	if err != nil {
 		log.Fatalln(err)
 	}

@@ -78,26 +78,26 @@ func DoReverseProxy(C *client.SimpleClient, IsTLS bool, Matcher ReverseProxyRout
 		// Create the new URL to use, based on the TLS settings of the Client, and the incoming request.
 		proxyURL, err := formatProxyURL(r, IsTLS, Matcher)
 		if err == ErrRouteNotFound {
-			log.Printf("Failed to find destination host:port for URL %s from %s - %s", r.URL.String(), r.RemoteAddr, err)
+			log.Printf("Failed to find destination host:port for URL [ %s ] from %s - %s", r.URL.String(), r.RemoteAddr, err)
 			w.WriteHeader(http.StatusNotFound)
-			w.Write([]byte(fmt.Sprintf("Failed to find destination host:port for URL %s - %s.\n", r.URL.String(), err)))
+			w.Write([]byte(fmt.Sprintf("Failed to find destination host:port for URL [ %s ] - %s.\n", r.URL.String(), err)))
 			return
 		} else if err == ErrForbiddenRoute {
-			log.Printf("Cannot forward request for URL %s from %s - %s", r.URL.String(), r.RemoteAddr, err)
+			log.Printf("Cannot forward request for URL [ %s ] from %s - %s", r.URL.String(), r.RemoteAddr, err)
 			w.WriteHeader(http.StatusForbidden)
-			w.Write([]byte(fmt.Sprintf("Cannot forward request for URL %s - %s.\n", r.URL.String(), err)))
+			w.Write([]byte(fmt.Sprintf("Cannot forward request for URL [ %s ] - %s.\n", r.URL.String(), err)))
 			return
 		} else if err != nil {
-			log.Printf("Failed to format proxy forwarding for URL %s from %s - %s", r.URL.String(), r.RemoteAddr, err)
+			log.Printf("Failed to format proxy forwarding for URL [ %s ] from %s - %s", r.URL.String(), r.RemoteAddr, err)
 			w.WriteHeader(http.StatusInternalServerError)
-			w.Write([]byte(fmt.Sprintf("Failed to format proxy forwarding for URL %s - %s.\n", r.URL.String(), err)))
+			w.Write([]byte(fmt.Sprintf("Failed to format proxy forwarding for URL [ %s ] - %s.\n", r.URL.String(), err)))
 			return
 		}
 
 		// Create the new Request to send
 		proxyReq, err := client.NewRequest(r.Method, proxyURL, r.Header, r.Body)
 		if err != nil {
-			log.Printf("Failed to create proxy forwarding request for URL %s from %s - %s", r.URL.String(), r.RemoteAddr, err)
+			log.Printf("Failed to create proxy forwarding request for URL [ %s ] from %s - %s", r.URL.String(), r.RemoteAddr, err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
@@ -110,7 +110,7 @@ func DoReverseProxy(C *client.SimpleClient, IsTLS bool, Matcher ReverseProxyRout
 		header.Merge(&(proxyReq.Header), &proxyHeaders)
 
 		if verbose {
-			log.Printf("Forwarding %s to %s", r.URL.String(), proxyURL.String())
+			log.Printf("Forwarding [ %s ] to [ %s ]", r.URL.String(), proxyURL.String())
 		}
 
 		// Perform the full proxy request
@@ -121,20 +121,20 @@ func DoReverseProxy(C *client.SimpleClient, IsTLS bool, Matcher ReverseProxyRout
 			break
 		case client.ErrInvalidStatusCode:
 			defer proxyResp.Body.Close()
-			log.Printf("Failed to perform proxy request for URL %s from %s - %s", r.URL.String(), r.RemoteAddr, err)
+			log.Printf("Failed to perform proxy request for URL [ %s ] from %s - %s", r.URL.String(), r.RemoteAddr, err)
 			H := w.Header()
 			header.Merge(&H, &proxyResp.Header)
 			w.WriteHeader(proxyResp.StatusCode)
-			w.Write([]byte(fmt.Sprintf("Failed to perform proxy request for URL %s - %s.\n", r.URL.String(), err)))
+			w.Write([]byte(fmt.Sprintf("Failed to perform proxy request for URL [ %s ] - %s.\n", r.URL.String(), err)))
 			if _, err := io.Copy(w, proxyResp.Body); err != nil {
-				log.Printf("Failed to write back failed proxy response for URL %s from %s - %s", r.URL.String(), r.RemoteAddr, err)
+				log.Printf("Failed to write back failed proxy response for URL [ %s ] from %s - %s", r.URL.String(), r.RemoteAddr, err)
 				return
 			}
 			return
 		default:
-			log.Printf("Failed to perform proxy request for URL %s from %s - %s", r.URL.String(), r.RemoteAddr, err)
+			log.Printf("Failed to perform proxy request for URL [ %s ] from %s - %s", r.URL.String(), r.RemoteAddr, err)
 			w.WriteHeader(http.StatusInternalServerError)
-			w.Write([]byte(fmt.Sprintf("Failed to perform proxy request for URL %s - %s.\n", r.URL.String(), err)))
+			w.Write([]byte(fmt.Sprintf("Failed to perform proxy request for URL [ %s ] - %s.\n", r.URL.String(), err)))
 			return
 		}
 
@@ -147,7 +147,7 @@ func DoReverseProxy(C *client.SimpleClient, IsTLS bool, Matcher ReverseProxyRout
 
 		// Write back the response body
 		if _, err := io.Copy(w, proxyResp.Body); err != nil {
-			log.Printf("Failed to write back proxy response for URL %s from %s - %s", r.URL.String(), r.RemoteAddr, err)
+			log.Printf("Failed to write back proxy response for URL [ %s ] from %s - %s", r.URL.String(), r.RemoteAddr, err)
 			return
 		}
 	})

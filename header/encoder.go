@@ -126,23 +126,44 @@ func (E *Encoder) encodeSlice(Name string, Val reflect.Value) error {
 		return nil
 	}
 	SliceKind := Val.Type().Elem().Kind()
+	SliceValues := ""
 	switch SliceKind {
 	case reflect.Bool:
 		for i := 0; i < Val.Len(); i++ {
-			E.encodeBool(Name, Val.Index(i))
+			if i == 0 {
+				SliceValues = fmt.Sprintf("%t", Val.Index(i).Bool())
+			} else {
+				SliceValues = fmt.Sprintf("%s;%t", SliceValues, Val.Index(i).Bool())
+			}
 		}
+		E.encodeString(Name, reflect.ValueOf(SliceValues))
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		for i := 0; i < Val.Len(); i++ {
-			E.encodeInt(Name, Val.Index(i))
+			if i == 0 {
+				SliceValues = fmt.Sprintf("%d", Val.Index(i).Int())
+			} else {
+				SliceValues = fmt.Sprintf("%s;%d", SliceValues, Val.Index(i).Int())
+			}
 		}
+		E.encodeString(Name, reflect.ValueOf(SliceValues))
 	case reflect.Float32, reflect.Float64:
 		for i := 0; i < Val.Len(); i++ {
-			E.encodeFloat(Name, Val.Index(i))
+			if i == 0 {
+				SliceValues = fmt.Sprintf("%f", Val.Index(i).Float())
+			} else {
+				SliceValues = fmt.Sprintf("%s;%f", SliceValues, Val.Index(i).Float())
+			}
 		}
+		E.encodeString(Name, reflect.ValueOf(SliceValues))
 	case reflect.String:
 		for i := 0; i < Val.Len(); i++ {
-			E.encodeString(Name, Val.Index(i))
+			if i == 0 {
+				SliceValues = fmt.Sprintf("%s", Val.Index(i).String())
+			} else {
+				SliceValues = fmt.Sprintf("%s;%s", SliceValues, Val.Index(i).String())
+			}
 		}
+		E.encodeString(Name, reflect.ValueOf(SliceValues))
 	default:
 		return fmt.Errorf("encoder error: Unsupported slice type - %s", SliceKind.String())
 	}
