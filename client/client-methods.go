@@ -2,12 +2,14 @@ package client
 
 import (
 	"errors"
-	"fmt"
 	"io"
 	"mime/multipart"
 	"net/http"
 	"net/url"
 )
+
+// ErrInvalidStatusCode references the Error returned by any request which succeeds in communicating with the server, but does not return a 2xx level response code.
+var ErrInvalidStatusCode = errors.New("Invalid status code - Expected 2xx")
 
 // Get is the wrapper function for an HTTP "GET" request. This will create a GET request with an empty body, and the specified headers. The header map can be set to nil if no additional headers are required. This function returns an error and nil response on an HTTP StatusCode which is outside the 200 block.
 func (C *SimpleClient) Get(URL *url.URL, Headers map[string][]string) (*http.Response, error) {
@@ -143,7 +145,12 @@ func (C *SimpleClient) Trace(URL *url.URL, Headers map[string][]string) (*http.R
 	return C.Do(req)
 }
 
-// Do is the wrapper function for a generic pre-generated HTTP request. This is the generic underlying call used by the rest of this library (and reflects similarly to how HTTP Requests are handled in the standard library). This will perform no alterations to the provided request, and no alterations to the returned Response. This function returns an error and nil response on an HTTP StatusCode which is outside the 200 block.
+// Do is the wrapper function for a generic pre-generated HTTP request.
+// This is the generic underlying call used by the rest of this library
+//  (and reflects similarly to how HTTP Requests are handled in the standard library).
+// This will perform no alterations to the provided request, and no alterations to the returned Response.
+// This function ErrInvalidStatusCode and the full response on an HTTP StatusCode which is outside the 200 block.
+// This is still a meaningful response, but a helpful error to quickly disambiguate errors of transport versus errors of action.
 func (C *SimpleClient) Do(req *http.Request) (*http.Response, error) {
 	resp, err := C.client.Do(req)
 	if err != nil {
@@ -154,6 +161,5 @@ func (C *SimpleClient) Do(req *http.Request) (*http.Response, error) {
 		return resp, nil
 	}
 
-	defer resp.Body.Close()
-	return resp, fmt.Errorf("Invalid status code - expected 2xx, got %d (%s)", resp.StatusCode, resp.Status)
+	return resp, ErrInvalidStatusCode
 }

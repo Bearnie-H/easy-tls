@@ -115,17 +115,28 @@ func DoReverseProxy(C *client.SimpleClient, IsTLS bool, Matcher ReverseProxyRout
 
 		// Perform the full proxy request
 		proxyResp, err := C.Do(proxyReq)
-		if err != nil {
+		switch err {
+		case nil:
+			defer proxyResp.Body.Close()
+			break
+		case client.ErrInvalidStatusCode:
+			defer proxyResp.Body.Close()
 			log.Printf("Failed to perform proxy request for URL %s from %s - %s", r.URL.String(), r.RemoteAddr, err)
-			if proxyResp != nil {
-				w.WriteHeader(proxyResp.StatusCode)
-			} else {
-				w.WriteHeader(http.StatusInternalServerError)
+			H := w.Header()
+			header.Merge(&H, &proxyResp.Header)
+			w.WriteHeader(proxyResp.StatusCode)
+			w.Write([]byte(fmt.Sprintf("Failed to perform proxy request for URL %s - %s.\n", r.URL.String(), err)))
+			if _, err := io.Copy(w, proxyResp.Body); err != nil {
+				log.Printf("Failed to write back failed proxy response for URL %s from %s - %s", r.URL.String(), r.RemoteAddr, err)
+				return
 			}
+			return
+		default:
+			log.Printf("Failed to perform proxy request for URL %s from %s - %s", r.URL.String(), r.RemoteAddr, err)
+			w.WriteHeader(http.StatusInternalServerError)
 			w.Write([]byte(fmt.Sprintf("Failed to perform proxy request for URL %s - %s.\n", r.URL.String(), err)))
 			return
 		}
-		defer proxyResp.Body.Close()
 
 		// Write the response fields out to the original requester
 		responseHeader := w.Header()
