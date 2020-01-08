@@ -7,6 +7,7 @@ import (
 	"path"
 	"path/filepath"
 	"sort"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -51,9 +52,10 @@ func NewClientAgent(Client *client.SimpleClient, PluginFolder string, Logger io.
 
 // GetPluginByName will return a pointer to the requested plugin.  This is typically used to provide input arguments for when the plugin is Initiated.
 func (CA *ClientPluginAgent) GetPluginByName(Name string) (*ClientPlugin, error) {
+	Name = strings.ToLower(Name)
 	for index, p := range CA.RegisteredPlugins {
-		name := p.Name()
-		if name == Name {
+		name := strings.ToLower(p.Name())
+		if strings.HasPrefix(name, Name) {
 			return &(CA.RegisteredPlugins[index]), nil
 		}
 	}

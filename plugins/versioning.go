@@ -14,12 +14,12 @@ type SemanticVersion struct {
 }
 
 func (v *SemanticVersion) String() string {
-	return fmt.Sprintf("%d-%d-%d", v.MajorRelease, v.MinorRelease, v.Build)
+	return fmt.Sprintf("%d.%d.%d", v.MajorRelease, v.MinorRelease, v.Build)
 }
 
 // ParseVersion allows for a SemanticVersion to be recovered from its string representation.
 func ParseVersion(v string) (*SemanticVersion, error) {
-	fields := strings.Split(v, "-")
+	fields := strings.Split(v, ".")
 	if len(fields) != 3 {
 		return nil, fmt.Errorf("semantic version parse error - Got %d expected 3 (%s)", len(fields), v)
 	}
