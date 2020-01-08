@@ -74,23 +74,23 @@ func DoReverseProxy(C *client.SimpleClient, IsTLS bool, Matcher ReverseProxyRout
 
 	// Anonymous function to be returned, and is what is actually called when requests come in.
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		defer r.Body.Close()
 
 		// Create the new URL to use, based on the TLS settings of the Client, and the incoming request.
 		proxyURL, err := formatProxyURL(r, IsTLS, Matcher)
-		if err == ErrRouteNotFound {
+		switch err {
+		case nil:
+		case ErrRouteNotFound:
 			log.Printf("Failed to find destination host:port for URL [ %s ] from %s - %s", r.URL.String(), r.RemoteAddr, err)
 			w.WriteHeader(http.StatusNotFound)
-			w.Write([]byte(fmt.Sprintf("Failed to find destination host:port for URL [ %s ] - %s.\n", r.URL.String(), err)))
 			return
-		} else if err == ErrForbiddenRoute {
+		case ErrForbiddenRoute:
 			log.Printf("Cannot forward request for URL [ %s ] from %s - %s", r.URL.String(), r.RemoteAddr, err)
 			w.WriteHeader(http.StatusForbidden)
-			w.Write([]byte(fmt.Sprintf("Cannot forward request for URL [ %s ] - %s.\n", r.URL.String(), err)))
 			return
-		} else if err != nil {
+		default:
 			log.Printf("Failed to format proxy forwarding for URL [ %s ] from %s - %s", r.URL.String(), r.RemoteAddr, err)
 			w.WriteHeader(http.StatusInternalServerError)
-			w.Write([]byte(fmt.Sprintf("Failed to format proxy forwarding for URL [ %s ] - %s.\n", r.URL.String(), err)))
 			return
 		}
 
