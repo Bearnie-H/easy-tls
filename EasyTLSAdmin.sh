@@ -188,7 +188,7 @@ fi
 assertArgSet "$ProjectFolder" "-p"
 
 Type=$(toLower "$Type")
-ProjectFolder=$(toLower "$GOPATH/src/$ProjectFolder")
+ProjectFolder="$GOPATH/src/$ProjectFolder"
 
 if [ ! -z "$FrameworkFlag" ]; then
     TemplateFolder="$EasyTLSPath/examples/example-$Type-framework/"

@@ -8,13 +8,15 @@ import (
 	"time"
 
 	"github.com/Bearnie-H/easy-tls/plugins"
+	"github.com/Bearnie-H/easy-tls/proxy"
 	"github.com/Bearnie-H/easy-tls/server"
 )
 
 // Example Constants, set these based on your application needs
 const (
-	ModuleFolder  = "./active-modules"
-	ServerAddress = ":8080"
+	ModuleFolder     = "./active-modules"
+	ServerAddress    = ":8080"
+	RoutingRulesFile = "./EasyTLS-Proxy.rules"
 )
 
 func main() {
@@ -26,7 +28,7 @@ func main() {
 	}
 
 	if err := Agent.RegisterPlugins(); err != nil {
-		panic(err)
+		log.Println(err)
 	}
 
 	// Start status logging of the plugins.
@@ -45,7 +47,8 @@ func main() {
 	for _, p := range Agent.RegisteredPlugins {
 		routes, err := p.Init()
 		if err != nil {
-			panic(err)
+			log.Println(err)
+			continue
 		}
 		server.AddHandlers(true, Server, router, routes...)
 	}
@@ -56,6 +59,9 @@ func main() {
 
 	// Add in a route to display a route guide
 	Server.EnableAboutHandler(router)
+
+	// Set up the server so that any routes which are not found are checked against a routing table file, allowing this server to proxy requests it cannot serve itself, but has been configured to proxy for.
+	proxy.NotFoundHandlerProxyOverride(router, proxy.LiveFileRouter(RoutingRulesFile), true)
 
 	// Register the router, to allow the server to actually serve the routes defined.
 	Server.RegisterRouter(router)
@@ -77,22 +83,25 @@ func main() {
 func initSafeShutdown(S *server.SimpleServer, A *plugins.ServerPluginAgent) {
 	sigChan := make(chan os.Signal)
 	signal.Notify(sigChan, os.Interrupt, os.Kill)
-	go doSafeShutdown(sigChan, S, A)
+	go doSafeShutdown(sigChan, A, S)
 }
 
-func doSafeShutdown(C chan os.Signal, S *server.SimpleServer, A *plugins.ServerPluginAgent) {
+func doSafeShutdown(C chan os.Signal, A *plugins.ServerPluginAgent, S ...*server.SimpleServer) {
 
 	// Wait on a signal
 	<-C
-	log.Println("Shutting down...")
+	log.Println("Shutting down EasyTLS Server framework...")
+	defer log.Println("Shut down EasyTLS Server framework!")
+
+	// Close and stop the Server(s)
+	for _, srv := range S {
+		if err := srv.Shutdown(); err != nil {
+			log.Println(err)
+		}
+	}
 
 	// Close and stop the Plugin Agent
 	if err := A.Close(); err != nil {
-		log.Println(err)
-	}
-
-	// Close and stop the Server
-	if err := S.Shutdown(); err != nil {
 		log.Println(err)
 	}
 }
