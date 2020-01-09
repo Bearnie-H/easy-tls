@@ -124,6 +124,7 @@ func (CA *ClientPluginAgent) run() error {
 			// An error retrieving the status channel stops the logging.
 			if err != nil {
 				CA.logger.Write([]byte(err.Error() + "\n"))
+				wg.Done()
 				return
 			}
 
