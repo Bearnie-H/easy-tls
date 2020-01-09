@@ -51,13 +51,6 @@ func (SA *ServerPluginAgent) GetPluginByName(Name string) (*ServerPlugin, error)
 	return nil, fmt.Errorf("easytls plugin error - Failed to find plugin %s", Name)
 }
 
-// Wait for the plugin agent to stop safely.
-func (SA *ServerPluginAgent) Wait() {
-	for !SA.stopped.Load().(bool) {
-		time.Sleep(time.Millisecond * 500)
-	}
-}
-
 // RegisterPlugins will configure and register all of the plugins in the previously specified PluginFolder.  This will not start any of the plugins, but will only load the necessary symbols from them.
 func (SA *ServerPluginAgent) RegisterPlugins() error {
 
@@ -122,8 +115,6 @@ func (SA *ServerPluginAgent) run() error {
 
 				// Extract the status channel
 				statusChan, err := p.Status()
-
-				// An error retrieving the status channel stops the logging.
 				if err != nil {
 					SA.logger.Write([]byte(err.Error() + "\n"))
 					return
@@ -145,11 +136,7 @@ func (SA *ServerPluginAgent) run() error {
 
 	wg.Wait()
 
-	if !SA.stopped.Load().(bool) {
-		time.Sleep(time.Second)
-	}
-
-	return SA.Stop()
+	return nil
 }
 
 // Stop will cause ALL of the currently Running Plugins to safely stop.
@@ -166,26 +153,24 @@ func (SA *ServerPluginAgent) Stop() error {
 			// If the plugin exits, decrement the waitgroup
 			defer wg.Done()
 
+			SA.logger.Write([]byte(fmt.Sprintf("Stopping plugin %s...", p.Name())))
+			defer SA.logger.Write([]byte(fmt.Sprintf("Stopped plugin %s!", p.Name())))
+
 			// Extract the status channel
 			statusChan, err := p.Status()
-
-			// An error retrieving the status channel stops the logging.
 			if err != nil {
 				SA.logger.Write([]byte(err.Error() + "\n"))
-				return
-			}
+			} else {
 
-			if err := p.Stop(); err != nil {
-				SA.logger.Write([]byte(err.Error() + "\n"))
-				errOccured = true
-			}
-
-			// Log status messages until the channel is closed, or a fatal error is retrieved.
-			for M := range statusChan {
-				SA.logger.Write([]byte(M.String()))
-				if M.IsFatal {
-					SA.logger.Write([]byte(M.String()))
+				if err := p.Stop(); err != nil {
+					SA.logger.Write([]byte(err.Error() + "\n"))
+					errOccured = true
 					return
+				}
+
+				// Log status messages until the channel is closed, or a fatal error is retrieved.
+				for M := range statusChan {
+					SA.logger.Write([]byte(M.String()))
 				}
 			}
 		}(p, wg)
@@ -210,4 +195,12 @@ func (SA *ServerPluginAgent) Close() error {
 	}
 
 	return SA.logger.Close()
+}
+
+// Wait for the plugin agent to stop safely.
+func (SA *ServerPluginAgent) Wait() {
+	for !SA.stopped.Load().(bool) {
+		SA.logger.Write([]byte("easytls server plugin agent: Waiting to shut down...\n"))
+		time.Sleep(time.Second)
+	}
 }

@@ -62,13 +62,6 @@ func (CA *ClientPluginAgent) GetPluginByName(Name string) (*ClientPlugin, error)
 	return nil, fmt.Errorf("easytls plugin error - Failed to find plugin %s", Name)
 }
 
-// Wait for the plugin agent to stop safely.
-func (CA *ClientPluginAgent) Wait() {
-	for !CA.stopped.Load().(bool) {
-		time.Sleep(time.Millisecond * 500)
-	}
-}
-
 // RegisterPlugins will configure and register all of the plugins in the previously specified PluginFolder.  This will not start any of the plugins, but will only load the necessary symbols from them.
 func (CA *ClientPluginAgent) RegisterPlugins() error {
 
@@ -163,11 +156,7 @@ func (CA *ClientPluginAgent) run() error {
 
 	wg.Wait()
 
-	for !CA.stopped.Load().(bool) {
-		time.Sleep(time.Second)
-	}
-
-	return CA.Stop()
+	return nil
 }
 
 // Stop will cause ALL of the currentlyRunning Plugins to safely stop.
@@ -186,23 +175,19 @@ func (CA *ClientPluginAgent) Stop() error {
 
 			// Extract the status channel
 			statusChan, err := p.Status()
-
-			// An error retrieving the status channel stops the logging.
 			if err != nil {
 				CA.logger.Write([]byte(err.Error() + "\n"))
-				return
-			}
+			} else {
 
-			if err := p.Stop(); err != nil {
-				CA.logger.Write([]byte(err.Error() + "\n"))
-				errOccured = true
-			}
-
-			// Log status messages until the channel is closed, or a fatal error is retrieved.
-			for M := range statusChan {
-				CA.logger.Write([]byte(M.String()))
-				if M.IsFatal {
+				if err := p.Stop(); err != nil {
+					CA.logger.Write([]byte(err.Error() + "\n"))
+					errOccured = true
 					return
+				}
+
+				// Log status messages until the channel is closed, or a fatal error is retrieved.
+				for M := range statusChan {
+					CA.logger.Write([]byte(M.String()))
 				}
 			}
 		}(p, wg)
@@ -227,4 +212,12 @@ func (CA *ClientPluginAgent) Close() error {
 	}
 
 	return CA.logger.Close()
+}
+
+// Wait for the plugin agent to stop safely.
+func (CA *ClientPluginAgent) Wait() {
+	for !CA.stopped.Load().(bool) {
+		CA.logger.Write([]byte("easytls client plugin agent: Waiting to shut down...\n"))
+		time.Sleep(time.Second)
+	}
 }
