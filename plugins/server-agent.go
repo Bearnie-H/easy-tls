@@ -107,29 +107,24 @@ func (SA *ServerPluginAgent) run() error {
 		// Start the plugin...
 		go func(p ServerPlugin, wg *sync.WaitGroup) {
 
-			// Start logging plugin status messages.
-			go func(wg *sync.WaitGroup) {
+			// If the plugin exits, decrement the waitgroup
+			defer wg.Done()
 
-				// If the plugin exits, decrement the waitgroup
-				defer wg.Done()
+			// Extract the status channel
+			statusChan, err := p.Status()
+			if err != nil {
+				SA.logger.Write([]byte(err.Error() + "\n"))
+				return
+			}
 
-				// Extract the status channel
-				statusChan, err := p.Status()
-				if err != nil {
-					SA.logger.Write([]byte(err.Error() + "\n"))
+			// Log status messages until the channel is closed, or a fatal error is retrieved.
+			for M := range statusChan {
+				SA.logger.Write([]byte(M.String()))
+				if M.IsFatal {
+					SA.logger.Write([]byte(M.String()))
 					return
 				}
-
-				// Log status messages until the channel is closed, or a fatal error is retrieved.
-				for M := range statusChan {
-					SA.logger.Write([]byte(M.String()))
-					if M.IsFatal {
-						SA.logger.Write([]byte(M.String()))
-						return
-					}
-				}
-
-			}(wg)
+			}
 
 		}(registeredPlugin, wg)
 	}
@@ -153,25 +148,10 @@ func (SA *ServerPluginAgent) Stop() error {
 			// If the plugin exits, decrement the waitgroup
 			defer wg.Done()
 
-			SA.logger.Write([]byte(fmt.Sprintf("Stopping plugin %s...", p.Name())))
-			defer SA.logger.Write([]byte(fmt.Sprintf("Stopped plugin %s!", p.Name())))
-
-			// Extract the status channel
-			statusChan, err := p.Status()
-			if err != nil {
+			if err := p.Stop(); err != nil {
 				SA.logger.Write([]byte(err.Error() + "\n"))
-			} else {
-
-				if err := p.Stop(); err != nil {
-					SA.logger.Write([]byte(err.Error() + "\n"))
-					errOccured = true
-					return
-				}
-
-				// Log status messages until the channel is closed, or a fatal error is retrieved.
-				for M := range statusChan {
-					SA.logger.Write([]byte(M.String()))
-				}
+				errOccured = true
+				return
 			}
 		}(p, wg)
 

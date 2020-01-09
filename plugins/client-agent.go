@@ -118,20 +118,20 @@ func (CA *ClientPluginAgent) run() error {
 		// Start the plugin...
 		go func(c *client.SimpleClient, p ClientPlugin, wg *sync.WaitGroup) {
 
+			// Extract the status channel
+			statusChan, err := p.Status()
+
+			// An error retrieving the status channel stops the logging.
+			if err != nil {
+				CA.logger.Write([]byte(err.Error() + "\n"))
+				return
+			}
+
 			// Start logging plugin status messages.
 			go func(wg *sync.WaitGroup) {
 
 				// If the plugin exits, decrement the waitgroup
 				defer wg.Done()
-
-				// Extract the status channel
-				statusChan, err := p.Status()
-
-				// An error retrieving the status channel stops the logging.
-				if err != nil {
-					CA.logger.Write([]byte(err.Error() + "\n"))
-					return
-				}
 
 				// Log status messages until the channel is closed, or a fatal error is retrieved.
 				for M := range statusChan {
@@ -173,23 +173,11 @@ func (CA *ClientPluginAgent) Stop() error {
 			// If the plugin exits, decrement the waitgroup
 			defer wg.Done()
 
-			// Extract the status channel
-			statusChan, err := p.Status()
-			if err != nil {
+			if err := p.Stop(); err != nil {
 				CA.logger.Write([]byte(err.Error() + "\n"))
-			} else {
-
-				if err := p.Stop(); err != nil {
-					CA.logger.Write([]byte(err.Error() + "\n"))
-					errOccured = true
-					return
-				}
-
-				// Log status messages until the channel is closed, or a fatal error is retrieved.
-				for M := range statusChan {
-					CA.logger.Write([]byte(M.String()))
-				}
+				errOccured = true
 			}
+
 		}(p, wg)
 
 	}
