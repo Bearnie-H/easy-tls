@@ -25,7 +25,7 @@ func (C *SimpleClient) Get(URL *url.URL, Headers map[string][]string) (*http.Res
 }
 
 // Head is the wrapper function for an HTTP "HEAD" request. This will create a new HEAD request with an empty body and the specified headers. The header map can be set to nil if no additional headers are required. This will ONLY return the HTTP Response Header map from the server. The overall Response Body (if it exists) will be closed by this function. This function returns an error and nil Header on an HTTP StatusCode which is outside the 200 block.
-func (C *SimpleClient) Head(URL *url.URL, Headers map[string][]string) (http.Header, error) {
+func (C *SimpleClient) Head(URL *url.URL, Headers map[string][]string) (*http.Response, error) {
 
 	// Create the request
 	req, err := NewRequest(http.MethodHead, URL, Headers, nil)
@@ -38,12 +38,9 @@ func (C *SimpleClient) Head(URL *url.URL, Headers map[string][]string) (http.Hea
 	if err != nil {
 		return nil, err
 	}
+	resp.Body.Close()
 
-	if resp.Body != nil {
-		defer resp.Body.Close()
-	}
-
-	return resp.Header, nil
+	return resp, nil
 }
 
 // Post is the wrapper function for an HTTP "POST" request. This will create a new POST request with a body composed of the contents of the io.ReadCloser passed in, and the specified headers. The header map can be set to nil if no additional headers are required. If a nil ReadCloser is passed in, this will create an empty Post body which is allowed. This will return the full HTTP Response from the server, unaltered. This function returns an error and nil response on an HTTP StatusCode which is outside the 200 block.
@@ -83,22 +80,22 @@ func (C *SimpleClient) Put(URL *url.URL, Contents io.ReadCloser, Headers map[str
 
 // Delete is the wrapper function for an HTTP "DELETE" request. This will create a new DELETE request with an empty body, and the specified headers. The header map can be set to nil if no additional headers are required.
 // This will return ONLY an error, and no HTTP Response components. The internal HTTP Response from the server will be safely closed by this function.
-func (C *SimpleClient) Delete(URL *url.URL, Headers map[string][]string) error {
+func (C *SimpleClient) Delete(URL *url.URL, Headers map[string][]string) (*http.Response, error) {
 
 	// Create the request
 	req, err := NewRequest(http.MethodDelete, URL, Headers, nil)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// Perform the request
 	resp, err := C.Do(req)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	resp.Body.Close()
 
-	return nil
+	return resp, nil
 }
 
 // Patch is the wrapper function for an HTTP "PATCH" request. This will create a new PATCH request with a body composed of the contents of the io.ReadCloser passed in, and the specified headers. The header map can be set to nil if no additional headers are required. If a nil ReadCloser is passed in, this will create an empty Patch body which is allowed. This will return the full HTTP Response from the server, unaltered. This function returns an error and nil response on an HTTP StatusCode which is outside the 200 block.
