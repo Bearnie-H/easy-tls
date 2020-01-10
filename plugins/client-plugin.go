@@ -34,8 +34,9 @@ func InitializeClientPlugin(Filename string, FrameworkVersion SemanticVersion) (
 	// Create the starting plugin object
 	P := &ClientPlugin{
 		Plugin: Plugin{
-			Filename: path.Base(Filename),
-			Filepath: path.Dir(Filename),
+			Filename:       path.Base(Filename),
+			Filepath:       path.Dir(Filename),
+			InputArguments: []interface{}{},
 		},
 	}
 

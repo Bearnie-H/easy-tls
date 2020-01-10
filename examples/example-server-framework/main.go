@@ -45,7 +45,7 @@ func main() {
 
 	// Walk the set of registered plugins, adding the routes from each to the router.
 	for _, p := range Agent.RegisteredPlugins {
-		routes, err := p.Init()
+		routes, err := p.Init(p.InputArguments)
 		if err != nil {
 			log.Println(err)
 			continue

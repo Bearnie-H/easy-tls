@@ -2,9 +2,14 @@ package main
 
 // Stop is the function to stop the plugin logic.
 func Stop() (err error) {
+
 	defer Killed.Store(true)
-	if Killed.Load().(bool) {
-		return nil
+	if dead, ok := Killed.Load().(bool); ok {
+		if dead {
+			return nil
+		}
+	} else {
+		Killed.Store(false)
 	}
 
 	// Put your plugin stop logic here!
@@ -13,8 +18,12 @@ func Stop() (err error) {
 
 	// End your plugin stop logic here!
 
-	WriteStatus("Stopped module %s", err, false, PluginName)
-	close(StatusChannel)
+	if StatusChannel != nil {
+		WriteStatus("Stopped module %s", err, false, PluginName)
+		close(StatusChannel)
+		StatusChannel = nil
+	}
+
 	return err
 }
 

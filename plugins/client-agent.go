@@ -144,8 +144,18 @@ func (CA *ClientPluginAgent) run() error {
 
 			}(wg)
 
+			// If the plugin panics on Init, recover and stop the plugin.
+			defer func(p ClientPlugin) {
+				r := recover()
+				if r != nil {
+					if err := p.Stop(); err != nil {
+						CA.logger.Write([]byte(err.Error() + "\n"))
+					}
+				}
+			}(p)
+
 			// Start the plugin.
-			if err := p.Init(c, p.inputArguments...); err != nil {
+			if err := p.Init(c, p.InputArguments...); err != nil {
 				CA.logger.Write([]byte(err.Error() + "\n"))
 				if err := p.Stop(); err != nil {
 					CA.logger.Write([]byte(err.Error() + "\n"))
@@ -162,7 +172,14 @@ func (CA *ClientPluginAgent) run() error {
 
 // Stop will cause ALL of the currentlyRunning Plugins to safely stop.
 func (CA *ClientPluginAgent) Stop() error {
+
+	if dead, ok := CA.stopped.Load().(bool); ok {
+		if dead {
+			return nil
+		}
+	}
 	defer CA.stopped.Store(true)
+
 	errOccured := false
 
 	wg := &sync.WaitGroup{}
@@ -193,6 +210,13 @@ func (CA *ClientPluginAgent) Stop() error {
 
 // Close down the plugin agent.
 func (CA *ClientPluginAgent) Close() error {
+
+	if dead, ok := CA.stopped.Load().(bool); ok {
+		if dead {
+			return nil
+		}
+	}
+	defer CA.stopped.Store(true)
 
 	if !CA.stopped.Load().(bool) {
 		if err := CA.Stop(); err != nil {

@@ -17,7 +17,7 @@ type Plugin struct {
 	Filepath string
 
 	// Plugins are allowed to have input arguments, which can be stored here to be passed in by the pluginAgent
-	inputArguments []interface{}
+	InputArguments []interface{}
 
 	// All Plugins implement the basic API Contract.
 	// This must be a struct and not an interface because the actual function bodies will be returned from loading the plugin file.
@@ -26,7 +26,7 @@ type Plugin struct {
 
 // SetInputArguments will set the input arguments passed to a given plugin to be exactly what is passed to this function.
 func (P *Plugin) SetInputArguments(args ...interface{}) {
-	P.inputArguments = args
+	P.InputArguments = args
 }
 
 // PluginAPI represents the base API contract which must be satisfied by ANY plugin.

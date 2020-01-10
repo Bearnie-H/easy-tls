@@ -32,8 +32,9 @@ func InitializeServerPlugin(Filename string, FrameworkVersion SemanticVersion) (
 	// Create the starting plugin object
 	P := &ServerPlugin{
 		Plugin: Plugin{
-			Filename: path.Base(Filename),
-			Filepath: path.Dir(Filename),
+			Filename:       path.Base(Filename),
+			Filepath:       path.Dir(Filename),
+			InputArguments: []interface{}{},
 		},
 	}
 

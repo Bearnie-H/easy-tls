@@ -136,7 +136,14 @@ func (SA *ServerPluginAgent) run() error {
 
 // Stop will cause ALL of the currently Running Plugins to safely stop.
 func (SA *ServerPluginAgent) Stop() error {
+
+	if dead, ok := SA.stopped.Load().(bool); ok {
+		if dead {
+			return nil
+		}
+	}
 	defer SA.stopped.Store(true)
+
 	errOccured := false
 
 	wg := &sync.WaitGroup{}
@@ -167,6 +174,13 @@ func (SA *ServerPluginAgent) Stop() error {
 
 // Close down the plugin agent.
 func (SA *ServerPluginAgent) Close() error {
+
+	if dead, ok := SA.stopped.Load().(bool); ok {
+		if dead {
+			return nil
+		}
+	}
+	defer SA.stopped.Store(true)
 
 	if !SA.stopped.Load().(bool) {
 		if err := SA.Stop(); err != nil {
