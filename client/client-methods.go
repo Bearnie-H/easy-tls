@@ -35,12 +35,16 @@ func (C *SimpleClient) Head(URL *url.URL, Headers map[string][]string) (*http.Re
 
 	// Perform the request
 	resp, err := C.Do(req)
-	if err != nil {
+	switch err {
+	case nil:
+		defer resp.Body.Close()
+		return resp, nil
+	case ErrInvalidStatusCode:
+		defer resp.Body.Close()
+		return resp, err
+	default:
 		return nil, err
 	}
-	resp.Body.Close()
-
-	return resp, nil
 }
 
 // Post is the wrapper function for an HTTP "POST" request. This will create a new POST request with a body composed of the contents of the io.ReadCloser passed in, and the specified headers. The header map can be set to nil if no additional headers are required. If a nil ReadCloser is passed in, this will create an empty Post body which is allowed. This will return the full HTTP Response from the server, unaltered. This function returns an error and nil response on an HTTP StatusCode which is outside the 200 block.
@@ -90,12 +94,16 @@ func (C *SimpleClient) Delete(URL *url.URL, Headers map[string][]string) (*http.
 
 	// Perform the request
 	resp, err := C.Do(req)
-	if err != nil {
+	switch err {
+	case nil:
+		defer resp.Body.Close()
+		return resp, nil
+	case ErrInvalidStatusCode:
+		defer resp.Body.Close()
+		return resp, err
+	default:
 		return nil, err
 	}
-	resp.Body.Close()
-
-	return resp, nil
 }
 
 // Patch is the wrapper function for an HTTP "PATCH" request. This will create a new PATCH request with a body composed of the contents of the io.ReadCloser passed in, and the specified headers. The header map can be set to nil if no additional headers are required. If a nil ReadCloser is passed in, this will create an empty Patch body which is allowed. This will return the full HTTP Response from the server, unaltered. This function returns an error and nil response on an HTTP StatusCode which is outside the 200 block.

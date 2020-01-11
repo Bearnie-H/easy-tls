@@ -135,10 +135,15 @@ func (S *SimpleServer) RegisterRouter(r http.Handler) {
 // EnableAboutHandler will enable and set up the "about" handler, to display the available routes.  This must be the last route registered in order for the full set of routes to be displayed.
 func (S *SimpleServer) EnableAboutHandler(r *mux.Router) {
 	S.aboutHandlerEnabled = true
-	routeList := append([]string{fmt.Sprintf("%-50s|    %v", "/about", []string{http.MethodGet})}, S.registeredRoutes...)
+	routeList := append([]string{fmt.Sprintf("%-50s|    %v", "/about", []string{http.MethodGet, http.MethodPost, http.MethodHead})}, S.registeredRoutes...)
 	routes := strings.Join(routeList, "\n")
 	aboutHandler := func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte(routes + "\n"))
+		switch r.Method {
+		case http.MethodHead:
+			w.WriteHeader(http.StatusOK)
+		default:
+			w.Write([]byte(routes + "\n"))
+		}
 	}
 	r.HandleFunc("/about", aboutHandler)
 
