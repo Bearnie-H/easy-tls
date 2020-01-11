@@ -7,6 +7,11 @@ import (
 	"reflect"
 )
 
+const (
+	// EasyTLSStructTag represents the Struct Tag key used by this package
+	EasyTLSStructTag = `easytls`
+)
+
 // Encoder will implement the necessary functionality for parsing a Go struct into a useable http.Header
 type Encoder struct {
 	h http.Header
@@ -65,6 +70,13 @@ func (E *Encoder) encode(v interface{}) error {
 		FieldName := InType.Field(i).Name
 		FieldType := InType.Field(i).Type.Kind()
 		FieldValue := InVal.Field(i)
+		FieldTag := InType.Field(i).Tag.Get(EasyTLSStructTag)
+		if FieldTag == "-" {
+			continue
+		}
+		if FieldTag != "" {
+			FieldName = FieldTag
+		}
 		switch FieldType {
 		case reflect.Bool:
 			E.encodeBool(FieldName, FieldValue)
@@ -126,44 +138,23 @@ func (E *Encoder) encodeSlice(Name string, Val reflect.Value) error {
 		return nil
 	}
 	SliceKind := Val.Type().Elem().Kind()
-	SliceValues := ""
 	switch SliceKind {
 	case reflect.Bool:
 		for i := 0; i < Val.Len(); i++ {
-			if i == 0 {
-				SliceValues = fmt.Sprintf("%t", Val.Index(i).Bool())
-			} else {
-				SliceValues = fmt.Sprintf("%s;%t", SliceValues, Val.Index(i).Bool())
-			}
+			E.Header().Add(Name, fmt.Sprintf("%t", Val.Index(i).Bool()))
 		}
-		E.encodeString(Name, reflect.ValueOf(SliceValues))
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		for i := 0; i < Val.Len(); i++ {
-			if i == 0 {
-				SliceValues = fmt.Sprintf("%d", Val.Index(i).Int())
-			} else {
-				SliceValues = fmt.Sprintf("%s;%d", SliceValues, Val.Index(i).Int())
-			}
+			E.Header().Add(Name, fmt.Sprintf("%d", Val.Index(i).Int()))
 		}
-		E.encodeString(Name, reflect.ValueOf(SliceValues))
 	case reflect.Float32, reflect.Float64:
 		for i := 0; i < Val.Len(); i++ {
-			if i == 0 {
-				SliceValues = fmt.Sprintf("%f", Val.Index(i).Float())
-			} else {
-				SliceValues = fmt.Sprintf("%s;%f", SliceValues, Val.Index(i).Float())
-			}
+			E.Header().Add(Name, fmt.Sprintf("%f", Val.Index(i).Float()))
 		}
-		E.encodeString(Name, reflect.ValueOf(SliceValues))
 	case reflect.String:
 		for i := 0; i < Val.Len(); i++ {
-			if i == 0 {
-				SliceValues = fmt.Sprintf("%s", Val.Index(i).String())
-			} else {
-				SliceValues = fmt.Sprintf("%s;%s", SliceValues, Val.Index(i).String())
-			}
+			E.Header().Add(Name, Val.Index(i).String())
 		}
-		E.encodeString(Name, reflect.ValueOf(SliceValues))
 	default:
 		return fmt.Errorf("encoder error: Unsupported slice type - %s", SliceKind.String())
 	}

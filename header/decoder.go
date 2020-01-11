@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"reflect"
 	"strconv"
-	"strings"
 )
 
 // Decoder will implement the necessary functionality for parsing an http.Header into a Go struct.
@@ -64,12 +63,15 @@ func (D *Decoder) decode() error {
 
 	// Iterate over the struct fields...
 	for i := 0; i < OutVal.NumField(); i++ {
+		var HeaderValue []string
 		FieldName := OutType.Field(i).Name
 		FieldType := OutType.Field(i).Type.Kind()
 		FieldValue := OutVal.Field(i)
-		var HeaderValue []string
-		if len(D.h[http.CanonicalHeaderKey(FieldName)]) > 0 {
-			HeaderValue = strings.Split(D.h[http.CanonicalHeaderKey(FieldName)][0], ";")
+		FieldTag, Exist := OutType.Field(i).Tag.Lookup(EasyTLSStructTag)
+		if Exist {
+			HeaderValue = D.parseHeaderForField(FieldName, FieldTag)
+		} else {
+			HeaderValue = D.parseHeaderForField(FieldName)
 		}
 		switch FieldType {
 		case reflect.Bool:
@@ -233,4 +235,18 @@ func (D *Decoder) decodeSlice(HeaderValue []string, SliceKind reflect.Kind) (int
 	default:
 		return nil, fmt.Errorf("encoder error: Unsupported slice type - %s", SliceKind.String())
 	}
+}
+
+func (D *Decoder) parseHeaderForField(PossibleNames ...string) []string {
+
+	for _, Name := range PossibleNames {
+		if Name == "" || Name == "-" {
+			continue
+		}
+		if len(D.h[http.CanonicalHeaderKey(Name)]) > 0 {
+			return D.h[http.CanonicalHeaderKey(Name)]
+		}
+	}
+
+	return []string{}
 }

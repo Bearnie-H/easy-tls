@@ -8,11 +8,11 @@ import (
 
 // TestStruct represents a basic test struct containing all of the allowable Types within an HTTP Header
 type TestStruct struct {
-	IntTest         int
-	BoolTest        bool
-	StringTest      string
+	IntTest         int    `easytls:"Int-Test"`
+	BoolTest        bool   `easytls:"-"`
+	StringTest      string `easytls:"String-Test"`
 	FloatTest       float64
-	BoolSliceTest   []bool
+	BoolSliceTest   []bool `easytls:"bool-slice-test"`
 	IntSliceTest    []int
 	StringSliceTest []string
 	FloatSliceTest  []float64
