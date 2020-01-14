@@ -1,6 +1,7 @@
 package main
 
 // Stop is the function to stop the plugin logic.
+// In all cases, this function MUST leave the plugin in a state where it does not continue to function.
 func Stop() (err error) {
 
 	defer Killed.Store(true)
