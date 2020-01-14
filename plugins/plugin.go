@@ -29,6 +29,16 @@ func (P *Plugin) SetInputArguments(args ...interface{}) {
 	P.InputArguments = args
 }
 
+// AppendInputArguments will append a set of arguments to the list which will be provided to the plugin when the Init symbol is called.
+func (P *Plugin) AppendInputArguments(args ...interface{}) {
+	if len(P.InputArguments) == 0 {
+		P.SetInputArguments(args...)
+		return
+	}
+
+	P.InputArguments = append(P.InputArguments, args...)
+}
+
 // PluginAPI represents the base API contract which must be satisfied by ANY plugin.
 type PluginAPI struct {
 
