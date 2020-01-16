@@ -3,6 +3,8 @@ package main
 import (
 	"errors"
 	"fmt"
+	"os"
+	"path"
 
 	"github.com/Bearnie-H/easy-tls/plugins"
 )
@@ -68,4 +70,12 @@ func WriteStatus(Message string, Error error, Fatal bool, args ...interface{}) e
 	StatusChannel <- NewStatus
 
 	return nil
+}
+
+func getFolderBase() (string, error) {
+	ex, err := os.Executable()
+	if err != nil {
+		return "", err
+	}
+	return path.Join(path.Dir(ex), PluginName), nil
 }

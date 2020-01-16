@@ -16,6 +16,10 @@ func main() {
 		panic(err)
 	}
 
+	if err := Agent.RegisterPlugins(); err != nil {
+		panic(err)
+	}
+
 	// Set up a go-routine to allow the application to safely shut down.
 	initSafeShutdown(Agent)
 

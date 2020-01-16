@@ -70,3 +70,11 @@ func WriteStatus(Message string, Error error, Fatal bool, args ...interface{}) e
 
 	return nil
 }
+
+func getFolderBase() (string, error) {
+	ex, err := os.Executable()
+	if err != nil {
+		return "", err
+	}
+	return path.Join(path.Dir(ex), PluginName), nil
+}
