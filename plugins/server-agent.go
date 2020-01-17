@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"path"
 	"path/filepath"
 	"sort"
@@ -20,6 +21,8 @@ type ServerPluginAgent struct {
 	logger             io.WriteCloser
 	PluginSearchFolder string
 
+	// Protects the Stop and Close operations, making them idempotent.
+	mux     sync.Mutex
 	stopped atomic.Value
 }
 
@@ -32,6 +35,7 @@ func NewServerAgent(PluginFolder string, Logger io.WriteCloser) (*ServerPluginAg
 		RegisteredPlugins:  []ServerPlugin{},
 		logger:             Logger,
 		stopped:            atomic.Value{},
+		mux:                sync.Mutex{},
 	}
 
 	A.stopped.Store(false)
@@ -121,7 +125,6 @@ func (SA *ServerPluginAgent) run() error {
 			for M := range statusChan {
 				SA.logger.Write([]byte(M.String()))
 				if M.IsFatal {
-					SA.logger.Write([]byte(M.String()))
 					return
 				}
 			}
@@ -131,11 +134,21 @@ func (SA *ServerPluginAgent) run() error {
 
 	wg.Wait()
 
+	log.Printf("All plugins returned!")
+
+	// Force this to wait for the Stop to fully complete.
+	SA.Wait()
+
+	log.Printf("Plugin agent successfully stopped!")
+
 	return nil
 }
 
 // Stop will cause ALL of the currently Running Plugins to safely stop.
 func (SA *ServerPluginAgent) Stop() error {
+
+	SA.mux.Lock()
+	defer SA.mux.Unlock()
 
 	if dead, ok := SA.stopped.Load().(bool); ok {
 		if dead {
@@ -155,40 +168,26 @@ func (SA *ServerPluginAgent) Stop() error {
 			// If the plugin exits, decrement the waitgroup
 			defer wg.Done()
 
+			SA.logger.Write([]byte(PluginStatus{Message: fmt.Sprintf("Stopping module [ %s ]...", p.Name())}.String()))
+			defer SA.logger.Write([]byte(PluginStatus{Message: fmt.Sprintf("Stopped module [ %s ].", p.Name())}.String()))
+
 			if err := p.Stop(); err != nil {
 				SA.logger.Write([]byte(err.Error() + "\n"))
 				errOccured = true
 				return
 			}
+
 		}(p, wg)
 
 	}
 
 	wg.Wait()
+
 	if errOccured {
 		return errors.New("easytls agent error - error occured during server plugin shutdown")
 	}
 
 	return nil
-}
-
-// Close down the plugin agent.
-func (SA *ServerPluginAgent) Close() error {
-
-	if dead, ok := SA.stopped.Load().(bool); ok {
-		if dead {
-			return nil
-		}
-	}
-	defer SA.stopped.Store(true)
-
-	if !SA.stopped.Load().(bool) {
-		if err := SA.Stop(); err != nil {
-			SA.logger.Write([]byte(err.Error() + "\n"))
-		}
-	}
-
-	return SA.logger.Close()
 }
 
 // Wait for the plugin agent to stop safely.

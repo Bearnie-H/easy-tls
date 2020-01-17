@@ -23,6 +23,7 @@ type ClientPluginAgent struct {
 	logger             io.WriteCloser
 	PluginSearchFolder string
 
+	mux     sync.Mutex
 	stopped atomic.Value
 }
 
@@ -44,6 +45,7 @@ func NewClientAgent(Client *client.SimpleClient, PluginFolder string, Logger io.
 		RegisteredPlugins:  []ClientPlugin{},
 		logger:             Logger,
 		stopped:            atomic.Value{},
+		mux:                sync.Mutex{},
 	}
 	A.stopped.Store(false)
 
@@ -167,18 +169,23 @@ func (CA *ClientPluginAgent) run() error {
 
 	wg.Wait()
 
+	CA.Wait()
+
 	return nil
 }
 
 // Stop will cause ALL of the currentlyRunning Plugins to safely stop.
 func (CA *ClientPluginAgent) Stop() error {
 
+	CA.mux.Lock()
+	defer CA.mux.Unlock()
+
 	if dead, ok := CA.stopped.Load().(bool); ok {
 		if dead {
 			return nil
 		}
 	}
-	defer CA.stopped.Store(true)
+	CA.stopped.Store(true)
 
 	errOccured := false
 
@@ -201,30 +208,12 @@ func (CA *ClientPluginAgent) Stop() error {
 	}
 
 	wg.Wait()
+
 	if errOccured {
 		return errors.New("easytls agent error - error occured during client plugin shutdown")
 	}
 
 	return nil
-}
-
-// Close down the plugin agent.
-func (CA *ClientPluginAgent) Close() error {
-
-	if dead, ok := CA.stopped.Load().(bool); ok {
-		if dead {
-			return nil
-		}
-	}
-	defer CA.stopped.Store(true)
-
-	if !CA.stopped.Load().(bool) {
-		if err := CA.Stop(); err != nil {
-			CA.logger.Write([]byte(err.Error() + "\n"))
-		}
-	}
-
-	return CA.logger.Close()
 }
 
 // Wait for the plugin agent to stop safely.

@@ -70,7 +70,7 @@ func main() {
 	Server.SetTimeouts(time.Hour, time.Second*15, time.Hour, time.Second*5)
 
 	// Set up a go-routine to allow the application to safely shut down.
-	initSafeShutdown(Server, Agent)
+	initSafeShutdown(Agent, Server)
 
 	// Start up the server, and block until it is closed
 	if err := Server.ListenAndServe(); err != nil {
@@ -80,10 +80,10 @@ func main() {
 	Agent.Wait()
 }
 
-func initSafeShutdown(S *server.SimpleServer, A *plugins.ServerPluginAgent) {
+func initSafeShutdown(A *plugins.ServerPluginAgent, S ...*server.SimpleServer) {
 	sigChan := make(chan os.Signal)
 	signal.Notify(sigChan, os.Interrupt, os.Kill)
-	go doSafeShutdown(sigChan, A, S)
+	go doSafeShutdown(sigChan, A, S...)
 }
 
 func doSafeShutdown(C chan os.Signal, A *plugins.ServerPluginAgent, S ...*server.SimpleServer) {
@@ -101,7 +101,7 @@ func doSafeShutdown(C chan os.Signal, A *plugins.ServerPluginAgent, S ...*server
 	}
 
 	// Close and stop the Plugin Agent
-	if err := A.Close(); err != nil {
+	if err := A.Stop(); err != nil {
 		log.Println(err)
 	}
 }

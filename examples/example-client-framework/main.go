@@ -43,7 +43,7 @@ func doSafeShutdown(C chan os.Signal, A *plugins.ClientPluginAgent) {
 	defer log.Println("Shut down EasyTLS Client Framework!")
 
 	// Close and stop the Plugin Agent
-	if err := A.Close(); err != nil {
+	if err := A.Stop(); err != nil {
 		log.Println(err)
 	}
 }

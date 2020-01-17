@@ -3,6 +3,8 @@ package main
 import (
 	"errors"
 	"fmt"
+	"os"
+	"path"
 
 	"github.com/Bearnie-H/easy-tls/client"
 	"github.com/Bearnie-H/easy-tls/plugins"
@@ -62,7 +64,7 @@ func WriteStatus(Message string, Error error, Fatal bool, args ...interface{}) e
 	}
 
 	if Killed.Load().(bool) {
-		return nil
+		return errors.New("easytls module error: Cannot send over StatusChannel after module is Killed")
 	}
 
 	// Send the new status message.

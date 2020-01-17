@@ -110,7 +110,7 @@ func DoReverseProxy(C *client.SimpleClient, IsTLS bool, Matcher ReverseProxyRout
 		header.Merge(&(proxyReq.Header), &proxyHeaders)
 
 		if verbose {
-			log.Printf("Forwarding [ %s ] to [ %s ]", r.URL.String(), proxyURL.String())
+			log.Printf("Forwarding [ %s [ %s ] ] from [ %s ] to [ %s ]", r.URL.String(), r.Method, r.RemoteAddr, proxyURL.String())
 		}
 
 		// Perform the full proxy request
