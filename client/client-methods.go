@@ -47,10 +47,10 @@ func (C *SimpleClient) Head(URL *url.URL, Headers map[string][]string) (*http.Re
 	}
 }
 
-// Post is the wrapper function for an HTTP "POST" request. This will create a new POST request with a body composed of the contents of the io.ReadCloser passed in, and the specified headers. The header map can be set to nil if no additional headers are required. If a nil ReadCloser is passed in, this will create an empty Post body which is allowed. This will return the full HTTP Response from the server, unaltered. This function returns an error and nil response on an HTTP StatusCode which is outside the 200 block.
+// Post is the wrapper function for an HTTP "POST" request. This will create a new POST request with a body composed of the contents of the io.Reader passed in, and the specified headers. The header map can be set to nil if no additional headers are required. If a nil ReadCloser is passed in, this will create an empty Post body which is allowed. This will return the full HTTP Response from the server, unaltered. This function returns an error and nil response on an HTTP StatusCode which is outside the 200 block.
 //
 // This function "may" support MultiPart POST requests, by way of io.Pipes and multipart.Writers, but this has not been tested, and multipart Post is planned to be an explicit function in the future.
-func (C *SimpleClient) Post(URL *url.URL, Contents io.ReadCloser, Headers map[string][]string) (*http.Response, error) {
+func (C *SimpleClient) Post(URL *url.URL, Contents io.Reader, Headers map[string][]string) (*http.Response, error) {
 
 	// Create the request
 	req, err := NewRequest(http.MethodPost, URL, Headers, Contents)
@@ -69,8 +69,8 @@ func (C *SimpleClient) PostMultipart(URL *url.URL, Contents multipart.Reader, He
 	return nil, errors.New("Method POST-MULTIPART not yet implemented")
 }
 
-// Put is the wrapper function for an HTTP "PUT" request. This will create a new PUT request with a body composed of the contents of the io.ReadCloser passed in, and the specified headers. The header map can be set to nil if no additional headers are required. If a nil ReadCloser is passed in, this will create an empty Put body which is allowed. This will return the full HTTP Response from the server, unaltered. This function returns an error and nil response on an HTTP StatusCode which is outside the 200 block.
-func (C *SimpleClient) Put(URL *url.URL, Contents io.ReadCloser, Headers map[string][]string) (*http.Response, error) {
+// Put is the wrapper function for an HTTP "PUT" request. This will create a new PUT request with a body composed of the contents of the io.Reader passed in, and the specified headers. The header map can be set to nil if no additional headers are required. If a nil ReadCloser is passed in, this will create an empty Put body which is allowed. This will return the full HTTP Response from the server, unaltered. This function returns an error and nil response on an HTTP StatusCode which is outside the 200 block.
+func (C *SimpleClient) Put(URL *url.URL, Contents io.Reader, Headers map[string][]string) (*http.Response, error) {
 
 	// Create the request
 	req, err := NewRequest(http.MethodPut, URL, Headers, Contents)
@@ -106,8 +106,8 @@ func (C *SimpleClient) Delete(URL *url.URL, Headers map[string][]string) (*http.
 	}
 }
 
-// Patch is the wrapper function for an HTTP "PATCH" request. This will create a new PATCH request with a body composed of the contents of the io.ReadCloser passed in, and the specified headers. The header map can be set to nil if no additional headers are required. If a nil ReadCloser is passed in, this will create an empty Patch body which is allowed. This will return the full HTTP Response from the server, unaltered. This function returns an error and nil response on an HTTP StatusCode which is outside the 200 block.
-func (C *SimpleClient) Patch(URL *url.URL, Contents io.ReadCloser, Headers map[string][]string) (*http.Response, error) {
+// Patch is the wrapper function for an HTTP "PATCH" request. This will create a new PATCH request with a body composed of the contents of the io.Reader passed in, and the specified headers. The header map can be set to nil if no additional headers are required. If a nil ReadCloser is passed in, this will create an empty Patch body which is allowed. This will return the full HTTP Response from the server, unaltered. This function returns an error and nil response on an HTTP StatusCode which is outside the 200 block.
+func (C *SimpleClient) Patch(URL *url.URL, Contents io.Reader, Headers map[string][]string) (*http.Response, error) {
 
 	// Create the request
 	req, err := NewRequest(http.MethodPatch, URL, Headers, Contents)

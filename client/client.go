@@ -48,7 +48,7 @@ func (C *SimpleClient) IsTLS() bool {
 }
 
 // NewRequest will create a new HTTP Request, ready to be used by any implementation of an http.Client
-func NewRequest(Method string, URL *url.URL, Headers http.Header, Contents io.ReadCloser) (*http.Request, error) {
+func NewRequest(Method string, URL *url.URL, Headers http.Header, Contents io.Reader) (*http.Request, error) {
 	req, err := http.NewRequest(Method, URL.String(), Contents)
 	if err != nil {
 		return nil, err
