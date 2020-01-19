@@ -2,7 +2,6 @@ package client
 
 import (
 	"crypto/tls"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -17,6 +16,7 @@ import (
 type TLSRetryPolicy int
 
 // Enum definition of the available TLSRetryPolicy values
+// NOTE: Currently only NoRetry and Downgrade are implemented.
 const (
 	NoRetry            TLSRetryPolicy = iota // Don't retry the attempt using a different Scheme
 	DowngradeNoReset                         // Attempt only downgrading from HTTPS to HTTP, and don't reset the SimpleClient after the request.
@@ -38,11 +38,8 @@ type SimpleClient struct {
 }
 
 // NewClientHTTP will fully initialize a SimpleClient with TLS settings turned off.  These settings CAN be turned on and off as required.
-func NewClientHTTP(TLSPolicy TLSRetryPolicy) (*SimpleClient, error) {
-	if TLSPolicy != NoRetry {
-		return nil, errors.New("easytls client error: Cannot initialize HTTP Client with TLS Retry Policy. Use NewClientHTTPS() or NoRetry instead")
-	}
-	return NewClientHTTPS(nil, TLSPolicy)
+func NewClientHTTP() (*SimpleClient, error) {
+	return NewClientHTTPS(nil, NoRetry)
 }
 
 // NewClientHTTPS will fully initialize a SimpleClient with TLS settings turned on.  These settings CAN be turned on and off as required.
