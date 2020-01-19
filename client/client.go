@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"strings"
 	"time"
 
 	easytls "github.com/Bearnie-H/easy-tls"
@@ -74,6 +75,21 @@ func (C *SimpleClient) IsTLS() bool {
 	return C.tls
 }
 
+// MakeURL will create a URL, ready to be used to build a Request.
+func (C *SimpleClient) MakeURL(Hostname string, Port int, PathSegments ...string) *url.URL {
+
+	scheme := "http"
+	if C.IsTLS() {
+		scheme = "https"
+	}
+
+	return &url.URL{
+		Scheme: scheme,
+		Host:   fmt.Sprintf("%s:%d", Hostname, Port),
+		Path:   strings.Join(PathSegments, "/"),
+	}
+}
+
 // NewRequest will create a new HTTP Request, ready to be used by any implementation of an http.Client
 func NewRequest(Method string, URL *url.URL, Headers http.Header, Contents io.Reader) (*http.Request, error) {
 
@@ -90,6 +106,8 @@ func NewRequest(Method string, URL *url.URL, Headers http.Header, Contents io.Re
 // EnableTLS will enable the TLS settings for a SimpleClient based on the provided TLSBundle.
 // If the client previously had a TLS bundle provided, this will fall back and attempt to use it
 func (C *SimpleClient) EnableTLS(TLS ...*easytls.TLSBundle) (err error) {
+
+	fmt.Println("Enabling TLS for SimpleClient.")
 
 	var tlsConf *tls.Config
 	for _, tls := range TLS {
@@ -121,6 +139,9 @@ func (C *SimpleClient) EnableTLS(TLS ...*easytls.TLSBundle) (err error) {
 
 // DisableTLS will turn off the TLS settings for a SimpleClient.
 func (C *SimpleClient) DisableTLS() {
+
+	fmt.Println("Disabling TLS for SimpleClient.")
+
 	C.client = &http.Client{
 		Timeout: time.Hour,
 		Transport: &http.Transport{
