@@ -15,8 +15,8 @@ import (
 
 // NotFoundHandlerProxyOverride will override the NotFound handler of the Server with a reverse proxy lookup function.
 // This will allow the server to attempt to re-route requests it doesn't have a defined route for, while still falling back to a "NotFound" 404 response if there is no defined place to route to.
-func NotFoundHandlerProxyOverride(r *mux.Router, RouteMatcher ReverseProxyRouterFunc, Verbose bool) {
-	r.NotFoundHandler = DoReverseProxy(nil, false, RouteMatcher, Verbose)
+func NotFoundHandlerProxyOverride(r *mux.Router, c *client.SimpleClient, RouteMatcher ReverseProxyRouterFunc, Verbose bool) {
+	r.NotFoundHandler = DoReverseProxy(c, RouteMatcher, Verbose)
 }
 
 // ConfigureReverseProxy will convert a freshly created SimpleServer into a ReverseProxy.  This will use either the provided SimpleClient (or a default HTTP SimpleClient) to perform the requests.  The ReverseProxyRouterFunc defines HOW the routing will be peformed, and must map individual requests to URLs to forward to.  The PathPrefix defines the base path to proxy from, with a default of "/" indicating that ALL incoming requests should be proxied.  Finally, any middlewares desired can be added, noting that the "MiddlewareDefaultLogger" is applied in all cases.
@@ -46,7 +46,7 @@ func ConfigureReverseProxy(S *server.SimpleServer, Client *client.SimpleClient, 
 		}
 	}
 
-	r.PathPrefix(PathPrefix).HandlerFunc(DoReverseProxy(Client, Client.IsTLS(), RouteMatcher, Verbose))
+	r.PathPrefix(PathPrefix).HandlerFunc(DoReverseProxy(Client, RouteMatcher, Verbose))
 
 	server.AddMiddlewares(r, server.MiddlewareDefaultLogger)
 	server.AddMiddlewares(r, Middlewares...)
@@ -61,7 +61,7 @@ func ConfigureReverseProxy(S *server.SimpleServer, Client *client.SimpleClient, 
 //	2) Creates a NEW request, performing a deep copy of the original, including the body
 //	3) Performs this new request, using the provided (or default) SimpleClient to the new Host.
 //	4) Receives the corresponding response, and deep copies it back to the original requester.
-func DoReverseProxy(C *client.SimpleClient, IsTLS bool, Matcher ReverseProxyRouterFunc, verbose bool) http.HandlerFunc {
+func DoReverseProxy(C *client.SimpleClient, Matcher ReverseProxyRouterFunc, verbose bool) http.HandlerFunc {
 
 	// If no client is provided, create a default HTTP Client to perform the requests.
 	if C == nil {
@@ -71,6 +71,8 @@ func DoReverseProxy(C *client.SimpleClient, IsTLS bool, Matcher ReverseProxyRout
 			panic(err)
 		}
 	}
+
+	IsTLS := C.IsTLS()
 
 	// Anonymous function to be returned, and is what is actually called when requests come in.
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
