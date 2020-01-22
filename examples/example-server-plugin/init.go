@@ -47,7 +47,7 @@ func Init(args ...interface{}) ([]server.SimpleHandler, error) {
 	// Is the correct ordering if there is a route where "route" is explicit and constant, and there is another route
 	//  that handles all other values of that path segment.
 	h := []server.SimpleHandler{}
-	h = append(h, server.SimpleHandler{Handler: GetPluginVersion, Path: fmt.Sprintf("/%s/version", PluginName), Methods: []string{http.MethodGet, http.MethodPost}})
+	h = append(h, server.NewSimpleHandler(GetPluginVersion, fmt.Sprintf("%s/version", PluginName), http.MethodGet, http.MethodPost))
 	// ... Append your handlers here
 
 	return h, nil

@@ -155,15 +155,10 @@ function main() {
         if [ ! -e "RELEASE" ]; then
             echo -e $YELLOW"WARNING: Module $(basename $buildDir) not marked for release. Skipping..."$CLEAR
             stop 0
-        else
-            shouldRun=$(ShouldRun)
-            if [ -z "$shouldRun" ]; then
-                echo -e $BLUE"Skipping build..."$CLEAR
-                stop 0
-            fi
-            echo -e $GREEN"Building Module $(basename $buildDir)..."$CLEAR
         fi
     fi
+
+    echo -e $GREEN"Building Module $(basename $buildDir)..."$CLEAR
 
     echo -e $BLUE"Updating Module Build Number..."$CLEAR
     incrementBuildCount
