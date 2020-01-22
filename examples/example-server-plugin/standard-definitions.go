@@ -14,7 +14,7 @@ var StatusChannel chan plugins.PluginStatus = nil
 var Killed atomic.Value
 
 // DefaultPluginCycleTime represents the amount of time to wait between writing out the running/killed status message.
-var DefaultPluginCycleTime time.Duration = time.Minute
+var DefaultPluginCycleTime time.Duration = time.Minute * 5
 
 // Must be present but empty.
 func main() {}
