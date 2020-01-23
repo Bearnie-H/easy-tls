@@ -132,6 +132,11 @@ func GetRuleToAdd() (*proxy.ReverseProxyRoutingRule, error) {
 	} else {
 		NewRule.StripPrefix = false
 	}
+	if strings.ToLower(GetString("Should this rule forbid the route, preventing ANY requests to be forwarded to it? [y/N]: ")) == "y" {
+		NewRule.ForbidRoute = true
+	} else {
+		NewRule.ForbidRoute = false
+	}
 
 	if !strings.HasPrefix(NewRule.PathPrefix, "/") {
 		NewRule.PathPrefix = "/" + NewRule.PathPrefix

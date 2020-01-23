@@ -5,7 +5,6 @@ import (
 	"io"
 	"log"
 	"net/http"
-	"net/url"
 
 	"github.com/Bearnie-H/easy-tls/client"
 	"github.com/Bearnie-H/easy-tls/header"
@@ -72,14 +71,12 @@ func DoReverseProxy(C *client.SimpleClient, Matcher ReverseProxyRouterFunc, verb
 		}
 	}
 
-	IsTLS := C.IsTLS()
-
 	// Anonymous function to be returned, and is what is actually called when requests come in.
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		defer r.Body.Close()
 
 		// Create the new URL to use, based on the TLS settings of the Client, and the incoming request.
-		proxyURL, err := formatProxyURL(r, IsTLS, Matcher)
+		proxyURL, err := Matcher(r)
 		switch err {
 		case nil:
 		case ErrRouteNotFound:
@@ -153,25 +150,4 @@ func DoReverseProxy(C *client.SimpleClient, Matcher ReverseProxyRouterFunc, verb
 			return
 		}
 	})
-}
-
-// formatProxyURL will look at the original request, the TLS Settings of the SimpleClient, and generate what the new URL must be for the proxied request.
-func formatProxyURL(req *http.Request, IsTLS bool, MatcherFunc ReverseProxyRouterFunc) (*url.URL, error) {
-	var err error
-	proxyURL := &url.URL{}
-
-	// Deep Copy
-	*proxyURL = *req.URL
-
-	proxyURL.Host, proxyURL.Path, err = MatcherFunc(req)
-	if err != nil {
-		return nil, err
-	}
-
-	proxyURL.Scheme = "http"
-	if IsTLS {
-		proxyURL.Scheme = "https"
-	}
-
-	return proxyURL, nil
 }

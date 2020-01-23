@@ -192,6 +192,9 @@ func (C *SimpleClient) Trace(URL *url.URL, Headers map[string][]string) (*http.R
 // This function is extended by the use of a TLSRetryPolicy within the SimpleClient.  This allows a client to attempt to handle HTTP/HTTPS mismatch errors automatically by upgrading/downgrading as necessary.
 func (C *SimpleClient) Do(req *http.Request) (*http.Response, error) {
 
+	// Set the scheme, allowing for this to be missing, and be able to be defined by the internal TLS state of the Client.
+	C.setScheme(req.URL)
+
 	resp, err := C.client.Do(req)
 	if err != nil {
 		return C.shouldDowngrade(req, resp, err)
