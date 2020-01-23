@@ -55,6 +55,16 @@ func (SA *ServerPluginAgent) GetPluginByName(Name string) (*ServerPlugin, error)
 	return nil, fmt.Errorf("easytls plugin error - Failed to find plugin %s", Name)
 }
 
+// StopPluginByName will attempt to stop a given plugin by name, if it exists
+func (SA *ServerPluginAgent) StopPluginByName(Name string) error {
+
+	p, err := SA.GetPluginByName(Name)
+	if err != nil {
+		return err
+	}
+	return p.Stop()
+}
+
 // RegisterPlugins will configure and register all of the plugins in the previously specified PluginFolder.  This will not start any of the plugins, but will only load the necessary symbols from them.
 func (SA *ServerPluginAgent) RegisterPlugins() error {
 
