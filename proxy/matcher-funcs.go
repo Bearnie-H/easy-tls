@@ -9,7 +9,7 @@ import (
 	"sort"
 )
 
-// ReverseProxyRouterFunc represents the Type which must be satisfied by any function which defines the per-request routing behaviours.  This must map a given request to a specific IP:Port host and leave the Path unchanged.
+// ReverseProxyRouterFunc represents the Type which must be satisfied by any function which defines the per-request routing behaviours.  This must map a given incoming request to a specific forward URL.
 type ReverseProxyRouterFunc func(*http.Request) (url *url.URL, err error)
 
 // Define the set of errors provided by this package

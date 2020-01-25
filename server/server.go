@@ -13,6 +13,11 @@ import (
 	"github.com/gorilla/mux"
 )
 
+const (
+	// DefaultServerAddr represents the default address to serve on, should a value not be provided.
+	DefaultServerAddr string = ":8080"
+)
+
 // SimpleServer is the extension to the default http.Server this package provides.
 type SimpleServer struct {
 	server              *http.Server
@@ -30,13 +35,11 @@ func NewServerHTTP(Addr ...string) (*SimpleServer, error) {
 	return NewServerHTTPS(nil, Addr...)
 }
 
-// NewServerHTTPS will create a new HTTPS-only server which will serve on the specified IP:Port address.  The server returned from this function only has the default http.ServeMux as the Router, so should have a dedicated router registered.
-//
-// The default address of ":8080" will be used if none is provided
+// NewServerHTTPS will create a new HTTPS-only server which will serve on the specified IP:Port address.  The server returned from this function only has the default http.ServeMux as the Router, so should have a dedicated router registered. The default address of ":8080" will be used if none is provided
 func NewServerHTTPS(TLS *easytls.TLSBundle, Addr ...string) (*SimpleServer, error) {
 
 	if len(Addr) == 0 {
-		Addr = []string{":8080"}
+		Addr = []string{DefaultServerAddr}
 	}
 
 	// If the TLSBundle is nil, just create a server without TLS settings.

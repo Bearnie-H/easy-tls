@@ -121,6 +121,7 @@ func DoReverseProxy(C *client.SimpleClient, Matcher ReverseProxyRouterFunc, verb
 		case client.ErrInvalidStatusCode:
 			defer proxyResp.Body.Close()
 			log.Printf("Failed to perform proxy request for URL [ %s ] from %s - %s", r.URL.String(), r.RemoteAddr, err)
+			proxyResp.Header.Del("Content-Length")
 			H := w.Header()
 			header.Merge(&H, &proxyResp.Header)
 			w.WriteHeader(proxyResp.StatusCode)

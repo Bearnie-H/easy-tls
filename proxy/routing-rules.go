@@ -26,11 +26,9 @@ func (a ReverseProxyRuleSet) Less(i, j int) bool { return a[i].PathPrefix > a[j]
 
 // Find will return either the new Host:Port/Path to forward to, or ErrRouteNotFound
 func (a ReverseProxyRuleSet) Find(in *url.URL) (out *url.URL, err error) {
+
 	for _, Rule := range a {
 		if Rule.matches(in) {
-			if Rule.ForbidRoute {
-				return nil, ErrForbiddenRoute
-			}
 			return Rule.ToURL(in)
 		}
 	}
@@ -85,6 +83,10 @@ func (R *ReverseProxyRoutingRule) String() string {
 
 // ToURL will take in the incoming URL, and the rule it matches, and return a newly formatted URL with the modifications
 func (R *ReverseProxyRoutingRule) ToURL(in *url.URL) (*url.URL, error) {
+
+	if R.ForbidRoute {
+		return nil, ErrForbiddenRoute
+	}
 
 	// Create a deep copy of the incoming URL
 	out := &url.URL{}
