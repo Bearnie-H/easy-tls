@@ -70,6 +70,11 @@ func NewClientHTTPS(TLS *easytls.TLSBundle, TLSPolicy TLSRetryPolicy) (*SimpleCl
 	return s, nil
 }
 
+// CloneTLSConfig will form a proper clone of the underlying tls.Config of the Dune Client.
+func (C *SimpleClient) CloneTLSConfig() (*tls.Config, error) {
+	return easytls.NewTLSConfig(&C.bundle)
+}
+
 // IsTLS returne whether the SimpleClient is currently TLS-enabled or not.
 func (C *SimpleClient) IsTLS() bool {
 	return C.tls
