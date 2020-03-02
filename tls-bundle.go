@@ -65,7 +65,7 @@ func NewTLSConfig(TLS *TLSBundle) (*tls.Config, error) {
 		returnConfig.ClientCAs = caCertPool
 
 		// Assert that only the latest TLS Version is supported
-		returnConfig.MinVersion = tls.VersionTLS12
+		returnConfig.MinVersion = tls.VersionTLS13
 
 		// Set this, if it wasn't set before, as there are now CA certs.
 		TLS.Enabled = true
