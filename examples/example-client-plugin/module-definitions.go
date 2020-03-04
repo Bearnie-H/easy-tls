@@ -8,6 +8,9 @@ import (
 // PluginName is the name of the current plugin.
 const PluginName string = "DEFINE_ME"
 
+// PluginType tells which type of plugin this is, server or client.
+const PluginType string = "client"
+
 // Semantic Versioning Information
 var (
 	// What minimum framework version is supported/required

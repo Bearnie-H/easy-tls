@@ -58,16 +58,16 @@ func Accepts(Is, AcceptsMin, AcceptsMax SemanticVersion) bool {
 		return Is.MinorRelease >= AcceptsMin.MinorRelease && Is.MinorRelease <= AcceptsMax.MinorRelease
 	}
 
-	// If this is the same minor release as the minimum, make sure the minor release is higher
+	// If this is the same major release as the minimum, make sure the minor release is higher
 	if Is.MajorRelease == AcceptsMin.MajorRelease {
 		return Is.MinorRelease >= AcceptsMin.MinorRelease
 	}
 
-	// If this is the same minor release as the maximum, make sure the minor release is lower
+	// If this is the same major release as the maximum, make sure the minor release is lower
 	if Is.MajorRelease == AcceptsMax.MajorRelease {
 		return Is.MinorRelease <= AcceptsMax.MinorRelease
 	}
 
-	// Otherwise, the major release is between the two values, to any minor release is good.
+	// Otherwise, the major release is between the two values, so any minor release is good.
 	return true
 }
