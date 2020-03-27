@@ -39,10 +39,6 @@ func NewTLSConfig(TLS *TLSBundle) (*tls.Config, error) {
 			return returnConfig, err
 		}
 		returnConfig.Certificates = append(returnConfig.Certificates, cert)
-
-		// If there are Certificates, the TLS min version can be set (1.2 is used here for backwards-compatability)
-		returnConfig.MinVersion = tls.VersionTLS12
-		TLS.Enabled = true
 	}
 
 	// If no CA Certificates are provided, don't attempt to load any
@@ -63,12 +59,10 @@ func NewTLSConfig(TLS *TLSBundle) (*tls.Config, error) {
 		// The way we implement TLS CAs here expects that the full set of accepted CAs is a whitelist, and whether we check or care about certificates is based on the ClientAuth.
 		returnConfig.RootCAs = caCertPool
 		returnConfig.ClientCAs = caCertPool
-
-		returnConfig.MinVersion = tls.VersionTLS12
-
-		// Set this, if it wasn't set before, as there are now CA certs.
-		TLS.Enabled = true
 	}
+
+	// If there are Certificates, the TLS min version can be set.
+	returnConfig.MinVersion = tls.VersionTLS13
 
 	// Define how the Client Certificates will be checked.
 	returnConfig.ClientAuth = TLS.Auth
