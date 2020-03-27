@@ -121,22 +121,20 @@ func GetRuleToAdd() (*proxy.ReverseProxyRoutingRule, error) {
 	NewRule := &proxy.ReverseProxyRoutingRule{}
 
 	NewRule.PathPrefix = GetString("Enter the URI prefix the rule should match on: ")
+	if strings.ToLower(GetString("Should this rule forbid the route, preventing ANY requests to be forwarded to it? [y/N]: ")) == "y" {
+		NewRule.ForbidRoute = true
+		return NewRule, nil
+	}
+	NewRule.ForbidRoute = false
+
 	NewRule.DestinationHost = GetString("Enter the Destination Host this rule should forward to: ")
 	if temp, err := GetInt("Enter the Destination Port this rule should forward to: "); err == nil {
 		NewRule.DestinationPort = temp
 	} else {
 		return nil, err
 	}
-	if strings.ToLower(GetString("Should this rule strip the prefix when forwarding? [y/N]: ")) == "y" {
-		NewRule.StripPrefix = true
-	} else {
-		NewRule.StripPrefix = false
-	}
-	if strings.ToLower(GetString("Should this rule forbid the route, preventing ANY requests to be forwarded to it? [y/N]: ")) == "y" {
-		NewRule.ForbidRoute = true
-	} else {
-		NewRule.ForbidRoute = false
-	}
+
+	NewRule.NewPrefix = GetString("Enter the value to replace the URI prefix with (Blank to remove): ")
 
 	if !strings.HasPrefix(NewRule.PathPrefix, "/") {
 		NewRule.PathPrefix = "/" + NewRule.PathPrefix
@@ -150,7 +148,7 @@ func GetRuleToAdd() (*proxy.ReverseProxyRoutingRule, error) {
 		NewRule.PathPrefix = "/"
 	}
 
-	if NewRule.DestinationPort < 0 || NewRule.DestinationPort > (256*256) {
+	if NewRule.DestinationPort < 0 || NewRule.DestinationPort > (1<<16) {
 		return nil, fmt.Errorf("easytls proxy error - Invalid Destination Port (%d) - Out of range", NewRule.DestinationPort)
 	}
 

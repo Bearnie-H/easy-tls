@@ -11,7 +11,7 @@ type ReverseProxyRoutingRule struct {
 	PathPrefix      string
 	DestinationHost string
 	DestinationPort int
-	StripPrefix     bool
+	NewPrefix       string
 	ForbidRoute     bool
 }
 
@@ -57,27 +57,11 @@ func (R *ReverseProxyRoutingRule) matches(in *url.URL) bool {
 
 func (R *ReverseProxyRoutingRule) String() string {
 
-	var key uint64 = 0
-	// Set Bit 0 if the rule should strip the prefix.
-	if R.StripPrefix {
-		key += 1 << 0
-	}
-	// Set Bit 1 if the rule should forbid traffic on the route.
-	if R.ForbidRoute {
-		key += 1 << 1
-	}
-
-	switch key {
-	case 0:
-		return fmt.Sprintf("Prefix: [ %s ] will forward to [ %s:%d ] without stripping the prefix.", R.PathPrefix, R.DestinationHost, R.DestinationPort)
-	case 1:
-		return fmt.Sprintf("Prefix: [ %s ] will forward to [ %s:%d ] while stripping the prefix.", R.PathPrefix, R.DestinationHost, R.DestinationPort)
-	case 2:
-		return fmt.Sprintf("Prefix: [ %s ] will forbid forwarding to [ %s:%d ] without stripping the prefix.", R.PathPrefix, R.DestinationHost, R.DestinationPort)
-	case 3:
-		return fmt.Sprintf("Prefix: [ %s ] will forbid forwarding to [ %s:%d ] while stripping the prefix.", R.PathPrefix, R.DestinationHost, R.DestinationPort)
+	switch {
+	case (R.ForbidRoute):
+		return fmt.Sprintf("Prefix: [ %s ] will forbid forwarding to [ %s:%d ].", R.PathPrefix, R.DestinationHost, R.DestinationPort)
 	default:
-		return fmt.Sprintf("Prefix: [ %s ] contains an unknown combination of flags.", R.PathPrefix)
+		return fmt.Sprintf("Prefix: [ %s ] will forward to [ %s:%d ] and replace the prefix with [ %s ].", R.PathPrefix, R.DestinationHost, R.DestinationPort, R.NewPrefix)
 	}
 }
 
@@ -95,10 +79,8 @@ func (R *ReverseProxyRoutingRule) ToURL(in *url.URL) (*url.URL, error) {
 	// Set the host as per the rule.
 	out.Host = fmt.Sprintf("%s:%d", R.DestinationHost, R.DestinationPort)
 
-	// Strip the prefix if specified by the rule.
-	if R.StripPrefix {
-		out.Path = strings.TrimPrefix(out.Path, R.PathPrefix)
-	}
+	// Replace the prefix with the specified value
+	out.Path = strings.Replace(out.Path, R.PathPrefix, R.NewPrefix, 1)
 
 	// More manipulations of the incoming URL before returning it
 	// ...
