@@ -179,8 +179,6 @@ func (CA *ClientPluginAgent) run() error {
 
 	wg.Wait()
 
-	CA.logger.Write([]byte("All registered plugins exited.\n"))
-
 	// If all the registered plugins exit, then this agent is considered stopped.
 	CA.stopped.Store(true)
 

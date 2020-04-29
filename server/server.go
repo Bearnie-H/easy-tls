@@ -120,6 +120,7 @@ func (S *SimpleServer) ListenAndServe() error {
 
 // Shutdown will safely shut down the SimpleServer, returning any errors
 func (S *SimpleServer) Shutdown() error {
+	defer S.stopped.Store(true)
 	return S.server.Close()
 }
 
