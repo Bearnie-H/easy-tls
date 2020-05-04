@@ -189,9 +189,7 @@ func (SA *ServerPluginAgent) Stop() error {
 
 // Wait for the plugin agent to stop safely.
 func (SA *ServerPluginAgent) Wait() {
-	time.Sleep(time.Second)
 	for !SA.stopped.Load().(bool) {
-		SA.logger.Write([]byte("easytls server plugin agent: Waiting to shut down...\n"))
-		time.Sleep(time.Second)
+		time.Sleep(time.Millisecond * 250)
 	}
 }

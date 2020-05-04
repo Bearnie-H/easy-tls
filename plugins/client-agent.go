@@ -230,7 +230,6 @@ func (CA *ClientPluginAgent) Stop() error {
 // Wait for the plugin agent to stop safely.
 func (CA *ClientPluginAgent) Wait() {
 	for !CA.stopped.Load().(bool) {
-		CA.logger.Write([]byte("easytls client plugin agent: Waiting to shut down...\n"))
-		time.Sleep(time.Second)
+		time.Sleep(time.Millisecond * 250)
 	}
 }
