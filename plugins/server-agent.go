@@ -110,7 +110,7 @@ func (SA *ServerPluginAgent) run() error {
 		return errors.New("easytls plugin error - Server Plugin Agent has 0 registered plugins")
 	}
 
-	A.stopped.Store(false)
+	SA.stopped.Store(false)
 
 	wg := &sync.WaitGroup{}
 	for _, registeredPlugin := range SA.RegisteredPlugins {
