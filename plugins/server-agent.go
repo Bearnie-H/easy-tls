@@ -34,7 +34,7 @@ func NewServerAgent(PluginFolder string, Logger io.WriteCloser) (*ServerPluginAg
 		stopped:            atomic.Value{},
 	}
 
-	A.stopped.Store(false)
+	A.stopped.Store(true)
 
 	return A, nil
 }
@@ -110,6 +110,8 @@ func (SA *ServerPluginAgent) run() error {
 		return errors.New("easytls plugin error - Server Plugin Agent has 0 registered plugins")
 	}
 
+	A.stopped.Store(false)
+
 	wg := &sync.WaitGroup{}
 	for _, registeredPlugin := range SA.RegisteredPlugins {
 		wg.Add(1)
@@ -182,7 +184,7 @@ func (SA *ServerPluginAgent) Stop() error {
 		return errors.New("easytls agent error - error occured during server plugin shutdown")
 	}
 
-	SA.Wait()
+	SA.stopped.Store(true)
 
 	return nil
 }
