@@ -1,18 +1,32 @@
-// Package header implements utility functions for working with HTTP Headers, and the necessary encoding/decoding of them.
+// Package header implements utility functions for encoding Go structs into
+// standard HTTP Headers.
 //
-// The primary utility provided is an API for encoding a (nearly) arbitrary Go struct into an http.Header,
-//  as well as the converse of filling in the fields of a (nearly) arbitrary Go struct from an http.Header.
+// The primary utility provided is an API for encoding a (nearly) arbitrary Go
+// struct into an http.Header, as well as the converse of filling in the fields
+// of a (nearly) arbitrary Go struct from an http.Header. This API also
+// includes a struct tag, to allow for customized encoding of struct fields as
+// keys when encoding into an http.Header.
 //
-// Currently, the only types capable of being encoded and decoded with this API are:
+// There are limitations on the exact nature of what can be encoded and decoded
+// by this package, based primarily on the limitations of an http.Header just
+// being a map[string][]string at its core.
 //
-//		int (and all bit-specified derived types, resolves to int64 internally)
-//		bool
-//		float (and all bit-specified derived types, resolves to float64 internally)
-//		string
-//		As well as slices of these types.
+// The following types are fully supported:
 //
-// Since this does not include structs, there is no current mechanism for converting nested structs with this API.
-// This is unlikely be added, as nested structs do not exactly play nicely with the map[string][]string underlying structure,
-//  and an approach like a MIME Multipart message with a JSON preamble is a more standard solution.
-// If unsupported types are found, they are simply ignored.
+//	int, []int, and all bit-specified types
+//	float, []float, and all bit-specified types
+//	string, []string
+//	bool, []bool
+//	struct
+//
+// Arrays of structs are not supported, and issues may arise if multiple
+// structs are encoded where the Field Names are duplicated. Nested structs
+// are supported, but with the restriction on Field Name uniqueness.
+//
+// This package works by converting the Field Name (or struct tag, if present)
+// into the map key, and "stringifying" the Field Value to append to the map
+// value array. When decoding, the reverse process is used, where the fields of
+// the struct to decode into are used to find corresponding values in the map,
+// and the map values are parsed back into the corresponding types.
+//
 package header

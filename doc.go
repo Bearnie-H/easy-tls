@@ -1,4 +1,9 @@
-// Package easytls and the rest of this library is intended to provide a simple interface for creating simple HTTP(S) Client/Server applications.
+// Package easytls provides a simplification for creating valid tls.Config
+// structures for use with the http package.
 //
-// This package provides a mechanism for preparing the tls.Config object of an http.Client or http.Server with common levels of enablement.  The TLSBundle object intends to simplify preparing and understanding what components are necessary in a standard TLS setup, instead of needing to understand the full settings of the tls.Config struct.
+// This package provides a consistent method for generating a tls.Config with
+// a whitelisted set of Certificate Authorities to accept, an optional "client"
+// certificate/key pair and peer validation policy. This is primarily intended
+// to be used with the other packages in this project to simplify building
+// simple and secure HTTPS services.
 package easytls

@@ -13,7 +13,8 @@ import (
 )
 
 const (
-	// DefaultServerAddr represents the default address to serve on, should a value not be provided.
+	// DefaultServerAddr represents the default address to serve on,
+	// should a value not be provided.
 	DefaultServerAddr string = ":8080"
 )
 
@@ -26,15 +27,22 @@ type SimpleServer struct {
 	aboutHandlerEnabled bool
 }
 
-// NewServerHTTP will create a new HTTP-only server which will serve on the specified IP:Port address.  This has NO TLS settings enabled.  The server returned from this function only has the default http.ServeMux as the Router, so should have a dedicated router registered.
+// NewServerHTTP will create a new HTTP-only server which will serve on the
+// specified IP:Port address. This has NO TLS settings enabled.
+// The server returned from this function only has the default http.ServeMux
+// as the Router, so should have a dedicated router registered.
 //
 // The default address of ":8080" will be used if none is provided
-// Only the first string will be treated as the address
+// Only the first string will be treated as the address.
 func NewServerHTTP(Addr ...string) (*SimpleServer, error) {
 	return NewServerHTTPS(nil, Addr...)
 }
 
-// NewServerHTTPS will create a new HTTPS-only server which will serve on the specified IP:Port address.  The server returned from this function only has the default http.ServeMux as the Router, so should have a dedicated router registered. The default address of ":8080" will be used if none is provided
+// NewServerHTTPS will create a new HTTPS-only server which will serve on
+// the specified IP:Port address. The server returned from this function
+// only has the default http.ServeMux as the Router, so should have a
+// dedicated router registered. The default address of ":8080" will
+// be used if none is provided
 func NewServerHTTPS(TLS *easytls.TLSBundle, Addr ...string) (*SimpleServer, error) {
 
 	if len(Addr) == 0 {
@@ -70,7 +78,8 @@ func NewServerHTTPS(TLS *easytls.TLSBundle, Addr ...string) (*SimpleServer, erro
 	}, nil
 }
 
-// SetTimeouts will set the given timeouts of the Server.  Set 0 to leave uninitialized.
+// SetTimeouts will set the given timeouts of the Server.
+// Set 0 to leave uninitialized.
 func (S *SimpleServer) SetTimeouts(ReadTimeout, ReadHeaderTimeout, WriteTimeout, IdleTimeout time.Duration) {
 
 	// Timeout to read the full request
@@ -94,7 +103,9 @@ func (S *SimpleServer) SetTimeouts(ReadTimeout, ReadHeaderTimeout, WriteTimeout,
 	}
 }
 
-// ListenAndServe will start the SimpleServer, serving HTTPS if enabled, or HTTP if not.  This will properly wait for the shutdown to FINISH before returning.
+// ListenAndServe will start the SimpleServer, serving HTTPS if enabled,
+// or HTTP if not. This will properly wait for the shutdown
+// to FINISH before returning.
 func (S *SimpleServer) ListenAndServe() error {
 
 	S.stopped.Store(false)
@@ -124,12 +135,16 @@ func (S *SimpleServer) Shutdown() error {
 	return S.server.Close()
 }
 
-// RegisterRouter will register the given Handler (typically an *http.ServeMux or *mux.Router) as the http Handler for the server.
+// RegisterRouter will register the given Handler
+// (typically an *http.ServeMux or *mux.Router)
+// as the http Handler for the server.
 func (S *SimpleServer) RegisterRouter(r http.Handler) {
 	S.server.Handler = r
 }
 
-// EnableAboutHandler will enable and set up the "about" handler, to display the available routes.  This must be the last route registered in order for the full set of routes to be displayed.
+// EnableAboutHandler will enable and set up the "about" handler,
+// to display the available routes. This must be the last route registered
+// in order for the full set of routes to be displayed.
 func (S *SimpleServer) EnableAboutHandler(r *mux.Router) {
 	S.aboutHandlerEnabled = true
 	routeList := append([]string{fmt.Sprintf("%-50s|    %v", "/about", []string{http.MethodGet, http.MethodPost, http.MethodHead})}, S.registeredRoutes...)
@@ -153,7 +168,9 @@ func (S *SimpleServer) Addr() string {
 	return S.server.Addr
 }
 
-// SetKeepAlives will configure the server for whether or not it should use Keep-Alives.  True implies to use Keep-Alives, and false will disable them.
+// SetKeepAlives will configure the server for whether or not it
+// should use Keep-Alives. True implies to use Keep-Alives,
+// and false will disable them.
 func (S *SimpleServer) SetKeepAlives(SetTo bool) {
 	S.server.SetKeepAlivesEnabled(SetTo)
 }

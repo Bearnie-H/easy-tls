@@ -7,28 +7,48 @@ import (
 	"log"
 )
 
-// KeyPair represents the filenames to a pair of matching TLS Key/Certificate files.  This can be either a Server-side or Client-side Certificate/Key pair.
+// KeyPair is a single matched pair of TLS Certificate and Key files.
 type KeyPair struct {
 	Certificate string
 	Key         string
 }
 
-// TLSBundle represents the set of TLS information required to generate a satisfactory tls.Config struct.
+// TLSBundle is a toggle-able set of TLS resources to be used to generate a
+// valid tls.Config struct, to be used with the http package.  This is composed
+// of a whitelisted set of Certificate Authorities, a TLS Certificate and Key
+// to use, a Peer Authentication policy, and a toggle to turn on or off the TLS
+// settings.
 type TLSBundle struct {
+
+	// AuthorityCertificates is a set of filenames, of the set of Certificate
+	// Authorities to use when building the whitelist of acceptable Certificate
+	// Authorities for TLS communications.
 	AuthorityCertificates []string
-	KeyPair               KeyPair
-	Auth                  tls.ClientAuthType
-	Enabled               bool `json:"-"`
+
+	// KeyPair is the matched pair of "Client" Certificate and Key to use and
+	// present during a TLS handshake.
+	KeyPair KeyPair
+
+	// Auth defines the policy to use during the TLS handshake to verify the
+	// other host's certificate.
+	Auth tls.ClientAuthType
+
+	// Enabled allows this to be toggled. If disabled, this will create an
+	// empty tls.Config when used.
+	Enabled bool `json:"-"`
 }
 
-// NewTLSConfig will convert the TLSBundle, containing the filenames of the relevant certificates and Authorization policy, into a workable tls.Config object, ready to be used by either a SimpleClient or SimpleServer application.
+// NewTLSConfig will convert the TLSBundle, containing the filenames of the
+// relevant certificates and Authorization policy, into a workable tls.Config
+// object, ready to be used by either a SimpleClient or SimpleServer application.
 func NewTLSConfig(TLS *TLSBundle) (*tls.Config, error) {
 
+	// Create the tls.Config to return if everything goes well.
 	returnConfig := &tls.Config{}
 
-	// If no TLS bundle is provided, or is it marked invalid, don't set any TLS settings.
+	// If no TLS bundle is provided, or is it marked disabled, don't set any TLS settings.
 	if TLS == nil || !TLS.Enabled {
-		return returnConfig, nil
+		return &tls.Config{}, nil
 	}
 
 	// If no KeyPairs are provided, don't attempt to load Client-side certificates
@@ -36,7 +56,7 @@ func NewTLSConfig(TLS *TLSBundle) (*tls.Config, error) {
 		cert, err := tls.LoadX509KeyPair(TLS.KeyPair.Certificate, TLS.KeyPair.Key)
 		if err != nil {
 			log.Printf("Failed to load certificate - %s\n", err)
-			return returnConfig, err
+			return &tls.Config{}, err
 		}
 		returnConfig.Certificates = append(returnConfig.Certificates, cert)
 	}
@@ -62,6 +82,7 @@ func NewTLSConfig(TLS *TLSBundle) (*tls.Config, error) {
 	}
 
 	// If there are Certificates, the TLS min version can be set.
+	// Default to the maximum supported version, sorry if this breaks old applications.
 	returnConfig.MinVersion = tls.VersionTLS13
 
 	// Define how the Client Certificates will be checked.

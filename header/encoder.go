@@ -8,17 +8,21 @@ import (
 )
 
 const (
-	// EasyTLSStructTag represents the Struct Tag key used by this package
+	// EasyTLSStructTag represents the Struct Tag key used by this package.
+	// Structs can customize the key used when encoding into an http.Header
+	// by using this struct tag analagous to how the json tags work.
 	EasyTLSStructTag = `easytls`
 )
 
-// Encoder will implement the necessary functionality for parsing a Go struct into a useable http.Header
+// Encoder will implement the necessary functionality for parsing a Go struct
+// into a valid http.Header.
 type Encoder struct {
 	h http.Header
 	v interface{}
 }
 
-// NewEncoder will create and initialize an encoder, ready to write a Go struct into an HTTP Header
+// NewEncoder will create and initialize an encoder, ready to write a Go struct
+// into an HTTP Header.
 func NewEncoder(H *http.Header) *Encoder {
 	if H == nil {
 		H = &http.Header{}
@@ -26,7 +30,8 @@ func NewEncoder(H *http.Header) *Encoder {
 	return &Encoder{h: *H}
 }
 
-// DefaultEncode will allow using a default encoding, returning an HTTP Header to be merged with the one to be sent.
+// DefaultEncode will allow using a default encoding, returning an HTTP Header
+// to be merged with the one to be sent.
 func DefaultEncode(v interface{}) (http.Header, error) {
 	enc := NewEncoder(&http.Header{})
 	if err := enc.Encode(v); err != nil {
@@ -35,13 +40,15 @@ func DefaultEncode(v interface{}) (http.Header, error) {
 	return enc.Header(), nil
 }
 
-// Header returns a copy of the underlying HTTP Header, as the Encoder currenty sees it.
+// Header returns a copy of the underlying HTTP Header, as the Encoder
+// currenty sees it.
 func (E *Encoder) Header() http.Header {
 	return E.h
 }
 
 // Encode will actually encode the struct v into the http.Header.
-// This process must flatten any nested structs into a single layer, to match the underlying structure of the HTTP Headers.
+// This process must flatten any nested structs into a single layer,
+// to match the underlying structure of the HTTP Headers.
 func (E *Encoder) Encode(v interface{}) (err error) {
 	defer func() {
 		if r := recover(); r != nil {

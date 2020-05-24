@@ -1,6 +1,0 @@
-The allowable Types for the HTTP Header to include and be encoded/decoded are:
-
-    int, []int
-    bool, []bool
-    string, []string
-    float64, []float64

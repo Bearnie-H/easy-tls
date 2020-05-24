@@ -7,30 +7,35 @@ import (
 	"strconv"
 )
 
-// Decoder will implement the necessary functionality for parsing an http.Header into a Go struct.
+// Decoder will implement the necessary functionality for parsing an
+// http.Header into a Go struct.
 type Decoder struct {
 	v interface{}
 	h http.Header
 }
 
-// NewDecoder will create and initialize a decoder, ready to write an http.Header into a Go struct.
-// This will decode into the value pointed to by v.
+// NewDecoder will create and initialize a decoder, ready to write an
+// http.Header into a Go struct. This will decode into the value pointed
+// to by v.
 func NewDecoder(v interface{}) *Decoder {
 	return &Decoder{v: v}
 }
 
-// DefaultDecode will allow using the default decoder, decoding the header into the value pointed to by v.
+// DefaultDecode will allow using the default decoder, decoding the header
+// into the value pointed to by v.
 func DefaultDecode(H http.Header, v interface{}) error {
 	dec := NewDecoder(v)
 	return dec.Decode(H)
 }
 
-// Out will return a copy of the struct being filled in by this Decoder, exactly as it sees it at the time of calling.
+// Out will return a copy of the struct being filled in by this Decoder,
+// exactly as it sees it at the time of calling.
 func (D *Decoder) Out() interface{} {
 	return D.v
 }
 
-// Decode will actually decode the Header H.
+// Decode will actually decode the Header H into the interface used to
+// initialize the Decoder used.
 func (D *Decoder) Decode(H http.Header) (err error) {
 	defer func() {
 		if r := recover(); r != nil {

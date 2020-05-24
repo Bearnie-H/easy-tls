@@ -9,7 +9,9 @@ import (
 	"sort"
 )
 
-// ReverseProxyRouterFunc represents the Type which must be satisfied by any function which defines the per-request routing behaviours.  This must map a given incoming request to a specific forward URL.
+// ReverseProxyRouterFunc represents the Type which must be satisfied by any
+// function which defines the per-request routing behaviours.
+// This must map a given incoming request to a specific forward URL.
 type ReverseProxyRouterFunc func(*http.Request) (url *url.URL, err error)
 
 // Define the set of errors provided by this package
@@ -18,7 +20,10 @@ var (
 	ErrRouteNotFound  error = errors.New("easytls routing rule error - No forwarding rule defined for route")
 )
 
-// LiveFileRouter implements a Reverse Proxy Routing function which will follow rules defined in a JSON file on disk. This rule-set is consulted on each incoming request, allowing any proxy using this to have the routing rules modified without an application restart.
+// LiveFileRouter implements a Reverse Proxy Routing function which will follow
+// rules defined in a JSON file on disk. This rule-set is consulted on each
+// incoming request, allowing any proxy using this to have the routing rules
+// modified without an application restart.
 func LiveFileRouter(RulesFilename string) ReverseProxyRouterFunc {
 	return func(r *http.Request) (url *url.URL, err error) {
 
@@ -45,9 +50,12 @@ func LiveFileRouter(RulesFilename string) ReverseProxyRouterFunc {
 	}
 }
 
-// DefinedRulesRouter will take in a pre-defined set of rules, and will route based on them.
-//
-// This may buy some efficiencies over the LiveFileRouter, as it doesn't need to perform Disk I/O on each request to search for the rules, but this comes with the tradeoff of not being able to edit the rules without restarting the application using this as the router.
+// DefinedRulesRouter will take in a pre-defined set of rules,
+// and will route based on them. This may buy some efficiencies over the
+// LiveFileRouter, as it doesn't need to perform Disk I/O on each request to
+// search for the rules, but this comes with the tradeoff of not being able
+// to edit the rules without restarting the application using this
+// as the router.
 func DefinedRulesRouter(RuleSet ReverseProxyRuleSet) ReverseProxyRouterFunc {
 
 	sort.Slice(RuleSet, RuleSet.Less)

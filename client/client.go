@@ -13,22 +13,44 @@ import (
 	"github.com/Bearnie-H/easy-tls/header"
 )
 
-// TLSRetryPolicy defines the possible policies that a SimpleClient can take when it communicates with the wrong HTTP/HTTPS to the server
+// TLSRetryPolicy defines the possible policies that a SimpleClient can take
+// when it communicates with the wrong HTTP/HTTPS to the server.
 type TLSRetryPolicy int
 
 // Enum definition of the available TLSRetryPolicy values
 // NOTE: Currently only NoRetry and Downgrade are implemented.
 const (
-	NoRetry            TLSRetryPolicy = iota // Don't retry the attempt using a different Scheme
-	DowngradeNoReset                         // Attempt only downgrading from HTTPS to HTTP, and don't reset the SimpleClient after the request.
-	DowngradeWithReset                       // Attempt only downgrading from HTTPS to HTTP, and reset the SimpleClient after the request.
-	UpgradeNoReset                           // Attempt only upgrading from HTTP to HTTPS, but reset the SimpleClient to HTTP after the request.
-	UpgradeWithReset                         // Attempt only upgrading from HTTP to HTTPS, and keep the SimpleClient configured for HTTPS after the request.
-	SwapNoReset                              // Attempt to swap HTTP <-> HTTPS, and don't reset the SimpleClient after.
-	SwapWithReset                            // Attempt to swap HTTP <-> HTTPS, and do reset the SimpleClient after.
+
+	// Don't retry the attempt using a different Scheme
+	NoRetry TLSRetryPolicy = iota
+
+	// Attempt only downgrading from HTTPS to HTTP, and don't reset the
+	// SimpleClient after the request.
+	DowngradeNoReset
+
+	// Attempt only downgrading from HTTPS to HTTP, and reset the SimpleClient
+	// after the request.
+	DowngradeWithReset
+
+	// Attempt only upgrading from HTTP to HTTPS, but reset the SimpleClient to
+	// HTTP after the request.
+	UpgradeNoReset
+
+	// Attempt only upgrading from HTTP to HTTPS, and keep the SimpleClient
+	// configured for HTTPS after the request.
+	UpgradeWithReset
+
+	// Attempt to swap HTTP <-> HTTPS, and don't reset the SimpleClient after.
+	SwapNoReset
+
+	// Attempt to swap HTTP <-> HTTPS, and do reset the SimpleClient after.
+	SwapWithReset
 )
 
-// SimpleClient is the primary object of this library.  This is the implementation of the simplified HTTP Client provided by this package.  The use and functionality of this is opaque to whether or not this is running in HTTP or HTTPS mode, with a basic utility function to check.
+// SimpleClient is the primary object of this library. This is the
+// implementation of the simplified HTTP Client provided by this package.
+// The use and functionality of this is transparent to whether or not this is
+// running in HTTP or HTTPS mode, with a basic utility function to check.
 type SimpleClient struct {
 	client *http.Client
 
@@ -38,12 +60,15 @@ type SimpleClient struct {
 	policy TLSRetryPolicy
 }
 
-// NewClientHTTP will fully initialize a SimpleClient with TLS settings turned off.  These settings CAN be turned on and off as required.
+// NewClientHTTP will fully initialize a SimpleClient with TLS settings turned
+// off. These settings CAN be turned on and off as required, either by
+// providing a TLSBundle, or by reusing one passed in earlier.
 func NewClientHTTP() (*SimpleClient, error) {
 	return NewClientHTTPS(nil, NoRetry)
 }
 
-// NewClientHTTPS will fully initialize a SimpleClient with TLS settings turned on.  These settings CAN be turned on and off as required.
+// NewClientHTTPS will fully initialize a SimpleClient with TLS settings turned
+// on. These settings CAN be turned on and off as required.
 func NewClientHTTPS(TLS *easytls.TLSBundle, TLSPolicy TLSRetryPolicy) (*SimpleClient, error) {
 	tls, err := easytls.NewTLSConfig(TLS)
 	if err != nil {
@@ -70,17 +95,17 @@ func NewClientHTTPS(TLS *easytls.TLSBundle, TLSPolicy TLSRetryPolicy) (*SimpleCl
 	return s, nil
 }
 
-// CloneTLSConfig will form a proper clone of the underlying tls.Config of the Dune Client.
+// CloneTLSConfig will form a proper clone of the underlying tls.Config.
 func (C *SimpleClient) CloneTLSConfig() (*tls.Config, error) {
 	return easytls.NewTLSConfig(&C.bundle)
 }
 
-// IsTLS returne whether the SimpleClient is currently TLS-enabled or not.
+// IsTLS returns whether the SimpleClient is currently TLS-enabled or not.
 func (C *SimpleClient) IsTLS() bool {
 	return C.tls
 }
 
-// MakeURL will create a URL, ready to be used to build a Request.
+// MakeURL will create a HTTP URL, ready to be used to build a Request.
 func (C *SimpleClient) MakeURL(Hostname string, Port int, PathSegments ...string) *url.URL {
 
 	scheme := "http"
@@ -95,7 +120,8 @@ func (C *SimpleClient) MakeURL(Hostname string, Port int, PathSegments ...string
 	}
 }
 
-// NewRequest will create a new HTTP Request, ready to be used by any implementation of an http.Client
+// NewRequest will create a new HTTP Request, ready to be used by any
+// implementation of an http.Client.
 func NewRequest(Method string, URL *url.URL, Headers http.Header, Contents io.Reader) (*http.Request, error) {
 
 	req, err := http.NewRequest(Method, URL.String(), Contents)
@@ -108,11 +134,12 @@ func NewRequest(Method string, URL *url.URL, Headers http.Header, Contents io.Re
 	return req, nil
 }
 
-// EnableTLS will enable the TLS settings for a SimpleClient based on the provided TLSBundle.
-// If the client previously had a TLS bundle provided, this will fall back and attempt to use it
+// EnableTLS will enable the TLS settings for a SimpleClient based on the
+// provided TLSBundle. If the client previously had a TLS bundle provided,
+// this will fall back and attempt to use that if none is given. If no
+// TLSBundles are given, and the Client has no previous TLSBundle, this will
+// fail, as there are no TLS resources to work with.
 func (C *SimpleClient) EnableTLS(TLS ...*easytls.TLSBundle) (err error) {
-
-	fmt.Println("Enabling TLS for SimpleClient.")
 
 	var tlsConf *tls.Config
 	for _, tls := range TLS {
@@ -145,8 +172,6 @@ func (C *SimpleClient) EnableTLS(TLS ...*easytls.TLSBundle) (err error) {
 // DisableTLS will turn off the TLS settings for a SimpleClient.
 func (C *SimpleClient) DisableTLS() {
 
-	fmt.Println("Disabling TLS for SimpleClient.")
-
 	C.client = &http.Client{
 		Timeout: time.Hour,
 		Transport: &http.Transport{
@@ -157,8 +182,11 @@ func (C *SimpleClient) DisableTLS() {
 	C.tls = false
 }
 
-// retryWithDowngrade will attempt to re-send an HTTP request, after downgrading from HTTPS to HTTP.
-// If this errors out, simply return the original response back, as if this never happpened.
+// retryWithDowngrade will attempt to re-send an HTTP request, after
+// downgrading from HTTPS to HTTP. If this errors out, simply return the
+// original response back, as if this never happpened.
+//
+// NOTE: This currently only works with requests that have empty bodies.
 func (C *SimpleClient) retryWithDowngrade(r *http.Request, original *http.Response) (resp *http.Response, err error) {
 
 	// Check the Upgrade/Downgrade policy
@@ -201,10 +229,13 @@ func (C *SimpleClient) retryWithDowngrade(r *http.Request, original *http.Respon
 	return C.Do(newReq)
 }
 
-// retryWithUpgrade will attempt to re-send an HTTP request, after upgrading from HTTP to HTTPS.
-// If this errors out, simply return the original response back, as if this never happpened.
+// retryWithUpgrade will attempt to re-send an HTTP request, after upgrading
+// from HTTP to HTTPS. If this errors out, simply return the original response
+// back, as if this never happpened.
+//
+// NOTE: This doesn't work yet, as it's unclear how to generically identify
+// when a client would need to attempt an upgrade.
 func (C *SimpleClient) retryWithUpgrade(r *http.Request, original *http.Response) (*http.Response, error) {
-
 	// Check the Upgrade/Downgrade policy
 	switch C.policy {
 
@@ -240,8 +271,8 @@ func (C *SimpleClient) retryWithUpgrade(r *http.Request, original *http.Response
 	return C.Do(newReq)
 }
 
-// This needs to be updated to work for non-empty request bodies.
 func (C *SimpleClient) rewindRequestBody(r *http.Request) (io.ReadCloser, error) {
-	// NOTE: This needs to be implemented.  This should either attempt to rewind the request body if possible, or return a meaningful error.
+
+	// NOTE: This needs to be implemented. This should either attempt to rewind the request body if possible, or return a meaningful error.
 	return r.Body, nil
 }
