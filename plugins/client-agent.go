@@ -54,6 +54,10 @@ func NewClientAgent(Client *client.SimpleClient, PluginFolder string, Logger io.
 
 // GetPluginByName will return a pointer to the requested plugin.  This is typically used to provide input arguments for when the plugin is Initiated.
 func (CA *ClientPluginAgent) GetPluginByName(Name string) (*ClientPlugin, error) {
+
+	CA.mux.Lock()
+	defer CA.mux.Unlock()
+
 	Name = strings.ToLower(Name)
 	for index, p := range CA.RegisteredPlugins {
 		name := strings.ToLower(p.Name())
@@ -67,6 +71,9 @@ func (CA *ClientPluginAgent) GetPluginByName(Name string) (*ClientPlugin, error)
 // StopPluginByName will attempt to stop a given plugin by name, if it exists
 func (CA *ClientPluginAgent) StopPluginByName(Name string) error {
 
+	CA.mux.Lock()
+	defer CA.mux.Unlock()
+
 	p, err := CA.GetPluginByName(Name)
 	if err != nil {
 		return err
@@ -76,6 +83,9 @@ func (CA *ClientPluginAgent) StopPluginByName(Name string) error {
 
 // RegisterPlugins will configure and register all of the plugins in the previously specified PluginFolder.  This will not start any of the plugins, but will only load the necessary symbols from them.
 func (CA *ClientPluginAgent) RegisterPlugins() error {
+
+	CA.mux.Lock()
+	defer CA.mux.Unlock()
 
 	// Search for all plugins in the designated search folder...
 	files, err := filepath.Glob(path.Join(CA.PluginSearchFolder, "*.so"))
@@ -185,7 +195,7 @@ func (CA *ClientPluginAgent) run() error {
 	return nil
 }
 
-// Stop will cause ALL of the currentlyRunning Plugins to safely stop.
+// Stop will cause ALL of the currently Running Plugins to safely stop.
 func (CA *ClientPluginAgent) Stop() error {
 
 	CA.mux.Lock()

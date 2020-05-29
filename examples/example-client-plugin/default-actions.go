@@ -52,6 +52,9 @@ func Name() string {
 // WriteStatus is the standard mechanism for writing a status message out to the framework.  This function can and should be passed in to sub-packages as necessary within the plugin, along with the StatusChannel itself (or at least a pointer to these).
 func WriteStatus(Message string, Error error, Fatal bool, args ...interface{}) error {
 
+	StatusLock.Lock()
+	defer StatusLock.Unlock()
+
 	NewStatus := plugins.PluginStatus{
 		Message: fmt.Sprintf("[%s]: %s", PluginName, fmt.Sprintf(Message, args...)),
 		Error:   Error,

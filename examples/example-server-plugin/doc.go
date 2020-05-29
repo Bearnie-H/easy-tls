@@ -1,2 +1,11 @@
-// This command represents a...
+// Module <> implements...
+//
+// Purpose
+//
+// <Describe here>
+//
+// Implementation
+//
+// <Describe here>
+//
 package main

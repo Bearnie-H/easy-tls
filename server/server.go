@@ -69,13 +69,20 @@ func NewServerHTTPS(TLS *easytls.TLSBundle, Addr ...string) (*SimpleServer, erro
 	}
 
 	// Create the TLS-Enabled server.
-	return &SimpleServer{
+	Server := &SimpleServer{
 		server: &http.Server{
 			Addr:      Addr[0],
 			TLSConfig: tls,
 		},
-		tls: TLS,
-	}, nil
+		registeredRoutes:    []string{},
+		tls:                 TLS,
+		stopped:             atomic.Value{},
+		aboutHandlerEnabled: false,
+	}
+
+	Server.stopped.Store(false)
+
+	return Server, nil
 }
 
 // SetTimeouts will set the given timeouts of the Server.

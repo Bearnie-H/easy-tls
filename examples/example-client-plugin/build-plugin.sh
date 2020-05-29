@@ -36,6 +36,7 @@ ForceMode=
 ModuleType=
 BuildMode=
 BuildHash=
+RaceDetector=""
 
 #   Function to display a help/usage menu to the user in a standardized format.
 function helpMenu() {
@@ -47,12 +48,13 @@ function helpMenu() {
     echo -e "
     $BLUE$scriptName   -   A bash tool to build an EasyTLS plugin in a consistent and generic manner.$WHITE
 
-    $GREEN$scriptName $YELLOW[-fhmx]$WHITE
+    $GREEN$scriptName $YELLOW[-fhmrx]$WHITE
 
     "$YELLOW"Build Options:$WHITE
         $BLUE-f$WHITE  -   Force Mode. Build the plugin, ignoring the presence or absence
                                 of the standard \"RELEASE\" flag in the plugin directory.
         $BLUE-m$WHITE  -   Build Mode. Should the plugin be build in \"prod\" or \"debug\" mode.
+        $BLUE-r$WHITE  -   Race Detector. Include the Golang race detector in the compilation.
         $BLUE-x$WHITE  -   Build Hash. A hash code to allow multiple concurrent builds without stamping outputs.
 
     "$YELLOW"Miscellaneous Options:$WHITE
@@ -182,12 +184,18 @@ function main() {
         pluginName="client-$pluginName"
     fi
 
+    if [ ! -z "$RaceDetector" ]; then
+        echo -e $BLUE"Building with Race Detection: [ "$WHITE"enabled"$BLUE" ]"$WHITE
+    else
+        echo -e $BLUE"Building with Race Detection: [ "$WHITE"disabled"$BLUE" ]"$WHITE
+    fi
+
     go clean -modcache
     go clean -cache
     go clean
 
     echo -e $BLUE"Compiling plugin..."$CLEAR
-    go build -buildmode=plugin -o "$artefactDirectory/$pluginName.so" -gcflags="all=-N -l"
+    go build -buildmode=plugin -o "$artefactDirectory/$pluginName.so" -gcflags="all=-N -l" "$RaceDetector"
     if [ $? -eq 0 ]; then
         echo -e $GREEN"Built Module $(basename $buildDir). Artefact located at \"$artefactDirectory/$pluginName.so\" "$CLEAR
         cd - > /dev/null
@@ -203,7 +211,7 @@ function main() {
 
 #   Parse the command line arguments.  Add the flag name to the list (in alphabetical order), and add a ":" after if it requires an argument present.
 #   The value of the argument will be located in the "$OPTARG" variable
-while getopts "fhm:x:" opt; do
+while getopts "fhm:rx:" opt; do
     case "$opt" in
     f)  ForceMode=1
         ;;
@@ -211,6 +219,8 @@ while getopts "fhm:x:" opt; do
         stop 0
         ;;
     m)  BuildMode="$OPTARG"
+        ;;
+    r)  RaceDetector="-race"
         ;;
     x)  BuildHash="$OPTARG"
         ;;
