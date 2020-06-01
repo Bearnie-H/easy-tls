@@ -35,7 +35,7 @@ type TLSBundle struct {
 
 	// Enabled allows this to be toggled. If disabled, this will create an
 	// empty tls.Config when used.
-	Enabled bool `json:"-"`
+	Enabled bool
 }
 
 // NewTLSConfig will convert the TLSBundle, containing the filenames of the

@@ -106,7 +106,7 @@ func (C *SimpleClient) IsTLS() bool {
 }
 
 // MakeURL will create a HTTP URL, ready to be used to build a Request.
-func (C *SimpleClient) MakeURL(Hostname string, Port int, PathSegments ...string) *url.URL {
+func (C *SimpleClient) MakeURL(Hostname string, Port uint16, PathSegments ...string) *url.URL {
 
 	scheme := "http"
 	if C.IsTLS() {
