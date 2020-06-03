@@ -8,16 +8,18 @@ import (
 
 // MiddlewareHandler represents the Type which must be satified by any
 // function to be used as a middleware function in the Server chain.
-type MiddlewareHandler func(http.Handler) http.Handler
+type MiddlewareHandler = func(http.Handler) http.Handler
 
 // MiddlewareDefaultLogger provides a simple logging middleware, to view
 // incoming connections as they arrive and print a basic set of
 // properties of the request.
-func MiddlewareDefaultLogger(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		log.Printf("[MiddlewareDefaultLogger] Recieved [ %s ] [ %s ] Request for URL \"%s\" from Address: [ %s ].\n", r.Proto, r.Method, r.URL.String(), r.RemoteAddr)
-		next.ServeHTTP(w, r)
-	})
+func MiddlewareDefaultLogger() func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			log.Printf("[MiddlewareDefaultLogger] Recieved [ %s ] [ %s ] Request for URL \"%s\" from Address: [ %s ].\n", r.Proto, r.Method, r.URL.String(), r.RemoteAddr)
+			next.ServeHTTP(w, r)
+		})
+	}
 }
 
 // MiddlewareLimitMaxConnections will provide a mechanism to strictly limit the

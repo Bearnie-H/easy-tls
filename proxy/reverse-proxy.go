@@ -57,7 +57,7 @@ func ConfigureReverseProxy(S *server.SimpleServer, Client *client.SimpleClient, 
 
 	r.PathPrefix(PathPrefix).HandlerFunc(DoReverseProxy(Client, RouteMatcher, Verbose))
 
-	server.AddMiddlewares(r, server.MiddlewareDefaultLogger)
+	server.AddMiddlewares(r, server.MiddlewareDefaultLogger())
 	server.AddMiddlewares(r, Middlewares...)
 
 	S.RegisterRouter(r)

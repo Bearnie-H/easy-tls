@@ -32,7 +32,7 @@ type SimpleServer struct {
 // The server returned from this function only has the default http.ServeMux
 // as the Router, so should have a dedicated router registered.
 //
-// The default address of ":8080" will be used if none is provided
+// The default address of ":8080" will be used if none is provided.
 // Only the first string will be treated as the address.
 func NewServerHTTP(Addr ...string) (*SimpleServer, error) {
 	return NewServerHTTPS(nil, Addr...)
