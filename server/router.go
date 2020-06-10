@@ -63,7 +63,7 @@ func AddHandlers(verbose bool, s *SimpleServer, r *mux.Router, Handlers ...Simpl
 	}
 	// Register the routes, this IS order dependent.
 	for _, Node := range Handlers {
-		r.Handle(Node.Path, Node.Handler).Methods(Node.Methods...)
+		r.NewRoute().PathPrefix(Node.Path).Handler(Node.Handler).Methods(Node.Methods...)
 		if verbose {
 			log.Printf("Registered route %s with accepted methods %v", Node.Path, Node.Methods)
 		}

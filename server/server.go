@@ -116,7 +116,6 @@ func (S *SimpleServer) SetTimeouts(ReadTimeout, ReadHeaderTimeout, WriteTimeout,
 func (S *SimpleServer) ListenAndServe() error {
 
 	S.stopped.Store(false)
-	defer S.stopped.Store(true)
 
 	if S.tls.Enabled {
 		if err := S.server.ListenAndServeTLS(S.tls.KeyPair.Certificate, S.tls.KeyPair.Key); err != nil && err != http.ErrServerClosed {
