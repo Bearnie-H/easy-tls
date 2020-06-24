@@ -108,7 +108,7 @@ func Get(URLBase, ServeBase string) server.SimpleHandler {
 					} else {
 						name = stat.Name()
 					}
-					name = fmt.Sprintf("<a href=\"%s%s\">%s</a><br/>", r.URL.Path, name, name)
+					name = fmt.Sprintf("<a href=\"%s%s\">%s</a><br/>\n", r.URL.Path, name, name)
 					w.Write([]byte(name))
 				}
 			} else {
