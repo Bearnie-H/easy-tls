@@ -5,66 +5,143 @@
 
 #   Purpose:
 #
-#       This script is intended to be the generic build-script for an EasyTLS plugin.
+#       This is the standard Build Script for an EasyTLS-compliant Golang module.
 
 #   Terminal Colour Codes
+FATAL="\e[7m\e[31m"
 RED="\e[91m"
 GREEN="\e[92m"
 YELLOW="\e[93m"
+AMBER="\e[33m"
 BLUE="\e[96m"
 WHITE="\e[97m"
 CLEAR="\e[0m"
 
-#   Assert that the "default" background colour is white.  This should be used as the background colour within the script, so as to provide a consistent visual language with colour.
-echo -ne "$WHITE"
+# Global Logging variables
+Quiet=
+OutputFile="-"  #    "-" indicates STDOUT
+ColourLog=1  #  Flag for adding colours to the log, empty means no colouring
+ColourFlag=
+LogPrefix=
+LOG_INFO=0
+LOG_NOTICE=1
+LOG_ATTENTION=2
+LOG_WARNING=3
+LOG_ERROR=4
+LOG_FATAL=5
+LogLevels=( "INFO:  " "NOTE:  " "ATTN:  " "WARN:  " "ERROR: " "FATAL: ")
+LogColours=("$WHITE"  "$BLUE"   "$YELLOW" "$AMBER"  "$RED"    "$FATAL")
+TimeFormat="+%F %H:%M:%S"
 
-if [ -z "$GOPATH" ]; then
-    echo -e $RED"ERROR: GOPATH environment variable not set!"$WHITE
-    stop 1
-fi
+#   Catch errors, interrupts, and more to allow a safe shutdown
+trap 'cleanup 1' 1 2 3 6 8 9 15
 
 #   Command-line / Global variables
-artefactDirectory="$GOPATH/src/easytls-compiled-plugins"
-
-BuildModeProduction="prod"
-BuildModeDebug="debug"
-
-ModuleTypeClient="client"
-ModuleTypeServer="server"
-
-ForceMode=
-ModuleType=
-BuildMode=
+HelpFlag=
 BuildHash=
 RaceDetector=""
+
+artefactDirectory="$GOPATH/src/easytls-compiled-plugins"
+ForceMode=
 
 #   Function to display a help/usage menu to the user in a standardized format.
 function helpMenu() {
 
     #   Get the name of the executable
-    scriptName=$(basename "$0")
+    local scriptName=$(basename "$0")
 
     #   Print the current help menu/usage information to the user
     echo -e "
-    $BLUE$scriptName   -   A bash tool to build an EasyTLS plugin in a consistent and generic manner.$WHITE
+    $BLUE$scriptName   -   A bash tool to build an EasyTLS-Compliant Golang module, either server or client.$WHITE
 
-    $GREEN$scriptName $YELLOW[-fhmrx]$WHITE
+    $GREEN$scriptName$YELLOW -x Hash [-f] [-h] [-o Output-File] [-q] [-r] [-z] $WHITE
 
     "$YELLOW"Build Options:$WHITE
-        $BLUE-f$WHITE  -   Force Mode. Build the plugin, ignoring the presence or absence
-                                of the standard \"RELEASE\" flag in the plugin directory.
-        $BLUE-m$WHITE  -   Build Mode. Should the plugin be build in \"prod\" or \"debug\" mode.
-        $BLUE-r$WHITE  -   Race Detector. Include the Golang race detector in the compilation.
-        $BLUE-x$WHITE  -   Build Hash. A hash code to allow multiple concurrent builds without stamping outputs.
+        $BLUE-f$WHITE  -    Force Mode. Build the module, even without the presence of a RELEASE file.
+        $BLUE-r$WHITE  -    Race Detection. Include the Golang Race Detector in the binary.
+                This comes at a slight memory and performance cost, but can be valuable in testing.
+
+    "$YELLOW"Output Options:$WHITE
+        $BLUE-o$WHITE  -    Log File. Redirect STDOUT to the given file, creating it if it doesn't exist yet.
+        $BLUE-q$WHITE  -    Quiet mode. Only print out fatal errors and suppress all other output.
+        $BLUE-z$WHITE  -    Raw Mode. Disables colouring, useful when the ANSI escape codes would be problematic.
 
     "$YELLOW"Miscellaneous Options:$WHITE
-        $BLUE-h$WHITE  -   Display this help menu and exit.
-    "
+        $BLUE-h$WHITE  -    Help Menu. Display this help menu and exit.
+        $BLUE-x$WHITE  -    Build Hash. Used to allow concurrent builds, and to prevent clobbering of prior builds.
+
+    "$GREEN"Note:$WHITE
+        The flags passed to the \"go build...\" command are very important, as these must be present here
+        and they must be present in the Plugin build scripts to allow the Plugins to be successfully
+        loaded into the framework during execution.  Furthermore, it is best practice to compile the
+        framework application AND the desired plugins in one pass, as the ABI of the compiled Shared Object
+        Libraries may vary if built with different versions of the imported modules.
+    "$CLEAR
+}
+
+function cleanup() {
+
+    #   Implement whatever cleanup logic is needed for the specific script, followed by resetting the terminal and exiting.
+    #   ...
+
+    if [ $1 -eq 0 ]; then
+        log $LOG_INFO "Successfully executed and beginning cleanup..."
+    else
+        log $LOG_ATTENTION "Unsuccessfully executed and beginning cleanup..."
+    fi
+
+    stop $1
 }
 
 function stop() {
-    echo -ne "$CLEAR"
     exit $1
+}
+
+function SetLogPrefix() {
+    LogPrefix="$1"
+}
+
+#   $1 -> Log Level
+#   $2 -> Log Message
+function log() {
+
+    local Level=$1
+
+    #   Only log if not in quiet mode, or it's a fatal error
+    if [[ -z "$Quiet" ]] || [[ $Level -eq $LOG_FATAL ]]; then
+
+        local Message="$2"
+        local Timestamp="[$(date "$TimeFormat")]"
+
+        local ToWrite=
+
+        if [ -z "$LogPrefix" ]; then
+            ToWrite="$Timestamp ${LogLevels[$Level]} $Message"
+        else
+            ToWrite="$Timestamp [ $LogPrefix ] ${LogLevels[$Level]}: $Message"
+        fi
+
+        #   If log colouring is on, check if it's writing to an output file
+        if [ ! -z "$ColourLog" ] && [[ "$OutputFile" == "-" ]]; then
+            ToWrite="${LogColours[$Level]}""$ToWrite""$CLEAR"
+        fi
+
+        #   Attention and higher should be logged to STDERR, Info and Notice to STDOUT
+        if [ $Level -ge $LOG_ATTENTION ]; then
+            echo -e "$ToWrite" >&2
+        else
+            if [[ "$OutputFile" == "-" ]]; then
+                echo -e "$ToWrite" >&1
+            else
+                echo -e "$ToWrite" >> "$OutputFile"
+            fi
+        fi
+
+        #   If it's a fatal error, full exit
+        if [ $Level -eq $LOG_FATAL ]; then
+            cleanup 1
+        fi
+    fi
 }
 
 #   Helper function to allow asserting that required arguments are set.
@@ -73,9 +150,7 @@ function argSet() {
     local argName="$2"
 
     if [ -z "$argToCheck" ]; then
-        echo -e $RED"ERROR! Required argument \"$argName\" not set!"$WHITE
-        helpMenu
-        stop 1
+        log $LOG_FATAL "Required argument [ $argName ] not set!"
     fi
 }
 
@@ -84,7 +159,7 @@ function fileExists() {
     local FilenameToCheck="$1"
 
     if [ ! -f "$FilenameToCheck" ]; then
-        echo -e $YELLOW"Warning: File \"$FilenameToCheck\" does not exist."$WHITE
+        log $LOG_ATTENTION "File [ $FilenameToCheck ] does not exist."
         return 1
     fi
 
@@ -96,153 +171,153 @@ function directoryExists() {
     local DirectoryToCheck="$1"
 
     if [ ! -d "$DirectoryToCheck" ]; then
-        echo -e $YELLOW"Warning: Directory \"$DirectoryToCheck\" does not exist."$WHITE
+        log $LOG_ATTENTION "Directory [ $DirectoryToCheck ] does not exist."
         return 1
     fi
 
     return 0
 }
 
-function incrementBuildCount() {
-    if [ ! -f version.go ]; then
-        echo -e $RED"ERROR! Failed to find required \"version.go\" file in $(pwd)!"$CLEAR
-        stop 1
-    fi
-    local lastBuildCount=$(cat version.go | grep 'Build' | sed 's/[ \t,]*//g' | awk -F: '{print $2}');
-    lastBuildCount=$(( $lastBuildCount + 1 ))
-    sed -i "s/Build\:[ \t]*[0-9]*/Build:$lastBuildCount/g" version.go 
-    gofmt -s -w version.go
-}
+#   Helper function to either assert that a given directory does exist (creating it if necessary) or exiting if it cannot.
+function assertDirectoryExists() {
 
-function ShouldRun() {
+    local DirectoryToCheck="$1"
 
-    read -p "Build $ModuleType Module \"$(basename $(pwd)\")? [y/N]: " response
+    if ! directoryExists "$DirectoryToCheck"; then
+        if ! mkdir -p "$DirectoryToCheck"; then
+            log $LOG_FATAL "Failed to create directory [ $DirectoryToCheck ]!"
+        fi
 
-    if [[ "$response" =~ [yY] ]]; then
-        echo "Yes"
+        log $LOG_NOTICE "Successfully created directory [ $DirectoryToCheck ]."
     fi
 }
 
-function setCycleTimes() {
-
-    #   Production mode
-    if [[ "$BuildMode" =~ "$BuildModeProduction" ]]; then
-        sed -i 's/var DefaultPluginCycleTime time.Duration =.*$/var DefaultPluginCycleTime time.Duration = time.Minute \* 5/' standard-definitions.go
-
-    #   Debug mode
-    elif [[ "$BuildMode" =~ "$BuildModeDebug" ]]; then
-        sed -i 's/var DefaultPluginCycleTime time.Duration =.*$/var DefaultPluginCycleTime time.Duration = time.Second \* 15/' standard-definitions.go
-    fi
-
-    gofmt -s -w standard-definitions.go
-}
-
+#   Main function, this is the entry point of the actual logic of the script, AFTER all of the input validation and top-level script pre-script set up has been completed.
 function main() {
 
     artefactDirectory="$artefactDirectory-$BuildHash"
 
-    echo -e $BLUE"\nExecuting $0"$CLEAR
-
     buildDir=$(cd "$(dirname "$0")"; pwd)
-
     cd "$buildDir"
 
-    if [ ! -z $(echo "$buildDir" | grep -i "\/client-plugins") ]; then
-        ModuleType="Client"
-    elif [ ! -z $(echo "$buildDir" | grep -i "\/server-plugins") ]; then
-        ModuleType="Server"
+    moduleName=$(basename "$buildDir")
+    if [ ! -z $(echo "$buildDir" | grep 'server') ]; then
+        moduleName="server-$moduleName"
+    else
+        moduleName="client-$moduleName"
     fi
 
     if [ -z "$ForceMode" ]; then
         if [ ! -e "RELEASE" ]; then
-            echo -e $YELLOW"WARNING: Module $(basename $buildDir) not marked for release. Skipping..."$CLEAR
-            stop 0
+            log $LOG_ATTENTION "Module $(basename $buildDir) not marked for release. Skipping..."
+            exit 0
         else
-            shouldRun=$(ShouldRun)
-            if [ -z "$shouldRun" ]; then
-                echo -e $BLUE"Skipping build..."$CLEAR
-                stop 0
-            fi
-            echo -e $GREEN"Building Module $(basename $buildDir)..."$CLEAR
+            log $LOG_NOTICE "Building Module $(basename $buildDir)..."
         fi
     fi
 
-    echo -e $BLUE"Updating Module Build Number..."$CLEAR
-    incrementBuildCount
-    echo -e $GREEN"Finished Updating Module Build Number."$CLEAR
-
-    if [[ "$ModuleType" =~ "Client" ]]; then
-        echo -e $BLUE"Setting plugin cycle times for build mode: $BuildMode"$CLEAR
-        setCycleTimes
-        echo -e $GREEN"Successfully set plugin cycle times for build mode: $BuildMode"$CLEAR
-    fi
-
-    pluginName=$(basename "$buildDir")
-    if [ ! -z $(echo "$buildDir" | grep 'server') ]; then
-        pluginName="server-$pluginName"
-    else
-        pluginName="client-$pluginName"
-    fi
+    checkGitBranch "$moduleName"
 
     if [ ! -z "$RaceDetector" ]; then
-        echo -e $BLUE"Building with Race Detection: [ "$WHITE"enabled"$BLUE" ]"$WHITE
+        log $LOG_NOTICE "Building [ with ] Race Detection."
     else
-        echo -e $BLUE"Building with Race Detection: [ "$WHITE"disabled"$BLUE" ]"$WHITE
+        log $LOG_NOTICE "Building [ without ] Race Detection."
     fi
 
-    go clean -modcache
-    go clean -cache
-    go clean
+    log $LOG_INFO "Updating Module Build Number..."
+    incrementBuildCount
 
-    echo -e $BLUE"Compiling plugin..."$CLEAR
-    go build -buildmode=plugin -o "$artefactDirectory/$pluginName.so" -gcflags="all=-N -l" "$RaceDetector"
+    log $LOG_INFO "Compiling Golang Module [ $moduleName ]..."
+    go build -buildmode=plugin -o "$artefactDirectory/$moduleName.so" -gcflags="all=-N -l" "$RaceDetector"
     if [ $? -eq 0 ]; then
-        echo -e $GREEN"Built Module $(basename $buildDir). Artefact located at \"$artefactDirectory/$pluginName.so\" "$CLEAR
-        cd - > /dev/null
+        log $LOG_NOTICE "Successfully built module [ $moduleName ]."
+        log $LOG_NOTICE "Build artefact located at [ $artefactDirectory/$moduleName.so ]"
+        cd - 2>&1 > /dev/null
     else
-        echo -e $RED"ERROR! Failed to Build Module $(basename $buildDir)."$CLEAR
-        cd - > /dev/null
-        stop 1
+        log $LOG_FATAL "Failed to build module [ $moduleName ]"
+        cd - 2>&1 > /dev/null
     fi
 
-    echo -e $BLUE"Finished Executing $0"$CLEAR
+    return
 }
 
+function incrementBuildCount() {
+
+    local VersionFile="version.go"
+
+    if ! fileExists "$VersionFile"; then
+        log $LOG_FATAL "Cannot find required file [ $VersionFile ]!"
+    fi
+
+    local lastBuildCount=$(cat "$VersionFile" | grep 'Build' | sed 's/[ \t,]*//g' | awk -F: '{print $2}');
+    lastBuildCount=$(( $lastBuildCount + 1 ))
+    sed -i "s/Build\:[ \t]*[0-9]*/Build:$lastBuildCount/g" "$VersionFile"
+    gofmt -s -w "$VersionFile"
+}
+
+function checkGitBranch() {
+
+    #   We want to explicitly let the user know which branch they are on when building the application.
+    local CurrentBranch=$(git branch | grep '\*' | sed 's/^\* \(.*\)$/\1/g')
+
+    local moduleName="$1"
+    
+    log $LOG_INFO "Building Golang module [ $moduleName ] from branch [ $CurrentBranch ]."
+}
 
 #   Parse the command line arguments.  Add the flag name to the list (in alphabetical order), and add a ":" after if it requires an argument present.
 #   The value of the argument will be located in the "$OPTARG" variable
-while getopts "fhm:rx:" opt; do
+while getopts "fho:qrx:z" opt; do
     case "$opt" in
-    f)  ForceMode=1
+    f)  ForceMode="-f"
         ;;
-    h)  helpMenu
-        stop 0
+    h)  HelpFlag=1
         ;;
-    m)  BuildMode="$OPTARG"
+    o)  OutputFile="$OPTARG"
+        ;;
+    q)  Quiet="-q"
         ;;
     r)  RaceDetector="-race"
         ;;
     x)  BuildHash="$OPTARG"
         ;;
-    \?) helpMenu
-        stop 1
+    z)  ColourLog=
+        ColourFlag="-z"
+        ;;
+    \?) HelpFlag=2
         ;;
     esac
 done
 
-#   Assert all of the required arguments are set here
-argSet "$BuildMode" "-m"
-argSet "$BuildHash" "-x"
+case HelpFlag in
+    1)  helpMenu
+        cleanup 0
+        ;;
+    2)  helpMenu
+        cleanup 1
+        ;;
+esac
 
-#   Other argument validation here...
-BuildMode=$(echo "$BuildMode" | tr '[:upper:]' '[:lower:]')
+SetLogPrefix "$(basename "$(dirname "$(readlink -e "$0")")")"
 
-if [[ ! "$BuildMode" =~ "$BuildModeDebug" ]] && [[ ! "$BuildMode" =~ "$BuildModeProduction" ]]; then
-    echo -e $RED"ERROR: Invalid build mode \"$BuildMode\" - Must be either \"$BuildModeProduction\" or \"$BuildModeDebug\"."$WHITE
-    stop 1
+if [[ ! "$OutputFile" == "-" ]]; then
+
+    #   Only assert this here, in case multiple -o arguments are given.
+    #   Only create the file of the final argument.
+    assertDirectoryExists "$(dirname "$OutputFile")"
+
+    if ! fileExists "$OutputFile"; then
+        #   Create the empty file.
+        >"$OutputFile"
+    fi
+
+    #   Resolve the output file to an absolute path
+    OutputFile=$(readlink -e "$OutputFile")
 fi
+
+argSet "$BuildHash" "-x"
 
 #   Call main, running the full logic of the script.
 main
 
-stop 0
+cleanup 0
