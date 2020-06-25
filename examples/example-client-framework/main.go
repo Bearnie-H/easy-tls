@@ -11,7 +11,7 @@ import (
 func main() {
 
 	// Create a Plugin Agent, which will create a default HTTP Client, to use modules found in ./active-modules, and to log all output to STDOUT.
-	Agent, err := plugins.NewClientAgent(nil, "./active-modules", os.Stdout)
+	Agent, err := plugins.NewClientAgent(nil, "./active-modules")
 	if err != nil {
 		panic(err)
 	}

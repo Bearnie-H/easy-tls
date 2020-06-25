@@ -3,7 +3,7 @@ package plugins
 import (
 	"errors"
 	"fmt"
-	"io"
+	"log"
 	"path"
 	"path/filepath"
 	"sort"
@@ -11,27 +11,40 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/Bearnie-H/easy-tls/server"
 )
 
 // ServerPluginAgent represents the a Plugin Manager agent to be used with a SimpleServer.
 type ServerPluginAgent struct {
 	frameworkVersion   SemanticVersion
 	RegisteredPlugins  []ServerPlugin
-	logger             io.WriteCloser
+	logger             *log.Logger
 	PluginSearchFolder string
+	server             *server.SimpleServer
 
 	stopped atomic.Value
 }
 
 // NewServerAgent will create a new Server Plugin agent, ready to register plugins.
-func NewServerAgent(PluginFolder string, Logger io.WriteCloser) (*ServerPluginAgent, error) {
+// A nil logger defaults to the standard logger provided by the log package.
+func NewServerAgent(PluginFolder string, Server *server.SimpleServer) (*ServerPluginAgent, error) {
+
+	if Server == nil {
+		var err error
+		Server, err = server.NewServerHTTP()
+		if err != nil {
+			return nil, err
+		}
+	}
 
 	A := &ServerPluginAgent{
 		frameworkVersion:   ServerFrameworkVersion,
 		PluginSearchFolder: PluginFolder,
 		RegisteredPlugins:  []ServerPlugin{},
-		logger:             Logger,
+		logger:             Server.Logger(),
 		stopped:            atomic.Value{},
+		server:             Server,
 	}
 
 	A.stopped.Store(true)
@@ -92,6 +105,21 @@ func (SA *ServerPluginAgent) RegisterPlugins() error {
 	return loadErrors
 }
 
+// LoadRoutes will load routes from all of the registered plugins into the Server.
+func (SA *ServerPluginAgent) LoadRoutes() error {
+
+	// Walk the set of registered plugins, adding the routes from each to the router.
+	for _, p := range SA.RegisteredPlugins {
+		routes, err := p.Init(p.InputArguments...)
+		if err != nil {
+			return err
+		}
+		SA.server.AddHandlers(routes...)
+	}
+
+	return nil
+}
+
 // Run will start the ServerPlugin Agent, starting each of the registered plugins.
 // blocking represents if the rest of the application should block on this SAll or not.
 func (SA *ServerPluginAgent) Run(blocking bool) error {
@@ -123,7 +151,7 @@ func (SA *ServerPluginAgent) run() error {
 			statusChan, err := p.Status()
 
 			if err != nil {
-				SA.logger.Write([]byte(err.Error() + "\n"))
+				SA.logger.Println(err.Error())
 				wg.Done()
 				return
 			}
@@ -132,7 +160,7 @@ func (SA *ServerPluginAgent) run() error {
 				defer wg.Done()
 				// Log status messages until the channel is closed, or a fatal error is retrieved.
 				for M := range statusChan {
-					SA.logger.Write([]byte(M.String()))
+					SA.logger.Println(M.String())
 					if M.IsFatal {
 						return
 					}
@@ -142,8 +170,6 @@ func (SA *ServerPluginAgent) run() error {
 	}
 
 	wg.Wait()
-
-	SA.stopped.Store(true)
 
 	return nil
 }
@@ -157,6 +183,8 @@ func (SA *ServerPluginAgent) Stop() error {
 		}
 	}
 
+	defer SA.stopped.Store(true)
+
 	errOccured := false
 
 	wg := &sync.WaitGroup{}
@@ -169,7 +197,7 @@ func (SA *ServerPluginAgent) Stop() error {
 			defer wg.Done()
 
 			if err := p.Stop(); err != nil {
-				SA.logger.Write([]byte(err.Error() + "\n"))
+				SA.logger.Println(err.Error())
 				errOccured = true
 				return
 			}
@@ -183,8 +211,6 @@ func (SA *ServerPluginAgent) Stop() error {
 	if errOccured {
 		return errors.New("easytls agent error - error occured during server plugin shutdown")
 	}
-
-	SA.stopped.Store(true)
 
 	return nil
 }

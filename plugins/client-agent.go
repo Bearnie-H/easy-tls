@@ -3,7 +3,7 @@ package plugins
 import (
 	"errors"
 	"fmt"
-	"io"
+	"log"
 	"path"
 	"path/filepath"
 	"sort"
@@ -20,7 +20,7 @@ type ClientPluginAgent struct {
 	client             *client.SimpleClient
 	frameworkVersion   SemanticVersion
 	RegisteredPlugins  []ClientPlugin
-	logger             io.WriteCloser
+	logger             *log.Logger
 	PluginSearchFolder string
 
 	mux     sync.Mutex
@@ -28,7 +28,8 @@ type ClientPluginAgent struct {
 }
 
 // NewClientAgent will create a new Client Plugin agent, ready to register plugins.
-func NewClientAgent(Client *client.SimpleClient, PluginFolder string, Logger io.WriteCloser) (*ClientPluginAgent, error) {
+// A nil logger defaults to the standard logger provided by the log package.
+func NewClientAgent(Client *client.SimpleClient, PluginFolder string) (*ClientPluginAgent, error) {
 
 	var err error
 	if Client == nil {
@@ -43,7 +44,7 @@ func NewClientAgent(Client *client.SimpleClient, PluginFolder string, Logger io.
 		frameworkVersion:   ClientFrameworkVersion,
 		PluginSearchFolder: PluginFolder,
 		RegisteredPlugins:  []ClientPlugin{},
-		logger:             Logger,
+		logger:             Client.Logger(),
 		stopped:            atomic.Value{},
 		mux:                sync.Mutex{},
 	}
@@ -145,7 +146,7 @@ func (CA *ClientPluginAgent) run() error {
 
 			// An error retrieving the status channel stops the logging.
 			if err != nil {
-				CA.logger.Write([]byte(err.Error() + "\n"))
+				CA.logger.Println(err.Error())
 				wg.Done()
 				return
 			}
@@ -158,7 +159,7 @@ func (CA *ClientPluginAgent) run() error {
 
 				// Log status messages until the channel is closed, or a fatal error is retrieved.
 				for M := range statusChan {
-					CA.logger.Write([]byte(M.String()))
+					CA.logger.Println(M.String())
 					if M.IsFatal {
 						return
 					}
@@ -171,16 +172,16 @@ func (CA *ClientPluginAgent) run() error {
 				r := recover()
 				if r != nil {
 					if err := p.Stop(); err != nil {
-						CA.logger.Write([]byte(err.Error() + "\n"))
+						CA.logger.Println(err.Error())
 					}
 				}
 			}(p)
 
 			// Start the plugin.
 			if err := p.Init(c, p.InputArguments...); err != nil {
-				CA.logger.Write([]byte(err.Error() + "\n"))
+				CA.logger.Println(err.Error())
 				if err := p.Stop(); err != nil {
-					CA.logger.Write([]byte(err.Error() + "\n"))
+					CA.logger.Println(err.Error())
 				}
 			}
 
@@ -188,9 +189,6 @@ func (CA *ClientPluginAgent) run() error {
 	}
 
 	wg.Wait()
-
-	// If all the registered plugins exit, then this agent is considered stopped.
-	CA.stopped.Store(true)
 
 	return nil
 }
@@ -206,7 +204,7 @@ func (CA *ClientPluginAgent) Stop() error {
 			return nil
 		}
 	}
-	CA.stopped.Store(true)
+	defer CA.stopped.Store(true)
 
 	errOccured := false
 
@@ -220,7 +218,7 @@ func (CA *ClientPluginAgent) Stop() error {
 			defer wg.Done()
 
 			if err := p.Stop(); err != nil {
-				CA.logger.Write([]byte(err.Error() + "\n"))
+				CA.logger.Println(err.Error())
 				errOccured = true
 			}
 

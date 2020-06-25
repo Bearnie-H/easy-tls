@@ -10,7 +10,6 @@ import (
 
 	"github.com/Bearnie-H/easy-tls/server"
 	"github.com/Bearnie-H/easy-tls/server/fileserver"
-	"github.com/gorilla/mux"
 )
 
 const (
@@ -42,19 +41,13 @@ func main() {
 
 	log.Printf("Serving directory [ %s ] at URL [ %s ].", *ServeDir, *URLRoot)
 
-	// Create a new default router, which will have routes added from the plugins.
-	router := server.NewDefaultRouter()
-
 	// Add some middlewares as an example
-	server.AddMiddlewares(router, server.MiddlewareLimitConnectionRate(time.Millisecond*10, time.Minute*15, true))
-	server.AddMiddlewares(router, server.MiddlewareLimitMaxConnections(200, time.Minute*15, true))
-	server.AddMiddlewares(router, server.MiddlewareDefaultLogger())
+	Server.AddMiddlewares(server.MiddlewareLimitConnectionRate(time.Millisecond*10, time.Minute*15, Server.Logger()))
+	Server.AddMiddlewares(server.MiddlewareLimitMaxConnections(200, time.Minute*15, Server.Logger()))
+	Server.AddMiddlewares(server.MiddlewareDefaultLogger(Server.Logger()))
 
 	// Add routes
-	addRoutes(Server, router)
-
-	// Register the router
-	Server.RegisterRouter(router)
+	addRoutes(Server)
 
 	// Set the server-side timeouts
 	Server.SetTimeouts(time.Hour, time.Second*15, time.Hour, time.Second*5)
@@ -68,8 +61,8 @@ func main() {
 	}
 }
 
-func addRoutes(Server *server.SimpleServer, router *mux.Router) {
-	server.AddHandlers(true, Server, router, fileserver.Handlers(*URLRoot, *ServeDir)...)
+func addRoutes(Server *server.SimpleServer) {
+	Server.AddHandlers(fileserver.Handlers(*URLRoot, *ServeDir)...)
 }
 
 func initSafeShutdown(Server *server.SimpleServer) {

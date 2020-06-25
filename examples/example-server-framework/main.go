@@ -21,8 +21,14 @@ const (
 
 func main() {
 
-	// Create a new plugin agent, reading plugins from ./active-modules and logging to stdout
-	Agent, err := plugins.NewServerAgent(ModuleFolder, os.Stdout)
+	// Create a new HTTP Server, which will listen on port 8080 on all interfaces.
+	Server, err := server.NewServerHTTP(ServerAddress)
+	if err != nil {
+		panic(err)
+	}
+
+	// Create a new plugin agent, reading plugins from ./active-modules
+	Agent, err := plugins.NewServerAgent(ModuleFolder, Server)
 	if err != nil {
 		panic(err)
 	}
@@ -34,37 +40,21 @@ func main() {
 	// Start status logging of the plugins.
 	Agent.Run(false)
 
-	// Create a new HTTP Server, which will listen on port 8080 on all interfaces.
-	Server, err := server.NewServerHTTP(ServerAddress)
-	if err != nil {
+	// Walk the set of registered plugins, adding the routes from each to the router.
+	if err := Agent.LoadRoutes(); err != nil {
 		panic(err)
 	}
 
-	// Create a new default router, which will have routes added from the plugins.
-	router := server.NewDefaultRouter()
-
-	// Walk the set of registered plugins, adding the routes from each to the router.
-	for _, p := range Agent.RegisteredPlugins {
-		routes, err := p.Init(p.InputArguments...)
-		if err != nil {
-			log.Println(err)
-			continue
-		}
-		server.AddHandlers(true, Server, router, routes...)
-	}
-
 	// Add some middlewares as an example
-	server.AddMiddlewares(router, server.MiddlewareLimitConnectionRate(time.Millisecond*10, time.Minute*15, true))
-	server.AddMiddlewares(router, server.MiddlewareLimitMaxConnections(200, time.Minute*15, true))
+	Server.AddMiddlewares(server.MiddlewareLimitConnectionRate(time.Millisecond*10, time.Minute*15, Server.Logger()))
+	Server.AddMiddlewares(server.MiddlewareLimitMaxConnections(200, time.Minute*15, Server.Logger()))
+	Server.AddMiddlewares(server.MiddlewareDefaultLogger(Server.Logger()))
 
 	// Add in a route to display a route guide
-	Server.EnableAboutHandler(router)
+	Server.EnableAboutHandler()
 
 	// Set up the server so that any routes which are not found are checked against a routing table file, allowing this server to proxy requests it cannot serve itself, but has been configured to proxy for.
-	proxy.NotFoundHandlerProxyOverride(router, nil, proxy.LiveFileRouter(RoutingRulesFile), true)
-
-	// Register the router, to allow the server to actually serve the routes defined.
-	Server.RegisterRouter(router)
+	proxy.NotFoundHandlerProxyOverride(Server, nil, proxy.LiveFileRouter(RoutingRulesFile), Server.Logger())
 
 	// Set the server-side timeouts
 	Server.SetTimeouts(time.Hour, time.Second*15, time.Hour, time.Second*5)

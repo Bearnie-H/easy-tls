@@ -3,6 +3,8 @@ package main
 import (
 	"flag"
 	"fmt"
+	"log"
+	"os"
 
 	"github.com/Bearnie-H/easy-tls/proxy"
 	"github.com/Bearnie-H/easy-tls/server"
@@ -23,7 +25,7 @@ func main() {
 		panic(err)
 	}
 
-	proxy.ConfigureReverseProxy(s, nil, true, proxy.LiveFileRouter(*RulesFilename), "/")
+	proxy.ConfigureReverseProxy(s, nil, log.New(os.Stdout, "", log.Lshortfile|log.LstdFlags), proxy.LiveFileRouter(*RulesFilename), "/")
 
 	if err := s.ListenAndServe(); err != nil {
 		panic(err)

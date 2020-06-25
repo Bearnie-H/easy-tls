@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"plugin"
-	"time"
 )
 
 // Plugin represents the most generic features and functionality of a Plugin Object
@@ -74,14 +73,14 @@ type PluginStatus struct {
 func (S PluginStatus) String() string {
 
 	if S.IsFatal {
-		return time.Now().Format("2006/01/02 15:04:05") + " " + fmt.Sprintf("FATAL ERROR: %s - %s\n", S.Message, S.Error)
+		return fmt.Sprintf("FATAL ERROR: %s - %s", S.Message, S.Error)
 	}
 
 	if S.Error != nil {
-		return time.Now().Format("2006/01/02 15:04:05") + " " + fmt.Sprintf("Warning: %s - %s\n", S.Message, S.Error)
+		return fmt.Sprintf("Warning: %s - %s", S.Message, S.Error)
 	}
 
-	return time.Now().Format("2006/01/02 15:04:05") + " " + S.Message + "\n"
+	return S.Message
 }
 
 func loadDefaultPluginSymbols(Filename string) (PluginAPI, error) {

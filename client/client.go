@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"net/url"
 	"strings"
@@ -53,6 +54,7 @@ const (
 // running in HTTP or HTTPS mode, with a basic utility function to check.
 type SimpleClient struct {
 	client *http.Client
+	logger *log.Logger
 
 	tls    bool
 	bundle easytls.TLSBundle
@@ -75,6 +77,8 @@ func NewClientHTTPS(TLS *easytls.TLSBundle, TLSPolicy TLSRetryPolicy) (*SimpleCl
 		return nil, err
 	}
 
+	Logger := easytls.NewDefaultLogger()
+
 	var saveBundle easytls.TLSBundle
 	if TLS != nil {
 		saveBundle = *TLS
@@ -88,11 +92,23 @@ func NewClientHTTPS(TLS *easytls.TLSBundle, TLSPolicy TLSRetryPolicy) (*SimpleCl
 				ForceAttemptHTTP2: true,
 			}},
 		tls:    !(TLS == nil),
+		logger: Logger,
 		bundle: saveBundle,
 		policy: TLSPolicy,
 	}
 
 	return s, nil
+}
+
+// SetLogger will update the logger used by the client from the default to the
+// given output.
+func (C *SimpleClient) SetLogger(logger *log.Logger) {
+	C.logger = logger
+}
+
+// Logger will return the internal logger used by the client.
+func (C *SimpleClient) Logger() *log.Logger {
+	return C.logger
 }
 
 // CloneTLSConfig will form a proper clone of the underlying tls.Config.

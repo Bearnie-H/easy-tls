@@ -13,10 +13,10 @@ type MiddlewareHandler = func(http.Handler) http.Handler
 // MiddlewareDefaultLogger provides a simple logging middleware, to view
 // incoming connections as they arrive and print a basic set of
 // properties of the request.
-func MiddlewareDefaultLogger() func(http.Handler) http.Handler {
+func MiddlewareDefaultLogger(logger *log.Logger) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			log.Printf("[MiddlewareDefaultLogger] Recieved [ %s ] [ %s ] Request for URL \"%s\" from Address: [ %s ].\n", r.Proto, r.Method, r.URL.String(), r.RemoteAddr)
+			logger.Printf("[MiddlewareDefaultLogger] Recieved [ %s ] [ %s ] Request for URL \"%s\" from Address: [ %s ].\n", r.Proto, r.Method, r.URL.String(), r.RemoteAddr)
 			next.ServeHTTP(w, r)
 		})
 	}
@@ -27,7 +27,7 @@ func MiddlewareDefaultLogger() func(http.Handler) http.Handler {
 // message when a request begins processing through this function. If the
 // request is not processed within Timeout, a failed statusCode will
 // be generated and sent back.
-func MiddlewareLimitMaxConnections(ConnectionLimit int, Timeout time.Duration, verbose bool) func(http.Handler) http.Handler {
+func MiddlewareLimitMaxConnections(ConnectionLimit int, Timeout time.Duration, logger *log.Logger) func(http.Handler) http.Handler {
 	semaphore := make(chan struct{}, ConnectionLimit)
 
 	return func(h http.Handler) http.Handler {
@@ -44,10 +44,12 @@ func MiddlewareLimitMaxConnections(ConnectionLimit int, Timeout time.Duration, v
 
 			// If there is room for a request, stop the timer and process it.
 			case semaphore <- struct{}{}:
-				timer.Stop()
+				if !timer.Stop() {
+					<-timer.C
+				}
 				defer func() { <-semaphore }()
-				if verbose {
-					log.Printf("[MiddlewareLimitMaxConnections] Processing [ %s ] [ %s ] Request for URL \"%s\" from Address: [ %s ].\n", r.Proto, r.Method, r.URL.String(), r.RemoteAddr)
+				if logger != nil {
+					logger.Printf("[MiddlewareLimitMaxConnections] Processing [ %s ] [ %s ] Request for URL \"%s\" from Address: [ %s ].\n", r.Proto, r.Method, r.URL.String(), r.RemoteAddr)
 				}
 				h.ServeHTTP(w, r)
 
@@ -55,7 +57,9 @@ func MiddlewareLimitMaxConnections(ConnectionLimit int, Timeout time.Duration, v
 			case <-timer.C:
 				timer.Stop()
 				w.WriteHeader(http.StatusRequestTimeout)
-				log.Printf("[MiddlewareLimitMaxConnections] [ %s ] [ %s ] Request for URL \"%s\" from Address: [ %s ] - Timeout\n", r.Proto, r.Method, r.URL.String(), r.RemoteAddr)
+				if logger != nil {
+					logger.Printf("[MiddlewareLimitMaxConnections] [ %s ] [ %s ] Request for URL \"%s\" from Address: [ %s ] - Timeout\n", r.Proto, r.Method, r.URL.String(), r.RemoteAddr)
+				}
 			}
 		})
 	}
@@ -67,7 +71,7 @@ func MiddlewareLimitMaxConnections(ConnectionLimit int, Timeout time.Duration, v
 // CycleTime. Verbose mode includes a log message when a request begins
 // processing through this function. If the request is not processed within
 // Timeout, a failed statusCode will be generated and sent back.
-func MiddlewareLimitConnectionRate(CycleTime time.Duration, Timeout time.Duration, verbose bool) func(http.Handler) http.Handler {
+func MiddlewareLimitConnectionRate(CycleTime time.Duration, Timeout time.Duration, logger *log.Logger) func(http.Handler) http.Handler {
 	ticker := time.NewTicker(CycleTime)
 
 	return func(h http.Handler) http.Handler {
@@ -84,8 +88,10 @@ func MiddlewareLimitConnectionRate(CycleTime time.Duration, Timeout time.Duratio
 
 			// If there is room for a request, stop the timer and process it.
 			case <-ticker.C:
-				timer.Stop()
-				if verbose {
+				if !timer.Stop() {
+					<-timer.C
+				}
+				if logger != nil {
 					log.Printf("[MiddlewareLimitConnectionRate] Processing [ %s ] [ %s ] Request for URL \"%s\" from Address: [ %s ].\n", r.Proto, r.Method, r.URL.String(), r.RemoteAddr)
 				}
 				h.ServeHTTP(w, r)
@@ -93,7 +99,9 @@ func MiddlewareLimitConnectionRate(CycleTime time.Duration, Timeout time.Duratio
 				// If the timer expires, write a timeout response and exit
 			case <-timer.C:
 				w.WriteHeader(http.StatusRequestTimeout)
-				log.Printf("[MiddlewareLimitConnectionRate] [ %s ] [ %s ] Request for URL \"%s\" from Address: [ %s ] - Timeout\n", r.Proto, r.Method, r.URL.String(), r.RemoteAddr)
+				if logger != nil {
+					log.Printf("[MiddlewareLimitConnectionRate] [ %s ] [ %s ] Request for URL \"%s\" from Address: [ %s ] - Timeout\n", r.Proto, r.Method, r.URL.String(), r.RemoteAddr)
+				}
 				timer.Stop()
 			}
 		})
