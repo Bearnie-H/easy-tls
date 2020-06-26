@@ -1,9 +1,22 @@
 package plugins
 
 import (
-	"errors"
-	"fmt"
-	"plugin"
+	"log"
+	"path"
+)
+
+type (
+	// StatusFunc is the defined type of the Status function exported by all compliant plugins.
+	StatusFunc = func() (<-chan PluginStatus, error)
+
+	// VersionFunc is the defined type of the Version function exported by all compliant plugins.
+	VersionFunc = func(SemanticVersion) error
+
+	// NameFunc is the defined type of the Name function exported by all compliant plugins.
+	NameFunc = func() string
+
+	// StopFunc is the defined type of the Stop function exported by all compliant plugins.
+	StopFunc = func() error
 )
 
 // Plugin represents the most generic features and functionality of a Plugin Object
@@ -18,9 +31,26 @@ type Plugin struct {
 	// Plugins are allowed to have input arguments, which can be stored here to be passed in by the pluginAgent
 	InputArguments []interface{}
 
+	// Done will fire only when a plugin is fully stopped and all status messages have been read.
+	Done chan struct{}
+
+	// The logger the plugin should use.
+	Logger *log.Logger
+
 	// All Plugins implement the basic API Contract.
 	// This must be a struct and not an interface because the actual function bodies will be returned from loading the plugin file.
 	PluginAPI
+}
+
+// NewPlugin is the canonical method to create a new Plugin object.
+func NewPlugin(Filepath string, Logger *log.Logger, DefaultArguments ...interface{}) Plugin {
+	return Plugin{
+		Filename:       path.Base(Filepath),
+		Filepath:       path.Dir(Filepath),
+		InputArguments: DefaultArguments,
+		Done:           make(chan struct{}),
+		Logger:         Logger,
+	}
 }
 
 // SetInputArguments will set the input arguments passed to a given plugin to be exactly what is passed to this function.
@@ -30,138 +60,39 @@ func (P *Plugin) SetInputArguments(args ...interface{}) {
 
 // AppendInputArguments will append a set of arguments to the list which will be provided to the plugin when the Init symbol is called.
 func (P *Plugin) AppendInputArguments(args ...interface{}) {
-	if len(P.InputArguments) == 0 {
-		P.SetInputArguments(args...)
-		return
-	}
-
 	P.InputArguments = append(P.InputArguments, args...)
 }
 
-// PluginAPI represents the base API contract which must be satisfied by ANY plugin.
-type PluginAPI struct {
-
-	// Query the current status of the plugin.
-	//
-	// This must return an output-only unbuffered channel, allowing the plugin to directly send status messages as they are generated.
-	// If this channel is not read from, it will not block itself, and will only present the most recent message.
-	Status func() (<-chan PluginStatus, error)
-
-	// Query the Semantic Versioning compatabilities of the plugin.
-	//
-	// This will accept the Semantic Version of the Plugin at hand and compare it against it's set of acceptable framework versions.  A nil error implies compatability.
-	Version func(SemanticVersion) error
-
-	// Query the Name of the Plugin.
-	//
-	// This must return the name of the plugin, in canonical format.
-	Name func() string
-
-	// Stop the plugin.
-	//
-	// This must trigger a full stop of any internal behaviours of the plugin, only returning once ALL internal behaviours have halted.  This should return any and all errors which arise during shutdown and are not explicitly handled by the shutdown.  The Agent makes no guarantee on how long AFTER receiving the return value from this call the application will run for, so this must represent the FINAL valid state of a plugin.
-	Stop func() error
+// Kill will kill a generic plugin, stopping the internal logic and waiting for all of the status messages to be read out.
+func (P *Plugin) Kill() error {
+	err := P.Stop()
+	<-P.Done
+	return err
 }
 
-// PluginStatus represents a single status message from a given EasyTLS-compliant plugin.
-type PluginStatus struct {
-	Message string
-	Error   error
-	IsFatal bool
-}
-
-func (S PluginStatus) String() string {
-
-	if S.IsFatal {
-		return fmt.Sprintf("FATAL ERROR: %s - %s", S.Message, S.Error)
-	}
-
-	if S.Error != nil {
-		return fmt.Sprintf("Warning: %s - %s", S.Message, S.Error)
-	}
-
-	return S.Message
-}
-
-func loadDefaultPluginSymbols(Filename string) (PluginAPI, error) {
-	API := PluginAPI{}
-
-	rawPlug, err := plugin.Open(Filename)
+func (P *Plugin) readStatus() error {
+	StatusChannel, err := P.Status()
 	if err != nil {
-		return API, err
+		return err
 	}
 
-	if API.Status, err = loadStatusSymbol(rawPlug); err != nil {
-		return API, err
-	}
+	go func(P *Plugin, StatusChannel <-chan PluginStatus) {
 
-	if API.Version, err = loadVersionSymbol(rawPlug); err != nil {
-		return API, err
-	}
+		// This go-routine can only ever exit if the plugin closes the send half of the StatusChannel
+		// This only happens at the end of a Stop(), which allows closing of this channel to
+		// indicate the plugin is stopped.
+		defer func() { P.Done <- struct{}{}; close(P.Done) }()
 
-	if API.Name, err = loadNameSymbol(rawPlug); err != nil {
-		return API, err
-	}
+		// Read the status channel until it's closed by the plugin.
+		for Message := range StatusChannel {
 
-	if API.Stop, err = loadStopSymbol(rawPlug); err != nil {
-		return API, err
-	}
+			// If the message is fatal, kill the plugin
+			if Message.IsFatal {
+				go P.Kill()
+			}
+			P.Logger.Println(Message.String())
+		}
+	}(P, StatusChannel)
 
-	return API, nil
-}
-
-func loadStatusSymbol(p *plugin.Plugin) (func() (<-chan PluginStatus, error), error) {
-	sym, err := p.Lookup("Status")
-	if err != nil {
-		return nil, err
-	}
-
-	StatusSymbol, ok := sym.(func() (<-chan PluginStatus, error))
-	if !ok {
-		return nil, errors.New("easytls plugin error: Status symbol has invalid signature")
-	}
-
-	return StatusSymbol, nil
-}
-
-func loadVersionSymbol(p *plugin.Plugin) (func(SemanticVersion) error, error) {
-	sym, err := p.Lookup("Version")
-	if err != nil {
-		return nil, err
-	}
-
-	VersionSymbol, ok := sym.(func(SemanticVersion) error)
-	if !ok {
-		return nil, errors.New("easytls plugin error: Version symbol has invalid signature")
-	}
-
-	return VersionSymbol, nil
-}
-
-func loadNameSymbol(p *plugin.Plugin) (func() string, error) {
-	sym, err := p.Lookup("Name")
-	if err != nil {
-		return nil, err
-	}
-
-	NameSymbol, ok := sym.(func() string)
-	if !ok {
-		return nil, errors.New("easytls plugin error: Name symbol has invalid signature")
-	}
-
-	return NameSymbol, nil
-}
-
-func loadStopSymbol(p *plugin.Plugin) (func() error, error) {
-	sym, err := p.Lookup("Stop")
-	if err != nil {
-		return nil, err
-	}
-
-	StopSymbol, ok := sym.(func() error)
-	if !ok {
-		return nil, errors.New("easytls plugin error: Stop symbol has invalid signature")
-	}
-
-	return StopSymbol, nil
+	return nil
 }

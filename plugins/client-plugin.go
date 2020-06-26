@@ -1,10 +1,14 @@
 package plugins
 
 import (
-	"path"
 	"plugin"
 
 	"github.com/Bearnie-H/easy-tls/client"
+)
+
+type (
+	// ClientInitFunc is the defined type of the Init function exported by all compliant client plugins.
+	ClientInitFunc = func(*client.SimpleClient, ...interface{}) error
 )
 
 // ClientPlugin represents a EasyTLS-compatible Plugin to be used with an EasyTLS SimpleClient.
@@ -15,6 +19,9 @@ type ClientPlugin struct {
 
 	// A ClientPlugin must implement the full API Contract.
 	ClientPluginAPI
+
+	// The HTTP Client to pass in to the plugin
+	Client *client.SimpleClient
 }
 
 // ClientPluginAPI represents the API contract a Client-Plugin must satisfy to be used by this framework.
@@ -29,15 +36,12 @@ type ClientPluginAPI struct {
 }
 
 // InitializeClientPlugin will initialize and return a Client Plugin, ready to be registered by a Client Plugin Agent.
-func InitializeClientPlugin(Filename string, FrameworkVersion SemanticVersion) (*ClientPlugin, error) {
+func InitializeClientPlugin(Filename string, FrameworkVersion SemanticVersion, Client *client.SimpleClient) (*ClientPlugin, error) {
 
 	// Create the starting plugin object
 	P := &ClientPlugin{
-		Plugin: Plugin{
-			Filename:       path.Base(Filename),
-			Filepath:       path.Dir(Filename),
-			InputArguments: []interface{}{},
-		},
+		Plugin: NewPlugin(Filename, Client.Logger()),
+		Client: Client,
 	}
 
 	// Load the default symbols, erroring out on any failure.
@@ -62,6 +66,29 @@ func InitializeClientPlugin(Filename string, FrameworkVersion SemanticVersion) (
 	return P, nil
 }
 
+// Start will start a given Client Plugin, setting up status reading and the necessary synchronization for stopping safely.
+func (P *ClientPlugin) Start() {
+
+	Name := P.Name()
+
+	// Set up a catch if Init() panics
+	defer func(P *ClientPlugin) {
+		if r := recover(); r != nil {
+			P.Logger.Printf("easytls plugin error: Plugin [ %s ] panic during Init()!", Name)
+			if err := P.Kill(); err != nil {
+				P.Logger.Printf("easytls plugin error: Plugin [ %s ] errored while stopping after Init() panic - %s", Name, err)
+			}
+		}
+	}(P)
+
+	if err := P.Init(P.Client, P.InputArguments...); err != nil {
+		P.Logger.Printf("easytls plugin error: Plugin [ %s ] failed to Init() - %s", Name, err)
+		if err := P.Kill(); err != nil {
+			P.Logger.Printf("easytls plugin error: Plugin [ %s ] errored while stopping after Init() failure - %s", Name, err)
+		}
+	}
+}
+
 func loadClientPluginSymbols(Filename string) (ClientPluginAPI, error) {
 	API := ClientPluginAPI{}
 
@@ -75,7 +102,7 @@ func loadClientPluginSymbols(Filename string) (ClientPluginAPI, error) {
 		return API, err
 	}
 
-	initSym, ok := sym.(func(*client.SimpleClient, ...interface{}) error)
+	initSym, ok := sym.(ClientInitFunc)
 	if !ok {
 		return API, err
 	}

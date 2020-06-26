@@ -8,27 +8,21 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
-	"sync"
-	"sync/atomic"
-	"time"
 
 	"github.com/Bearnie-H/easy-tls/client"
 )
 
 // ClientPluginAgent represents the a Plugin Manager agent to be used with a SimpleClient.
 type ClientPluginAgent struct {
+	RegisteredPlugins map[string]*ClientPlugin
+
 	client             *client.SimpleClient
 	frameworkVersion   SemanticVersion
-	RegisteredPlugins  []ClientPlugin
 	logger             *log.Logger
 	PluginSearchFolder string
-
-	mux     sync.Mutex
-	stopped atomic.Value
 }
 
 // NewClientAgent will create a new Client Plugin agent, ready to register plugins.
-// A nil logger defaults to the standard logger provided by the log package.
 func NewClientAgent(Client *client.SimpleClient, PluginFolder string) (*ClientPluginAgent, error) {
 
 	var err error
@@ -43,12 +37,9 @@ func NewClientAgent(Client *client.SimpleClient, PluginFolder string) (*ClientPl
 		client:             Client,
 		frameworkVersion:   ClientFrameworkVersion,
 		PluginSearchFolder: PluginFolder,
-		RegisteredPlugins:  []ClientPlugin{},
+		RegisteredPlugins:  make(map[string]*ClientPlugin),
 		logger:             Client.Logger(),
-		stopped:            atomic.Value{},
-		mux:                sync.Mutex{},
 	}
-	A.stopped.Store(false)
 
 	return A, nil
 }
@@ -56,37 +47,28 @@ func NewClientAgent(Client *client.SimpleClient, PluginFolder string) (*ClientPl
 // GetPluginByName will return a pointer to the requested plugin.  This is typically used to provide input arguments for when the plugin is Initiated.
 func (CA *ClientPluginAgent) GetPluginByName(Name string) (*ClientPlugin, error) {
 
-	CA.mux.Lock()
-	defer CA.mux.Unlock()
-
 	Name = strings.ToLower(Name)
 	for index, p := range CA.RegisteredPlugins {
 		name := strings.ToLower(p.Name())
 		if strings.HasPrefix(name, Name) {
-			return &(CA.RegisteredPlugins[index]), nil
+			return CA.RegisteredPlugins[index], nil
 		}
 	}
-	return nil, fmt.Errorf("easytls plugin error - Failed to find plugin %s", Name)
+	return nil, fmt.Errorf("easytls plugin error: Failed to find plugin %s", Name)
 }
 
 // StopPluginByName will attempt to stop a given plugin by name, if it exists
 func (CA *ClientPluginAgent) StopPluginByName(Name string) error {
 
-	CA.mux.Lock()
-	defer CA.mux.Unlock()
-
 	p, err := CA.GetPluginByName(Name)
 	if err != nil {
 		return err
 	}
-	return p.Stop()
+	return p.Kill()
 }
 
 // RegisterPlugins will configure and register all of the plugins in the previously specified PluginFolder.  This will not start any of the plugins, but will only load the necessary symbols from them.
 func (CA *ClientPluginAgent) RegisterPlugins() error {
-
-	CA.mux.Lock()
-	defer CA.mux.Unlock()
 
 	// Search for all plugins in the designated search folder...
 	files, err := filepath.Glob(path.Join(CA.PluginSearchFolder, "*.so"))
@@ -100,13 +82,13 @@ func (CA *ClientPluginAgent) RegisterPlugins() error {
 	var loadErrors error
 
 	// Attempt to load all of the plugins.
-	for _, f := range files {
-		newPlugin, err := InitializeClientPlugin(f, CA.frameworkVersion)
+	for index := range files {
+		newPlugin, err := InitializeClientPlugin(files[index], CA.frameworkVersion, CA.client)
 		if err == nil {
-			CA.RegisteredPlugins = append(CA.RegisteredPlugins, *newPlugin)
+			CA.RegisteredPlugins[newPlugin.Name()] = newPlugin
 		} else {
 			if loadErrors == nil {
-				loadErrors = fmt.Errorf("easytls plugin agent error - %s", err)
+				loadErrors = fmt.Errorf("easytls plugin agent error: %s", err)
 			} else {
 				loadErrors = fmt.Errorf("%s\n%s", loadErrors, err)
 			}
@@ -131,64 +113,20 @@ func (CA *ClientPluginAgent) Run(blocking bool) error {
 func (CA *ClientPluginAgent) run() error {
 
 	if len(CA.RegisteredPlugins) == 0 {
-		return errors.New("easytls plugin error - Client Plugin Agent has 0 registered plugins")
+		return errors.New("easytls plugin error: Client Plugin Agent has 0 registered plugins")
 	}
 
-	wg := &sync.WaitGroup{}
-	for _, registeredPlugin := range CA.RegisteredPlugins {
-		wg.Add(1)
+	for pluginName, registeredPlugin := range CA.RegisteredPlugins {
+		if err := registeredPlugin.readStatus(); err != nil {
+			CA.logger.Printf("easytls plugin error: Failed to start status logging for plugin [ %s ] - %s", pluginName, err)
+			continue
+		}
 
 		// Start the plugin...
-		go func(c *client.SimpleClient, p ClientPlugin, wg *sync.WaitGroup) {
-
-			// Extract the status channel
-			statusChan, err := p.Status()
-
-			// An error retrieving the status channel stops the logging.
-			if err != nil {
-				CA.logger.Println(err.Error())
-				wg.Done()
-				return
-			}
-
-			// Start logging plugin status messages.
-			go func(wg *sync.WaitGroup) {
-
-				// If the plugin exits, decrement the waitgroup
-				defer wg.Done()
-
-				// Log status messages until the channel is closed, or a fatal error is retrieved.
-				for M := range statusChan {
-					CA.logger.Println(M.String())
-					if M.IsFatal {
-						return
-					}
-				}
-
-			}(wg)
-
-			// If the plugin panics on Init, recover and stop the plugin.
-			defer func(p ClientPlugin) {
-				r := recover()
-				if r != nil {
-					if err := p.Stop(); err != nil {
-						CA.logger.Println(err.Error())
-					}
-				}
-			}(p)
-
-			// Start the plugin.
-			if err := p.Init(c, p.InputArguments...); err != nil {
-				CA.logger.Println(err.Error())
-				if err := p.Stop(); err != nil {
-					CA.logger.Println(err.Error())
-				}
-			}
-
-		}(CA.client, registeredPlugin, wg)
+		registeredPlugin.Start()
 	}
 
-	wg.Wait()
+	CA.Wait()
 
 	return nil
 }
@@ -196,40 +134,16 @@ func (CA *ClientPluginAgent) run() error {
 // Stop will cause ALL of the currently Running Plugins to safely stop.
 func (CA *ClientPluginAgent) Stop() error {
 
-	CA.mux.Lock()
-	defer CA.mux.Unlock()
+	FailedPlugins := []string{}
 
-	if dead, ok := CA.stopped.Load().(bool); ok {
-		if dead {
-			return nil
+	for _, P := range CA.RegisteredPlugins {
+		if err := P.Kill(); err != nil {
+			FailedPlugins = append(FailedPlugins, P.Name())
 		}
 	}
-	defer CA.stopped.Store(true)
 
-	errOccured := false
-
-	wg := &sync.WaitGroup{}
-	for _, p := range CA.RegisteredPlugins {
-		wg.Add(1)
-
-		go func(p ClientPlugin, wg *sync.WaitGroup) {
-
-			// If the plugin exits, decrement the waitgroup
-			defer wg.Done()
-
-			if err := p.Stop(); err != nil {
-				CA.logger.Println(err.Error())
-				errOccured = true
-			}
-
-		}(p, wg)
-
-	}
-
-	wg.Wait()
-
-	if errOccured {
-		return errors.New("easytls agent error - error occured during client plugin shutdown")
+	if len(FailedPlugins) > 0 {
+		return fmt.Errorf("easytls plugin agent error: Error(s) occured while shutting down plugins %v", FailedPlugins)
 	}
 
 	return nil
@@ -237,7 +151,7 @@ func (CA *ClientPluginAgent) Stop() error {
 
 // Wait for the plugin agent to stop safely.
 func (CA *ClientPluginAgent) Wait() {
-	for !CA.stopped.Load().(bool) {
-		time.Sleep(time.Millisecond * 250)
+	for _, P := range CA.RegisteredPlugins {
+		<-P.Done
 	}
 }

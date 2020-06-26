@@ -8,9 +8,6 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
-	"sync"
-	"sync/atomic"
-	"time"
 
 	"github.com/Bearnie-H/easy-tls/server"
 )
@@ -18,12 +15,10 @@ import (
 // ServerPluginAgent represents the a Plugin Manager agent to be used with a SimpleServer.
 type ServerPluginAgent struct {
 	frameworkVersion   SemanticVersion
-	RegisteredPlugins  []ServerPlugin
+	RegisteredPlugins  map[string]*ServerPlugin
 	logger             *log.Logger
 	PluginSearchFolder string
 	server             *server.SimpleServer
-
-	stopped atomic.Value
 }
 
 // NewServerAgent will create a new Server Plugin agent, ready to register plugins.
@@ -41,13 +36,10 @@ func NewServerAgent(PluginFolder string, Server *server.SimpleServer) (*ServerPl
 	A := &ServerPluginAgent{
 		frameworkVersion:   ServerFrameworkVersion,
 		PluginSearchFolder: PluginFolder,
-		RegisteredPlugins:  []ServerPlugin{},
+		RegisteredPlugins:  make(map[string]*ServerPlugin),
 		logger:             Server.Logger(),
-		stopped:            atomic.Value{},
 		server:             Server,
 	}
-
-	A.stopped.Store(true)
 
 	return A, nil
 }
@@ -58,10 +50,10 @@ func (SA *ServerPluginAgent) GetPluginByName(Name string) (*ServerPlugin, error)
 	for index, p := range SA.RegisteredPlugins {
 		name := strings.ToLower(p.Name())
 		if strings.HasPrefix(name, Name) {
-			return &(SA.RegisteredPlugins[index]), nil
+			return SA.RegisteredPlugins[index], nil
 		}
 	}
-	return nil, fmt.Errorf("easytls plugin error - Failed to find plugin %s", Name)
+	return nil, fmt.Errorf("easytls plugin error: Failed to find plugin %s", Name)
 }
 
 // StopPluginByName will attempt to stop a given plugin by name, if it exists
@@ -71,7 +63,7 @@ func (SA *ServerPluginAgent) StopPluginByName(Name string) error {
 	if err != nil {
 		return err
 	}
-	return p.Stop()
+	return p.Kill()
 }
 
 // RegisterPlugins will configure and register all of the plugins in the previously specified PluginFolder.  This will not start any of the plugins, but will only load the necessary symbols from them.
@@ -90,12 +82,12 @@ func (SA *ServerPluginAgent) RegisterPlugins() error {
 
 	// Attempt to load all of the plugins.
 	for _, f := range files {
-		newPlugin, err := InitializeServerPlugin(f, SA.frameworkVersion)
+		newPlugin, err := InitializeServerPlugin(f, SA.frameworkVersion, SA.logger)
 		if err == nil {
-			SA.RegisteredPlugins = append(SA.RegisteredPlugins, *newPlugin)
+			SA.RegisteredPlugins[newPlugin.Name()] = newPlugin
 		} else {
 			if loadErrors == nil {
-				loadErrors = fmt.Errorf("easytls plugin agent error - %s", err)
+				loadErrors = fmt.Errorf("easytls plugin agent error: %s", err)
 			} else {
 				loadErrors = fmt.Errorf("%s\n%s", loadErrors, err)
 			}
@@ -135,41 +127,17 @@ func (SA *ServerPluginAgent) Run(blocking bool) error {
 func (SA *ServerPluginAgent) run() error {
 
 	if len(SA.RegisteredPlugins) == 0 {
-		return errors.New("easytls plugin error - Server Plugin Agent has 0 registered plugins")
+		return errors.New("easytls plugin agent error: Server Plugin Agent has 0 registered plugins")
 	}
 
-	SA.stopped.Store(false)
-
-	wg := &sync.WaitGroup{}
-	for _, registeredPlugin := range SA.RegisteredPlugins {
-		wg.Add(1)
-
-		// Start the plugin...
-		go func(p ServerPlugin, wg *sync.WaitGroup) {
-
-			// Extract the status channel
-			statusChan, err := p.Status()
-
-			if err != nil {
-				SA.logger.Println(err.Error())
-				wg.Done()
-				return
-			}
-
-			go func(wg *sync.WaitGroup) {
-				defer wg.Done()
-				// Log status messages until the channel is closed, or a fatal error is retrieved.
-				for M := range statusChan {
-					SA.logger.Println(M.String())
-					if M.IsFatal {
-						return
-					}
-				}
-			}(wg)
-		}(registeredPlugin, wg)
+	for pluginName, registeredPlugin := range SA.RegisteredPlugins {
+		if err := registeredPlugin.readStatus(); err != nil {
+			SA.logger.Printf("easytls plugin error: Failed to start status logging for plugin [ %s ] - %s", pluginName, err)
+			continue
+		}
 	}
 
-	wg.Wait()
+	SA.Wait()
 
 	return nil
 }
@@ -177,39 +145,16 @@ func (SA *ServerPluginAgent) run() error {
 // Stop will cause ALL of the currently Running Plugins to safely stop.
 func (SA *ServerPluginAgent) Stop() error {
 
-	if dead, ok := SA.stopped.Load().(bool); ok {
-		if dead {
-			return nil
+	FailedPlugins := []string{}
+
+	for _, P := range SA.RegisteredPlugins {
+		if err := P.Kill(); err != nil {
+			FailedPlugins = append(FailedPlugins, P.Name())
 		}
 	}
 
-	defer SA.stopped.Store(true)
-
-	errOccured := false
-
-	wg := &sync.WaitGroup{}
-	for _, p := range SA.RegisteredPlugins {
-		wg.Add(1)
-
-		go func(p ServerPlugin, wg *sync.WaitGroup) {
-
-			// If the plugin exits, decrement the waitgroup
-			defer wg.Done()
-
-			if err := p.Stop(); err != nil {
-				SA.logger.Println(err.Error())
-				errOccured = true
-				return
-			}
-
-		}(p, wg)
-
-	}
-
-	wg.Wait()
-
-	if errOccured {
-		return errors.New("easytls agent error - error occured during server plugin shutdown")
+	if len(FailedPlugins) > 0 {
+		return fmt.Errorf("easytls plugin agent error: Error(s) occured while shutting down plugins %v", FailedPlugins)
 	}
 
 	return nil
@@ -217,7 +162,7 @@ func (SA *ServerPluginAgent) Stop() error {
 
 // Wait for the plugin agent to stop safely.
 func (SA *ServerPluginAgent) Wait() {
-	for !SA.stopped.Load().(bool) {
-		time.Sleep(time.Millisecond * 250)
+	for _, P := range SA.RegisteredPlugins {
+		<-P.Done
 	}
 }

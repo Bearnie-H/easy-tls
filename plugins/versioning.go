@@ -21,7 +21,7 @@ func (v *SemanticVersion) String() string {
 func ParseVersion(v string) (*SemanticVersion, error) {
 	fields := strings.Split(v, ".")
 	if len(fields) != 3 {
-		return nil, fmt.Errorf("semantic version parse error - Got %d expected 3 (%s)", len(fields), v)
+		return nil, fmt.Errorf("semantic version parse error: Got %d expected 3 (%s)", len(fields), v)
 	}
 	var (
 		version = &SemanticVersion{}
@@ -30,17 +30,17 @@ func ParseVersion(v string) (*SemanticVersion, error) {
 
 	version.MajorRelease, err = strconv.Atoi(fields[0])
 	if err != nil {
-		return nil, fmt.Errorf("semantic version parse error - Expected integer, got %s - %s", fields[0], err)
+		return nil, fmt.Errorf("semantic version parse error: Expected integer, got %s - %s", fields[0], err)
 	}
 
 	version.MinorRelease, err = strconv.Atoi(fields[1])
 	if err != nil {
-		return nil, fmt.Errorf("semantic version parse error - Expected integer, got %s - %s", fields[1], err)
+		return nil, fmt.Errorf("semantic version parse error: Expected integer, got %s - %s", fields[1], err)
 	}
 
 	version.Build, err = strconv.Atoi(fields[2])
 	if err != nil {
-		return nil, fmt.Errorf("semantic version parse error - Expected integer, got %s - %s", fields[2], err)
+		return nil, fmt.Errorf("semantic version parse error: Expected integer, got %s - %s", fields[2], err)
 	}
 
 	return version, nil

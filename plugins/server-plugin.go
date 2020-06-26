@@ -1,10 +1,15 @@
 package plugins
 
 import (
-	"path"
+	"log"
 	"plugin"
 
 	"github.com/Bearnie-H/easy-tls/server"
+)
+
+type (
+	// ServerInitFunc is the defined type of the Init function exported by all compliant server plugins.
+	ServerInitFunc = func(...interface{}) ([]server.SimpleHandler, error)
 )
 
 // ServerPlugin represents a EasyTLS-compatible Plugin to be used with an EasyTLS SimpleServer.
@@ -27,15 +32,11 @@ type ServerPluginAPI struct {
 }
 
 // InitializeServerPlugin will initialize and return a Server Plugin, ready to be registered by a Server Plugin Agent.
-func InitializeServerPlugin(Filename string, FrameworkVersion SemanticVersion) (*ServerPlugin, error) {
+func InitializeServerPlugin(Filename string, FrameworkVersion SemanticVersion, Logger *log.Logger) (*ServerPlugin, error) {
 
 	// Create the starting plugin object
 	P := &ServerPlugin{
-		Plugin: Plugin{
-			Filename:       path.Base(Filename),
-			Filepath:       path.Dir(Filename),
-			InputArguments: []interface{}{},
-		},
+		Plugin: NewPlugin(Filename, Logger),
 	}
 
 	// Load the default symbols, erroring out on any failure.
@@ -73,7 +74,7 @@ func loadServerPluginSymbols(Filename string) (ServerPluginAPI, error) {
 		return API, err
 	}
 
-	initSym, ok := sym.(func(...interface{}) ([]server.SimpleHandler, error))
+	initSym, ok := sym.(ServerInitFunc)
 	if !ok {
 		return API, err
 	}
