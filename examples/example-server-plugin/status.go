@@ -52,7 +52,7 @@ func (W *StatusWriter) Fatalf(Message string, Error error, args ...interface{}) 
 
 // Close will safely close and lock the channel, preventing all other access.
 func (W *StatusWriter) Close(err error) {
-	W.Printf("Stopped module %s", err, false, PluginName)
+	W.Printf("Stopped module %s", err, PluginName)
 	W.lock.Lock()
 	close(W.out)
 }
