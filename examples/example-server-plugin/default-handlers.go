@@ -21,14 +21,14 @@ import (
 func ExitHandler(w http.ResponseWriter, StatusCode int, Message string, err error, args ...interface{}) {
 	w.WriteHeader(StatusCode)
 	w.Write([]byte(fmt.Sprintf(Message, args...)))
-	WriteStatus(Message, err, false, args...)
+	StatusChannel.Printf(Message, err, args...)
 	return
 }
 
 // GetPluginVersion allows for the version of the Server Plugin to be requested via the RESTful interface
 func GetPluginVersion(w http.ResponseWriter, r *http.Request) {
 	if err := json.NewEncoder(w).Encode(PluginVersion); err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
+		ExitHandler(w, http.StatusInternalServerError, "Failed to JSON encode version information", err)
 		return
 	}
 }

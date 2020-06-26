@@ -18,9 +18,7 @@ func Stop() (err error) {
 
 	// End your plugin stop logic here!
 
-	WriteStatus("Stopped module %s", err, false, PluginName)
-	StatusLock.Lock()
-	close(StatusChannel)
+	StatusChannel.Close(err)
 
 	return err
 }
