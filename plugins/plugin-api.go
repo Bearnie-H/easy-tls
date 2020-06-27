@@ -11,22 +11,22 @@ type PluginAPI struct {
 	// Query the current status of the plugin.
 	//
 	// This must return an output-only channel, allowing the plugin to directly send status messages as they are generated.
-	Status func() (<-chan PluginStatus, error)
+	Status StatusFunc
 
 	// Query the Semantic Versioning compatabilities of the plugin.
 	//
 	// This will accept the Semantic Version of the Plugin at hand and compare it against it's set of acceptable framework versions.  A nil error implies compatability.
-	Version func(SemanticVersion) error
+	Version VersionFunc
 
 	// Query the Name of the Plugin.
 	//
 	// This must return the name of the plugin, in canonical format.
-	Name func() string
+	Name NameFunc
 
 	// Stop the plugin.
 	//
 	// This must trigger a full stop of any internal behaviours of the plugin, only returning once ALL internal behaviours have halted.  This should return any and all errors which arise during shutdown and are not explicitly handled by the shutdown.  The Agent makes no guarantee on how long AFTER receiving the return value from this call the application will run for, so this must represent the FINAL valid state of a plugin.
-	Stop func() error
+	Stop StopFunc
 }
 
 func loadDefaultPluginSymbols(Filename string) (PluginAPI, error) {

@@ -248,8 +248,9 @@ func (D *Decoder) parseHeaderForField(PossibleNames ...string) []string {
 		if Name == "" || Name == "-" {
 			continue
 		}
-		if len(D.h[http.CanonicalHeaderKey(Name)]) > 0 {
-			return D.h[http.CanonicalHeaderKey(Name)]
+		CanonicalName := http.CanonicalHeaderKey(Name)
+		if len(D.h[CanonicalName]) > 0 {
+			return D.h[CanonicalName]
 		}
 	}
 

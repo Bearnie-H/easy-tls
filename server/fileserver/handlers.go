@@ -20,6 +20,9 @@ import (
 // network.
 const ModifiedTimeFormat = time.Stamp
 
+// HandlerLogger is the reference to the logger to use for the FileServer handlers
+var HandlerLogger *log.Logger
+
 // fileDetails is the set of file properties returned as headers during GET
 // and HEAD calls. This is only a slightly modified copy of os.FileInfo, to
 // assert HTTP Header encoding as specific types and with a clear naming
@@ -44,7 +47,8 @@ type fileDetails struct {
 //	DELETE:	Delete the file from disk.
 //
 // The server will be based out of the given ServeBase folder.
-func Handlers(URLBase, ServeBase string) []server.SimpleHandler {
+func Handlers(URLBase, ServeBase string, Logger *log.Logger) []server.SimpleHandler {
+	HandlerLogger = Logger
 	return []server.SimpleHandler{
 		Get(URLBase, ServeBase),
 		Head(URLBase, ServeBase),
@@ -55,37 +59,64 @@ func Handlers(URLBase, ServeBase string) []server.SimpleHandler {
 	}
 }
 
+// ExitHandler is the generic function to simplify failing out of a HTTP Handler within a plugin
+//
+// The general use of this is:
+//
+//	if err := foo(); err != nil {
+//		ExitHandler(w, http.StatusInternalServerError, "Failed to foo the bar for ID [ %s ] with index [ %d ]", err, ID, index)
+//		return
+//	}
+//
+// This will write the status code to the response, as well as the result of
+// fmt.Sprintf(Message, args...) to the response, and to the logger
+func ExitHandler(w http.ResponseWriter, StatusCode int, Message string, err error, args ...interface{}) {
+	w.WriteHeader(StatusCode)
+	w.Write([]byte(fmt.Sprintf(Message, args...)))
+	if HandlerLogger != nil {
+		if err == nil {
+			HandlerLogger.Printf(Message, args...)
+		} else {
+			HandlerLogger.Print(fmt.Sprintf(Message, args...) + " - " + err.Error())
+		}
+	}
+	return
+}
+
 // Get will attempt to read out the requested file from disk.
 func Get(URLBase, ServeBase string) server.SimpleHandler {
 	return server.SimpleHandler{
 		Path:    URLBase,
 		Methods: []string{http.MethodGet},
 		Handler: func(w http.ResponseWriter, r *http.Request) {
-			Filename := path.Join(ServeBase, strings.TrimPrefix(r.URL.Path, URLBase))
+
+			RelFilename := strings.TrimPrefix(r.URL.Path, URLBase)
+			Filename := path.Join(ServeBase, RelFilename)
+
 			Details, err := describeFile(Filename)
-			if err != nil {
-				w.WriteHeader(http.StatusNotFound)
-				log.Println(err)
-				w.Write([]byte(err.Error()))
+			if os.IsNotExist(err) {
+				ExitHandler(w, http.StatusNotFound, "file-server error: File [ %s ] does not exist", err, RelFilename)
+				return
+			} else if err != nil {
+				ExitHandler(w, http.StatusInternalServerError, "file-server error: Failed to format HTTP Headers of file details", err)
 				return
 			}
 			RespHeader := w.Header()
 
 			H, err := header.DefaultEncode(*Details)
 			if err != nil {
-				w.WriteHeader(http.StatusInternalServerError)
-				log.Println(err)
-				w.Write([]byte(err.Error()))
+				ExitHandler(w, http.StatusInternalServerError, "file-server error: Failed to encode HTTP Headers of file details", err)
 				return
 			}
 
 			header.Merge(&RespHeader, &H)
 
 			f, err := os.Open(Filename)
-			if err != nil {
-				w.WriteHeader(http.StatusInternalServerError)
-				log.Println(err)
-				w.Write([]byte(err.Error()))
+			if os.IsNotExist(err) {
+				ExitHandler(w, http.StatusNotFound, "file-server error: File [ %s ] could not be found", err, Filename)
+				return
+			} else if err != nil {
+				ExitHandler(w, http.StatusInternalServerError, "file-server error: Error occured while opening file [ %s ]", err, Filename)
 				return
 			}
 			defer f.Close()
@@ -93,9 +124,7 @@ func Get(URLBase, ServeBase string) server.SimpleHandler {
 			if Details.IsDirectory {
 				stats, err := f.Readdir(-1)
 				if err != nil {
-					w.WriteHeader(http.StatusInternalServerError)
-					log.Println(err)
-					w.Write([]byte(err.Error()))
+					ExitHandler(w, http.StatusInternalServerError, "file-server error: Failed to read directory contents for folder [ %s ]", err, path.Base(Filename))
 					return
 				}
 				sort.Slice(stats, func(i, j int) bool {
@@ -111,12 +140,13 @@ func Get(URLBase, ServeBase string) server.SimpleHandler {
 					name = fmt.Sprintf("<a href=\"%s%s\">%s</a><br/>\n", r.URL.Path, name, name)
 					w.Write([]byte(name))
 				}
+				HandlerLogger.Printf("Succesfully served directory [ %s ]", Filename)
 			} else {
 				if _, err := io.Copy(w, f); err != nil {
-					w.WriteHeader(http.StatusInternalServerError)
-					log.Println(err)
-					w.Write([]byte(err.Error()))
+					ExitHandler(w, http.StatusInternalServerError, "file-server error: Failed to write directory contents for folder [ %s ]", err, path.Dir(Filename))
+					return
 				}
+				HandlerLogger.Printf("Successfully served file [ %s ]", Filename)
 			}
 		},
 	}
@@ -128,25 +158,28 @@ func Head(URLBase, ServeBase string) server.SimpleHandler {
 		Path:    URLBase,
 		Methods: []string{http.MethodHead},
 		Handler: func(w http.ResponseWriter, r *http.Request) {
-			Filename := path.Join(ServeBase, strings.TrimPrefix(r.URL.Path, URLBase))
+
+			RelFilename := strings.TrimPrefix(r.URL.Path, URLBase)
+			Filename := path.Join(ServeBase, RelFilename)
+
 			Details, err := describeFile(Filename)
-			if err != nil {
-				w.WriteHeader(http.StatusNotFound)
-				log.Println(err)
-				w.Write([]byte(err.Error()))
+			if os.IsNotExist(err) {
+				ExitHandler(w, http.StatusNotFound, "file-server error: File [ %s ] does not exist", err, RelFilename)
+				return
+			} else if err != nil {
+				ExitHandler(w, http.StatusInternalServerError, "file-server error: Failed to format HTTP Headers of file details", err)
 				return
 			}
 			RespHeader := w.Header()
 
 			H, err := header.DefaultEncode(*Details)
 			if err != nil {
-				w.WriteHeader(http.StatusInternalServerError)
-				log.Println(err)
-				w.Write([]byte(err.Error()))
+				ExitHandler(w, http.StatusInternalServerError, "file-server error: Failed to encode HTTP Headers of file details", err)
 				return
 			}
 
 			header.Merge(&RespHeader, &H)
+			HandlerLogger.Printf("Successfully served HTTP Headers for file [ %s ]", Filename)
 			w.WriteHeader(http.StatusOK)
 		},
 	}
@@ -158,32 +191,31 @@ func Post(URLBase, ServeBase string) server.SimpleHandler {
 		Path:    URLBase,
 		Methods: []string{http.MethodPost},
 		Handler: func(w http.ResponseWriter, r *http.Request) {
-			Filename := path.Join(ServeBase, strings.TrimPrefix(r.URL.Path, URLBase))
+
+			RelFilename := strings.TrimPrefix(r.URL.Path, URLBase)
+			if RelFilename == "" {
+				RelFilename = "/"
+			}
+			Filename := path.Join(ServeBase, RelFilename)
 
 			if err := os.MkdirAll(path.Dir(Filename), 0755); err != nil {
-				log.Println(err)
-				w.WriteHeader(http.StatusInternalServerError)
-				w.Write([]byte(err.Error()))
+				ExitHandler(w, http.StatusInternalServerError, "file-server error: Failed to assert directory exists for file [ %s ]", err, RelFilename)
 				return
 			}
 
 			f, err := os.Create(Filename)
 			if err != nil {
-				log.Println(err)
-				w.WriteHeader(http.StatusInternalServerError)
-				w.Write([]byte(err.Error()))
+				ExitHandler(w, http.StatusInternalServerError, "file-server error: Failed to create file [ %s ]", err, RelFilename)
 				return
 			}
 			defer f.Close()
 
 			if _, err := io.Copy(f, r.Body); err != nil {
-				log.Println(err)
-				w.WriteHeader(http.StatusInternalServerError)
-				w.Write([]byte(err.Error()))
+				ExitHandler(w, http.StatusInternalServerError, "file-server error: Failed to write file [ %s ]", err, RelFilename)
 				return
 			}
 
-			w.WriteHeader(http.StatusCreated)
+			ExitHandler(w, http.StatusCreated, "Successfully created file [ %s ]", nil, RelFilename)
 		},
 	}
 }
@@ -194,31 +226,29 @@ func Put(URLBase, ServeBase string) server.SimpleHandler {
 		Path:    URLBase,
 		Methods: []string{http.MethodPut},
 		Handler: func(w http.ResponseWriter, r *http.Request) {
-			Filename := path.Join(ServeBase, strings.TrimPrefix(r.URL.Path, URLBase))
 
-			if err := os.Truncate(Filename, 0); err != nil {
-				log.Printf("Truncate error: %s", err)
-				w.WriteHeader(http.StatusInternalServerError)
-				w.Write([]byte(err.Error()))
-				return
+			RelFilename := strings.TrimPrefix(r.URL.Path, URLBase)
+			if RelFilename == "" {
+				RelFilename = "/"
 			}
+			Filename := path.Join(ServeBase, RelFilename)
 
 			f, err := os.Create(Filename)
-			if err != nil {
-				log.Printf("Open error: %s", err)
-				w.WriteHeader(http.StatusInternalServerError)
-				w.Write([]byte(err.Error()))
+			if os.IsNotExist(err) {
+				ExitHandler(w, http.StatusNotFound, "file-server error: File [ %s ] does not exist", err, RelFilename)
+				return
+			} else if err != nil {
+				ExitHandler(w, http.StatusInternalServerError, "file-server error: Failed to open file [ %s ]", err, RelFilename)
 				return
 			}
 			defer f.Close()
 
 			if _, err := io.Copy(f, r.Body); err != nil {
-				log.Printf("Write error: %s", err)
-				w.WriteHeader(http.StatusInternalServerError)
-				w.Write([]byte(err.Error()))
+				ExitHandler(w, http.StatusInternalServerError, "file-server error: Failed to write file [ %s ]", err, RelFilename)
 				return
 			}
 
+			ExitHandler(w, http.StatusAccepted, "Successfully updated contents of file [ %s ]", nil, RelFilename)
 			w.WriteHeader(http.StatusAccepted)
 		},
 	}
@@ -230,25 +260,29 @@ func Patch(URLBase, ServeBase string) server.SimpleHandler {
 		Path:    URLBase,
 		Methods: []string{http.MethodPatch},
 		Handler: func(w http.ResponseWriter, r *http.Request) {
-			Filename := path.Join(ServeBase, strings.TrimPrefix(r.URL.Path, URLBase))
+
+			RelFilename := strings.TrimPrefix(r.URL.Path, URLBase)
+			if RelFilename == "" {
+				RelFilename = "/"
+			}
+			Filename := path.Join(ServeBase, RelFilename)
 
 			f, err := os.OpenFile(Filename, os.O_APPEND|os.O_WRONLY, 0755)
-			if err != nil {
-				log.Printf("Open error: %s", err)
-				w.WriteHeader(http.StatusInternalServerError)
-				w.Write([]byte(err.Error()))
+			if os.IsNotExist(err) {
+				ExitHandler(w, http.StatusNotFound, "file-server error: File [ %s ] does not exist", err, RelFilename)
+				return
+			} else if err != nil {
+				ExitHandler(w, http.StatusInternalServerError, "file-server error: Failed to open file [ %s ]", err, RelFilename)
 				return
 			}
 			defer f.Close()
 
 			if _, err := io.Copy(f, r.Body); err != nil {
-				log.Printf("Write error: %s", err)
-				w.WriteHeader(http.StatusInternalServerError)
-				w.Write([]byte(err.Error()))
+				ExitHandler(w, http.StatusInternalServerError, "file-server error: Failed to write file [ %s ]", err, RelFilename)
 				return
 			}
 
-			w.WriteHeader(http.StatusAccepted)
+			ExitHandler(w, http.StatusAccepted, "Successfully appended to file [ %s ]", nil, RelFilename)
 		},
 	}
 }
@@ -259,15 +293,19 @@ func Delete(URLBase, ServeBase string) server.SimpleHandler {
 		Path:    URLBase,
 		Methods: []string{http.MethodDelete},
 		Handler: func(w http.ResponseWriter, r *http.Request) {
-			Filename := path.Join(ServeBase, strings.TrimPrefix(r.URL.Path, URLBase))
+
+			RelFilename := strings.TrimPrefix(r.URL.Path, URLBase)
+			if RelFilename == "" {
+				RelFilename = "/"
+			}
+			Filename := path.Join(ServeBase, RelFilename)
+
 			if err := os.Remove(Filename); err != nil {
-				log.Println(err)
-				w.WriteHeader(http.StatusInternalServerError)
-				w.Write([]byte(err.Error()))
+				ExitHandler(w, http.StatusInternalServerError, "file-server error: Failed to delete file [ %s ]", err, Filename)
 				return
 			}
 
-			w.WriteHeader(http.StatusNoContent)
+			ExitHandler(w, http.StatusNoContent, "Successfully deleted file [ %s ]", nil, RelFilename)
 		},
 	}
 }

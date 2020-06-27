@@ -28,7 +28,7 @@ type ServerPluginAPI struct {
 	// Start a plugin.
 	//
 	// This will initialize the plugin, and return the set of Routes it can provide back to the SimpleServer.
-	Init func(...interface{}) ([]server.SimpleHandler, error)
+	Init ServerInitFunc
 }
 
 // InitializeServerPlugin will initialize and return a Server Plugin, ready to be registered by a Server Plugin Agent.

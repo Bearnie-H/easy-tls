@@ -17,6 +17,16 @@ import (
 // still falling back to a "NotFound" 404 response if there is
 // no defined place to route to.
 func NotFoundHandlerProxyOverride(S *server.SimpleServer, c *client.SimpleClient, RouteMatcher ReverseProxyRouterFunc, logger *log.Logger) {
+
+	var err error
+
+	if c == nil {
+		c, err = client.NewClientHTTPS(S.TLSBundle(), client.DowngradeWithReset)
+		if err != nil {
+			panic(err)
+		}
+	}
+
 	S.Router().NotFoundHandler = DoReverseProxy(c, RouteMatcher, logger)
 }
 
@@ -41,12 +51,14 @@ func ConfigureReverseProxy(S *server.SimpleServer, Client *client.SimpleClient, 
 		}
 	}
 
+	// Assert a non-empty path prefix to proxy on
 	if PathPrefix == "" {
 		PathPrefix = "/"
 	}
 
+	// If no client is given, attempt to create one, using any TLS resources the potential server had.
 	if Client == nil {
-		Client, err = client.NewClientHTTP()
+		Client, err = client.NewClientHTTPS(S.TLSBundle(), client.DowngradeWithReset)
 		if err != nil {
 			panic(err)
 		}
@@ -70,15 +82,6 @@ func ConfigureReverseProxy(S *server.SimpleServer, Client *client.SimpleClient, 
 //
 func DoReverseProxy(C *client.SimpleClient, Matcher ReverseProxyRouterFunc, logger *log.Logger) http.HandlerFunc {
 
-	// If no client is provided, create a default HTTP Client to perform the requests.
-	if C == nil {
-		var err error
-		C, err = client.NewClientHTTP()
-		if err != nil {
-			panic(err)
-		}
-	}
-
 	// Anonymous function to be returned, and is what is actually called when requests come in.
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		defer r.Body.Close()
@@ -89,19 +92,19 @@ func DoReverseProxy(C *client.SimpleClient, Matcher ReverseProxyRouterFunc, logg
 		case nil:
 		case ErrRouteNotFound:
 			if logger != nil {
-				log.Printf("Failed to find destination host:port for URL [ %s ] from %s - %s", r.URL.String(), r.RemoteAddr, err)
+				logger.Printf("Failed to find destination host:port for URL [ %s ] from %s - %s", r.URL.String(), r.RemoteAddr, err)
 			}
 			w.WriteHeader(http.StatusNotFound)
 			return
 		case ErrForbiddenRoute:
 			if logger != nil {
-				log.Printf("Cannot forward request for URL [ %s ] from %s - %s", r.URL.String(), r.RemoteAddr, err)
+				logger.Printf("Cannot forward request for URL [ %s ] from %s - %s", r.URL.String(), r.RemoteAddr, err)
 			}
 			w.WriteHeader(http.StatusForbidden)
 			return
 		default:
 			if logger != nil {
-				log.Printf("Failed to format proxy forwarding for URL [ %s ] from %s - %s", r.URL.String(), r.RemoteAddr, err)
+				logger.Printf("Failed to format proxy forwarding for URL [ %s ] from %s - %s", r.URL.String(), r.RemoteAddr, err)
 			}
 			w.WriteHeader(http.StatusInternalServerError)
 			return
@@ -111,7 +114,7 @@ func DoReverseProxy(C *client.SimpleClient, Matcher ReverseProxyRouterFunc, logg
 		proxyReq, err := client.NewRequest(r.Method, proxyURL, r.Header, r.Body)
 		if err != nil {
 			if logger != nil {
-				log.Printf("Failed to create proxy forwarding request for URL [ %s ] from %s - %s", r.URL.String(), r.RemoteAddr, err)
+				logger.Printf("Failed to create proxy forwarding request for URL [ %s ] from %s - %s", r.URL.String(), r.RemoteAddr, err)
 			}
 			w.WriteHeader(http.StatusInternalServerError)
 			return
@@ -125,7 +128,7 @@ func DoReverseProxy(C *client.SimpleClient, Matcher ReverseProxyRouterFunc, logg
 		header.Merge(&(proxyReq.Header), &proxyHeaders)
 
 		if logger != nil {
-			log.Printf("Forwarding [ %s [ %s ] ] from [ %s ] to [ %s ]", r.URL.String(), r.Method, r.RemoteAddr, proxyURL.String())
+			logger.Printf("Forwarding [ %s [ %s ] ] from [ %s ] to [ %s ]", r.URL.String(), r.Method, r.RemoteAddr, proxyURL.String())
 		}
 
 		// Perform the full proxy request
@@ -137,7 +140,7 @@ func DoReverseProxy(C *client.SimpleClient, Matcher ReverseProxyRouterFunc, logg
 		case client.ErrInvalidStatusCode:
 			defer proxyResp.Body.Close()
 			if logger != nil {
-				log.Printf("Failed to perform proxy request for URL [ %s ] from %s - %s", r.URL.String(), r.RemoteAddr, err)
+				logger.Printf("Failed to perform proxy request for URL [ %s ] from %s - %s", r.URL.String(), r.RemoteAddr, err)
 			}
 			proxyResp.Header.Del("Content-Length")
 			H := w.Header()
@@ -146,14 +149,14 @@ func DoReverseProxy(C *client.SimpleClient, Matcher ReverseProxyRouterFunc, logg
 			w.Write([]byte(fmt.Sprintf("Failed to perform proxy request for URL [ %s ] - %s.\n", r.URL.String(), err)))
 			if _, err := io.Copy(w, proxyResp.Body); err != nil {
 				if logger != nil {
-					log.Printf("Failed to write back failed proxy response for URL [ %s ] from %s - %s", r.URL.String(), r.RemoteAddr, err)
+					logger.Printf("Failed to write back failed proxy response for URL [ %s ] from %s - %s", r.URL.String(), r.RemoteAddr, err)
 				}
 				return
 			}
 			return
 		default:
 			if logger != nil {
-				log.Printf("Failed to perform proxy request for URL [ %s ] from %s - %s", r.URL.String(), r.RemoteAddr, err)
+				logger.Printf("Failed to perform proxy request for URL [ %s ] from %s - %s", r.URL.String(), r.RemoteAddr, err)
 			}
 			w.WriteHeader(http.StatusInternalServerError)
 			w.Write([]byte(fmt.Sprintf("Failed to perform proxy request for URL [ %s ] - %s.\n", r.URL.String(), err)))
@@ -170,7 +173,7 @@ func DoReverseProxy(C *client.SimpleClient, Matcher ReverseProxyRouterFunc, logg
 		// Write back the response body
 		if _, err := io.Copy(w, proxyResp.Body); err != nil {
 			if logger != nil {
-				log.Printf("Failed to write back proxy response for URL [ %s ] from %s - %s", r.URL.String(), r.RemoteAddr, err)
+				logger.Printf("Failed to write back proxy response for URL [ %s ] from %s - %s", r.URL.String(), r.RemoteAddr, err)
 			}
 			return
 		}

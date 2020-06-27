@@ -2,8 +2,6 @@ package plugins
 
 import (
 	"fmt"
-	"strconv"
-	"strings"
 )
 
 // SemanticVersion represents a useable semantic version number.  This can be used to assert compatability between plugins, agents, and frameworks.
@@ -13,37 +11,27 @@ type SemanticVersion struct {
 	Build        int
 }
 
+const (
+	versionFmtString string = "%d.%d.%d"
+)
+
 func (v *SemanticVersion) String() string {
-	return fmt.Sprintf("%d.%d.%d", v.MajorRelease, v.MinorRelease, v.Build)
+	return fmt.Sprintf(versionFmtString, v.MajorRelease, v.MinorRelease, v.Build)
 }
 
 // ParseVersion allows for a SemanticVersion to be recovered from its string representation.
 func ParseVersion(v string) (*SemanticVersion, error) {
-	fields := strings.Split(v, ".")
-	if len(fields) != 3 {
-		return nil, fmt.Errorf("semantic version parse error: Got %d expected 3 (%s)", len(fields), v)
-	}
-	var (
-		version = &SemanticVersion{}
-		err     error
-	)
 
-	version.MajorRelease, err = strconv.Atoi(fields[0])
+	Version := &SemanticVersion{}
+
+	n, err := fmt.Sscanf(v, versionFmtString, &Version.MajorRelease, &Version.MinorRelease, &Version.Build)
 	if err != nil {
-		return nil, fmt.Errorf("semantic version parse error: Expected integer, got %s - %s", fields[0], err)
+		return nil, err
+	} else if n != 3 {
+		return nil, fmt.Errorf("version error: Failed to parse string [ %s ] as version specifier", v)
 	}
 
-	version.MinorRelease, err = strconv.Atoi(fields[1])
-	if err != nil {
-		return nil, fmt.Errorf("semantic version parse error: Expected integer, got %s - %s", fields[1], err)
-	}
-
-	version.Build, err = strconv.Atoi(fields[2])
-	if err != nil {
-		return nil, fmt.Errorf("semantic version parse error: Expected integer, got %s - %s", fields[2], err)
-	}
-
-	return version, nil
+	return Version, nil
 }
 
 // Accepts determines if a given version is accepted for a set of minimum and maximum acceptable versions

@@ -4,7 +4,6 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"io/ioutil"
-	"log"
 )
 
 // KeyPair is a single matched pair of TLS Certificate and Key files.
@@ -55,7 +54,6 @@ func NewTLSConfig(TLS *TLSBundle) (*tls.Config, error) {
 	if TLS.KeyPair.Certificate != "" && TLS.KeyPair.Key != "" {
 		cert, err := tls.LoadX509KeyPair(TLS.KeyPair.Certificate, TLS.KeyPair.Key)
 		if err != nil {
-			log.Printf("Failed to load certificate - %s\n", err)
 			return &tls.Config{}, err
 		}
 		returnConfig.Certificates = append(returnConfig.Certificates, cert)
@@ -68,7 +66,6 @@ func NewTLSConfig(TLS *TLSBundle) (*tls.Config, error) {
 			// Load the CA cert
 			caCert, err := ioutil.ReadFile(AutorityCert)
 			if err != nil {
-				log.Printf("Failed to load CA certificate - %s\n", err)
 				return &tls.Config{}, err
 			}
 			// Create and append the CA Cert to the pool of approved certificate authorities.

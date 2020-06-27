@@ -3,6 +3,8 @@ package server
 import (
 	"fmt"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/gorilla/mux"
@@ -43,10 +45,17 @@ func methodNotAllowedHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // EnableAboutHandler will enable and set up the "about" handler,
-// to display the available routes. This must be the last route registered
-// in order for the full set of routes to be displayed.
+// to display the available routes at "/about". This will only be able to
+// display information about routes registered before this function is called.
+// If additional routes are registered after this is called, they will not be
+// displayed unless this is called again.
+//
+// This function will cause the NotFound and MethodNotAllowed
+// handlers to redirect to the /about page.
 func (S *SimpleServer) EnableAboutHandler() {
 
+	// Walk the router, printing out an API summary for each route in the order the router
+	// will be searched.
 	RouteList := []string{}
 	S.router.Walk(func(route *mux.Route, router *mux.Router, ancestors []*mux.Route) error {
 		RouteDescriptor := ""
@@ -64,13 +73,14 @@ func (S *SimpleServer) EnableAboutHandler() {
 		}
 
 		if Methods, err := route.GetMethods(); err == nil && len(Methods) > 0 {
-			RouteDescriptor = fmt.Sprintf("%s%v", RouteDescriptor, Methods)
+			RouteDescriptor = fmt.Sprintf("%s%v ", RouteDescriptor, Methods)
 		}
 
 		RouteList = append(RouteList, RouteDescriptor)
 		return nil
 	})
 
+	// Format the route information one node per row
 	routes := strings.Join(RouteList, "\n")
 	aboutHandler := func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
@@ -81,7 +91,45 @@ func (S *SimpleServer) EnableAboutHandler() {
 		}
 	}
 
-	S.router.HandleFunc("/about", aboutHandler)
-	S.router.NotFoundHandler = http.RedirectHandler("/about", http.StatusFound)
-	S.router.MethodNotAllowedHandler = http.RedirectHandler("/about", http.StatusFound)
+	S.Router().Path("/about").HandlerFunc(aboutHandler)
+	S.Router().NotFoundHandler = http.RedirectHandler("/about", http.StatusFound)
+	S.Router().MethodNotAllowedHandler = http.RedirectHandler("/about", http.StatusFound)
+}
+
+// RegisterSPAHandler will regitster an HTTP Handler to allow serving a Single Page Application.
+// The application will be based off URLBase, and will serve content based out of PathBase.
+//
+// The URLBase must be the same as what's defined to be <base href="/URLBase"> within
+// the SPA.
+//
+// This function will also set up the NotFound handler to redirect to URLBase/index.html.
+//
+// This handler is fully able to be served on the same server as the raw API nodes,
+// as long as the URLBase path is a distinct URL tree.
+func (S *SimpleServer) RegisterSPAHandler(URLBase, PathBase string) error {
+
+	// Assert that the URLBase exists
+	if URLBase == "" {
+		URLBase = "/"
+	}
+
+	// Assert that the PathBase to serve from exists
+	AbsPathBase, err := filepath.Abs(PathBase)
+	if err != nil {
+		return err
+	}
+	if _, err := os.Stat(AbsPathBase); err != nil {
+		return err
+	}
+
+	// Register a route to handle anything with the URLBase prefix
+	// Then strip the prefix and expose a fileserver on the directory.
+	err = S.router.PathPrefix(URLBase).Handler(http.StripPrefix(URLBase, http.FileServer(http.Dir(AbsPathBase)))).GetError()
+
+	// Redirect any not-found routes to redirect to the main page.
+	// This will override any existing NotFoundHandler, so if this functionality is NOT desired,
+	// S.Router().NotFoundHandler will have to be assigned after this function
+	S.Router().NotFoundHandler = http.RedirectHandler(URLBase+"/index.html", http.StatusPermanentRedirect)
+
+	return err
 }

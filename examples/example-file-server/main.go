@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"time"
 
 	"github.com/Bearnie-H/easy-tls/server"
@@ -39,12 +40,17 @@ func main() {
 		panic(err)
 	}
 
+	*ServeDir, err = filepath.Abs(*ServeDir)
+	if err != nil {
+		panic(err)
+	}
+
 	log.Printf("Serving directory [ %s ] at URL [ %s ].", *ServeDir, *URLRoot)
 
 	// Add some middlewares as an example
-	Server.AddMiddlewares(server.MiddlewareLimitConnectionRate(time.Millisecond*10, time.Minute*15, Server.Logger()))
-	Server.AddMiddlewares(server.MiddlewareLimitMaxConnections(200, time.Minute*15, Server.Logger()))
 	Server.AddMiddlewares(server.MiddlewareDefaultLogger(Server.Logger()))
+	Server.AddMiddlewares(server.MiddlewareLimitMaxConnections(200, time.Minute*15, nil))
+	Server.AddMiddlewares(server.MiddlewareLimitConnectionRate(time.Millisecond*10, time.Minute*15, nil))
 
 	// Add routes
 	addRoutes(Server)
@@ -62,7 +68,7 @@ func main() {
 }
 
 func addRoutes(Server *server.SimpleServer) {
-	Server.AddHandlers(fileserver.Handlers(*URLRoot, *ServeDir)...)
+	Server.AddHandlers(fileserver.Handlers(*URLRoot, *ServeDir, Server.Logger())...)
 }
 
 func initSafeShutdown(Server *server.SimpleServer) {

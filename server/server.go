@@ -1,6 +1,7 @@
 package server
 
 import (
+	"crypto/tls"
 	"log"
 	"net/http"
 	"sync/atomic"
@@ -78,6 +79,16 @@ func NewServerHTTPS(TLS *easytls.TLSBundle, Addr ...string) (*SimpleServer, erro
 	Server.stopped.Store(false)
 
 	return Server, nil
+}
+
+// CloneTLSConfig will form a proper clone of the underlying tls.Config.
+func (S *SimpleServer) CloneTLSConfig() (*tls.Config, error) {
+	return easytls.NewTLSConfig(S.tls)
+}
+
+// TLSBundle will return a copy of the underlying TLS Bundle
+func (S *SimpleServer) TLSBundle() *easytls.TLSBundle {
+	return S.tls
 }
 
 // SetTimeouts will set the given timeouts of the Server.

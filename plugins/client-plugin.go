@@ -32,7 +32,7 @@ type ClientPluginAPI struct {
 	// This will provide a SimpleClient object for the Plugin to use for any HTTP(S) operations it should take.
 	// If a non-nil error is returned, this indicates that the initialization failed, and the Stop command should be used.
 	// No Plugins should function if Init returns a non-nil error.
-	Init func(*client.SimpleClient, ...interface{}) error
+	Init ClientInitFunc
 }
 
 // InitializeClientPlugin will initialize and return a Client Plugin, ready to be registered by a Client Plugin Agent.

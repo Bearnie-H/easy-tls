@@ -3,6 +3,7 @@ package server
 import (
 	"log"
 	"net/http"
+	"sync/atomic"
 	"time"
 )
 
@@ -29,6 +30,8 @@ func MiddlewareDefaultLogger(logger *log.Logger) func(http.Handler) http.Handler
 // be generated and sent back.
 func MiddlewareLimitMaxConnections(ConnectionLimit int, Timeout time.Duration, logger *log.Logger) func(http.Handler) http.Handler {
 	semaphore := make(chan struct{}, ConnectionLimit)
+	var count = new(int32)
+	*count = 0
 
 	return func(h http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -47,9 +50,13 @@ func MiddlewareLimitMaxConnections(ConnectionLimit int, Timeout time.Duration, l
 				if !timer.Stop() {
 					<-timer.C
 				}
-				defer func() { <-semaphore }()
+				atomic.AddInt32(count, 1)
+				defer func() {
+					atomic.AddInt32(count, -1)
+					<-semaphore
+				}()
 				if logger != nil {
-					logger.Printf("[MiddlewareLimitMaxConnections] Processing [ %s ] [ %s ] Request for URL \"%s\" from Address: [ %s ].\n", r.Proto, r.Method, r.URL.String(), r.RemoteAddr)
+					logger.Printf("[MiddlewareLimitMaxConnections] Started processing request [ %d / %d ] from [ %s ].", *count, ConnectionLimit, r.RemoteAddr)
 				}
 				h.ServeHTTP(w, r)
 
@@ -68,11 +75,11 @@ func MiddlewareLimitMaxConnections(ConnectionLimit int, Timeout time.Duration, l
 
 // MiddlewareLimitConnectionRate will limit the rate at which the Server will
 // process incoming requests. This will process no more than 1 request per
-// CycleTime. Verbose mode includes a log message when a request begins
+// OncePer. Verbose mode includes a log message when a request begins
 // processing through this function. If the request is not processed within
 // Timeout, a failed statusCode will be generated and sent back.
-func MiddlewareLimitConnectionRate(CycleTime time.Duration, Timeout time.Duration, logger *log.Logger) func(http.Handler) http.Handler {
-	ticker := time.NewTicker(CycleTime)
+func MiddlewareLimitConnectionRate(OncePer time.Duration, Timeout time.Duration, logger *log.Logger) func(http.Handler) http.Handler {
+	ticker := time.NewTicker(OncePer)
 
 	return func(h http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -92,7 +99,7 @@ func MiddlewareLimitConnectionRate(CycleTime time.Duration, Timeout time.Duratio
 					<-timer.C
 				}
 				if logger != nil {
-					log.Printf("[MiddlewareLimitConnectionRate] Processing [ %s ] [ %s ] Request for URL \"%s\" from Address: [ %s ].\n", r.Proto, r.Method, r.URL.String(), r.RemoteAddr)
+					logger.Printf("[MiddlewareLimitConnectionRate] Allowing processing of next request from [ %s ]", r.RemoteAddr)
 				}
 				h.ServeHTTP(w, r)
 
@@ -100,7 +107,7 @@ func MiddlewareLimitConnectionRate(CycleTime time.Duration, Timeout time.Duratio
 			case <-timer.C:
 				w.WriteHeader(http.StatusRequestTimeout)
 				if logger != nil {
-					log.Printf("[MiddlewareLimitConnectionRate] [ %s ] [ %s ] Request for URL \"%s\" from Address: [ %s ] - Timeout\n", r.Proto, r.Method, r.URL.String(), r.RemoteAddr)
+					logger.Printf("[MiddlewareLimitConnectionRate] [ %s ] [ %s ] Request for URL \"%s\" from Address: [ %s ] - Timeout\n", r.Proto, r.Method, r.URL.String(), r.RemoteAddr)
 				}
 				timer.Stop()
 			}
