@@ -87,7 +87,7 @@ func (P *Plugin) readStatus() error {
 		for Message := range StatusChannel {
 
 			// If the message is fatal, kill the plugin
-			if Message.IsFatal {
+			if Message.fatal {
 				go P.Kill()
 			}
 			P.Logger.Println(Message.String())

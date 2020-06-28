@@ -5,6 +5,44 @@ import (
 	"sync"
 )
 
+// PluginStatus represents a single status message from a given EasyTLS-compliant plugin.
+type PluginStatus struct {
+	message string
+	err     error
+	fatal   bool
+}
+
+// NewPluginStatus creates and returns a new status message, able to be sent via Statuswriter
+func NewPluginStatus(Message string, Err error, Fatal bool) PluginStatus {
+	return PluginStatus{
+		message: Message,
+		err:     Err,
+		fatal:   Fatal,
+	}
+}
+
+func (S *PluginStatus) String() string {
+	switch {
+	case S.fatal:
+		return fmt.Sprintf("FATAL ERROR: %s - %s", S.message, S.err)
+	case S.err != nil:
+		return fmt.Sprintf("Warning: %s - %s", S.message, S.err)
+	default:
+		return S.message
+	}
+}
+
+func (S *PluginStatus) Error() string {
+	switch {
+	case S.fatal:
+		return fmt.Sprintf("FATAL ERROR: %s - %s", S.message, S.err)
+	case S.err != nil:
+		return fmt.Sprintf("Warning: %s - %s", S.message, S.err)
+	default:
+		return ""
+	}
+}
+
 // StatusWriter is the encapsulation of how a plugin writes status messages out to the world.
 type StatusWriter struct {
 	out  chan PluginStatus
@@ -30,25 +68,30 @@ func (W *StatusWriter) Channel() (<-chan PluginStatus, error) {
 }
 
 // Printf will format and print out a status message usng the given Message fmt string and optional error.
-func (W *StatusWriter) Printf(Message string, Error error, args ...interface{}) {
+func (W *StatusWriter) Printf(Message string, Err error, args ...interface{}) {
+
 	W.lock.Lock()
 	defer W.lock.Unlock()
 
-	W.out <- PluginStatus{
-		Message: fmt.Sprintf("[%s]: %s", W.name, fmt.Sprintf(Message, args...)),
-		Error:   Error,
-		IsFatal: false,
-	}
+	W.out <- NewPluginStatus(
+		fmt.Sprintf("[%s]: %s", W.name, fmt.Sprintf(Message, args...)),
+		Err,
+		false,
+	)
 }
 
 // Fatalf will format and print out a status message usng the given Message fmt string
 // and optional error. This will tell the framework to hard stop the plugin.
-func (W *StatusWriter) Fatalf(Message string, Error error, args ...interface{}) {
-	W.out <- PluginStatus{
-		Message: fmt.Sprintf("[%s]: %s", W.name, fmt.Sprintf(Message, args...)),
-		Error:   Error,
-		IsFatal: true,
-	}
+func (W *StatusWriter) Fatalf(Message string, Err error, args ...interface{}) {
+
+	W.lock.Lock()
+	defer W.lock.Unlock()
+
+	W.out <- NewPluginStatus(
+		fmt.Sprintf("[%s]: %s", W.name, fmt.Sprintf(Message, args...)),
+		Err,
+		true,
+	)
 }
 
 // Out allows sending a pre-formatted status message out

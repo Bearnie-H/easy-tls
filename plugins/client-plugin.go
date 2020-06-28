@@ -1,6 +1,7 @@
 package plugins
 
 import (
+	"fmt"
 	"plugin"
 
 	"github.com/Bearnie-H/easy-tls/client"
@@ -45,18 +46,14 @@ func InitializeClientPlugin(Filename string, FrameworkVersion SemanticVersion, C
 	}
 
 	// Load the default symbols, erroring out on any failure.
-	defaultAPI, err := loadDefaultPluginSymbols(Filename)
-	if err != nil {
+	if err := P.loadDefaultPluginSymbols(Filename); err != nil {
 		return nil, err
 	}
-	P.Plugin.PluginAPI = defaultAPI
 
 	// Load the client-specific symbols, erroring out on any failure.
-	clientAPI, err := loadClientPluginSymbols(Filename)
-	if err != nil {
+	if err := P.loadClientPluginSymbols(Filename); err != nil {
 		return nil, err
 	}
-	P.ClientPluginAPI = clientAPI
 
 	// Assert that the versioning is compatable.
 	if err := P.Version(FrameworkVersion); err != nil {
@@ -89,24 +86,25 @@ func (P *ClientPlugin) Start() {
 	}
 }
 
-func loadClientPluginSymbols(Filename string) (ClientPluginAPI, error) {
-	API := ClientPluginAPI{}
+func (P *ClientPlugin) loadClientPluginSymbols(Filename string) error {
 
 	rawPlug, err := plugin.Open(Filename)
 	if err != nil {
-		return API, err
+		return err
 	}
 
-	sym, err := rawPlug.Lookup("Init")
+	SymbolName := "Init"
+	sym, err := rawPlug.Lookup(SymbolName)
 	if err != nil {
-		return API, err
+		return err
 	}
 
-	initSym, ok := sym.(ClientInitFunc)
-	if !ok {
-		return API, err
+	switch sym.(type) {
+	case ClientInitFunc:
+		P.Init = sym.(ClientInitFunc)
+	default:
+		return fmt.Errorf("easytls plugin error: Invalid %s() signature, expected [ %s ] - got [ %s ]", SymbolName, getFuncSignature(P.Init), getFuncSignature(sym))
 	}
-	API.Init = initSym
 
-	return API, nil
+	return nil
 }

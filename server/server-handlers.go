@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 
 	"github.com/gorilla/mux"
@@ -74,6 +75,7 @@ func (S *SimpleServer) enableAboutHandler() {
 		}
 
 		if Methods, err := route.GetMethods(); err == nil && len(Methods) > 0 {
+			sort.Strings(Methods)
 			RouteDescriptor = fmt.Sprintf("%s%v ", RouteDescriptor, Methods)
 		}
 

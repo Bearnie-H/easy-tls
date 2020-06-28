@@ -1,7 +1,7 @@
 package plugins
 
 import (
-	"errors"
+	"fmt"
 	"log"
 	"plugin"
 
@@ -58,18 +58,14 @@ func InitializeServerPlugin(Filename string, FrameworkVersion SemanticVersion, L
 	}
 
 	// Load the default symbols, erroring out on any failure.
-	defaultAPI, err := loadDefaultPluginSymbols(Filename)
-	if err != nil {
+	if err := P.loadDefaultPluginSymbols(Filename); err != nil {
 		return nil, err
 	}
-	P.Plugin.PluginAPI = defaultAPI
 
-	// Load the client-specific symbols, erroring out on any failure.
-	serverAPI, err := loadServerPluginSymbols(Filename)
-	if err != nil {
+	// Load the server-specific symbols, erroring out on any failure.
+	if err := P.loadServerPluginSymbols(Filename); err != nil {
 		return nil, err
 	}
-	P.ServerPluginAPI = *serverAPI
 
 	// Assert that the versioning is compatable.
 	if err := P.Version(FrameworkVersion); err != nil {
@@ -79,30 +75,27 @@ func InitializeServerPlugin(Filename string, FrameworkVersion SemanticVersion, L
 	return P, nil
 }
 
-func loadServerPluginSymbols(Filename string) (*ServerPluginAPI, error) {
-	API := &ServerPluginAPI{
-		InitHandlers:  nil,
-		InitSubrouter: nil,
-	}
+func (P *ServerPlugin) loadServerPluginSymbols(Filename string) error {
 
 	rawPlug, err := plugin.Open(Filename)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	sym, err := rawPlug.Lookup("Init")
+	SymbolName := "Init"
+	sym, err := rawPlug.Lookup(SymbolName)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	switch sym.(type) {
 	case ServerInitHandlersFunc:
-		API.InitHandlers = sym.(ServerInitHandlersFunc)
+		P.InitHandlers = sym.(ServerInitHandlersFunc)
 	case ServerInitSubrouterFunc:
-		API.InitSubrouter = sym.(ServerInitSubrouterFunc)
+		P.InitSubrouter = sym.(ServerInitSubrouterFunc)
 	default:
-		return nil, errors.New("easytls plugin error: Failed to load Init() symbol, no valid signature found")
+		return fmt.Errorf("easytls plugin error: Invalid %s() signature, expected [ %s ] or [ %s ] - got [ %s ]", SymbolName, getFuncSignature(P.InitHandlers), getFuncSignature(P.InitSubrouter), getFuncSignature(sym))
 	}
 
-	return API, nil
+	return nil
 }
