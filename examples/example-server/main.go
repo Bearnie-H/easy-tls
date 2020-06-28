@@ -30,9 +30,6 @@ func main() {
 	// Add routes
 	addRoutes(Server)
 
-	// Add in a route to display a route guide
-	Server.EnableAboutHandler()
-
 	// Set the server-side timeouts
 	Server.SetTimeouts(time.Hour, time.Second*15, time.Hour, time.Second*5)
 

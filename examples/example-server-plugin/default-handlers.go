@@ -26,9 +26,11 @@ func ExitHandler(w http.ResponseWriter, StatusCode int, Message string, err erro
 }
 
 // GetPluginVersion allows for the version of the Server Plugin to be requested via the RESTful interface
-func GetPluginVersion(w http.ResponseWriter, r *http.Request) {
-	if err := json.NewEncoder(w).Encode(PluginVersion); err != nil {
-		ExitHandler(w, http.StatusInternalServerError, "Failed to JSON encode version information", err)
-		return
-	}
+func GetPluginVersion() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if err := json.NewEncoder(w).Encode(PluginVersion); err != nil {
+			ExitHandler(w, http.StatusInternalServerError, "Failed to JSON encode version information", err)
+			return
+		}
+	})
 }

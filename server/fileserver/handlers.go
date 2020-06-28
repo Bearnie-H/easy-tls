@@ -47,10 +47,19 @@ type fileDetails struct {
 //	DELETE:	Delete the file from disk.
 //
 // The server will be based out of the given ServeBase folder.
-func Handlers(URLBase, ServeBase string, Logger *log.Logger) []server.SimpleHandler {
+func Handlers(URLBase, ServeBase string, ShowHidden bool, Logger *log.Logger) []server.SimpleHandler {
 	HandlerLogger = Logger
+
+	if !strings.HasSuffix(URLBase, "/") {
+		URLBase += "/"
+	}
+
+	if !strings.HasSuffix(ServeBase, "/") {
+		ServeBase += "/"
+	}
+
 	return []server.SimpleHandler{
-		Get(URLBase, ServeBase),
+		Get(URLBase, ServeBase, ShowHidden),
 		Head(URLBase, ServeBase),
 		Post(URLBase, ServeBase),
 		Put(URLBase, ServeBase),
@@ -84,11 +93,11 @@ func ExitHandler(w http.ResponseWriter, StatusCode int, Message string, err erro
 }
 
 // Get will attempt to read out the requested file from disk.
-func Get(URLBase, ServeBase string) server.SimpleHandler {
+func Get(URLBase, ServeBase string, ShowHidden bool) server.SimpleHandler {
 	return server.SimpleHandler{
 		Path:    URLBase,
 		Methods: []string{http.MethodGet},
-		Handler: func(w http.ResponseWriter, r *http.Request) {
+		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
 			RelFilename := strings.TrimPrefix(r.URL.Path, URLBase)
 			Filename := path.Join(ServeBase, RelFilename)
@@ -122,14 +131,22 @@ func Get(URLBase, ServeBase string) server.SimpleHandler {
 			defer f.Close()
 
 			if Details.IsDirectory {
+
 				stats, err := f.Readdir(-1)
 				if err != nil {
 					ExitHandler(w, http.StatusInternalServerError, "file-server error: Failed to read directory contents for folder [ %s ]", err, path.Base(Filename))
 					return
 				}
+
 				sort.Slice(stats, func(i, j int) bool {
 					return stats[i].Name() < stats[j].Name()
 				})
+
+				if len(stats) == 0 {
+					w.Write([]byte("No contents in directory\n"))
+					return
+				}
+
 				for _, stat := range stats {
 					name := ""
 					if stat.IsDir() {
@@ -137,6 +154,12 @@ func Get(URLBase, ServeBase string) server.SimpleHandler {
 					} else {
 						name = stat.Name()
 					}
+
+					// Hide names similar to how most file browsers do if the first character is a period.
+					if name[0] == '.' && !ShowHidden {
+						continue
+					}
+
 					name = fmt.Sprintf("<a href=\"%s%s\">%s</a><br/>\n", r.URL.Path, name, name)
 					w.Write([]byte(name))
 				}
@@ -148,7 +171,7 @@ func Get(URLBase, ServeBase string) server.SimpleHandler {
 				}
 				HandlerLogger.Printf("Successfully served file [ %s ]", Filename)
 			}
-		},
+		}),
 	}
 }
 
@@ -157,7 +180,7 @@ func Head(URLBase, ServeBase string) server.SimpleHandler {
 	return server.SimpleHandler{
 		Path:    URLBase,
 		Methods: []string{http.MethodHead},
-		Handler: func(w http.ResponseWriter, r *http.Request) {
+		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
 			RelFilename := strings.TrimPrefix(r.URL.Path, URLBase)
 			Filename := path.Join(ServeBase, RelFilename)
@@ -181,7 +204,7 @@ func Head(URLBase, ServeBase string) server.SimpleHandler {
 			header.Merge(&RespHeader, &H)
 			HandlerLogger.Printf("Successfully served HTTP Headers for file [ %s ]", Filename)
 			w.WriteHeader(http.StatusOK)
-		},
+		}),
 	}
 }
 
@@ -190,7 +213,7 @@ func Post(URLBase, ServeBase string) server.SimpleHandler {
 	return server.SimpleHandler{
 		Path:    URLBase,
 		Methods: []string{http.MethodPost},
-		Handler: func(w http.ResponseWriter, r *http.Request) {
+		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
 			RelFilename := strings.TrimPrefix(r.URL.Path, URLBase)
 			if RelFilename == "" {
@@ -216,7 +239,7 @@ func Post(URLBase, ServeBase string) server.SimpleHandler {
 			}
 
 			ExitHandler(w, http.StatusCreated, "Successfully created file [ %s ]", nil, RelFilename)
-		},
+		}),
 	}
 }
 
@@ -225,7 +248,7 @@ func Put(URLBase, ServeBase string) server.SimpleHandler {
 	return server.SimpleHandler{
 		Path:    URLBase,
 		Methods: []string{http.MethodPut},
-		Handler: func(w http.ResponseWriter, r *http.Request) {
+		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
 			RelFilename := strings.TrimPrefix(r.URL.Path, URLBase)
 			if RelFilename == "" {
@@ -250,7 +273,7 @@ func Put(URLBase, ServeBase string) server.SimpleHandler {
 
 			ExitHandler(w, http.StatusAccepted, "Successfully updated contents of file [ %s ]", nil, RelFilename)
 			w.WriteHeader(http.StatusAccepted)
-		},
+		}),
 	}
 }
 
@@ -259,7 +282,7 @@ func Patch(URLBase, ServeBase string) server.SimpleHandler {
 	return server.SimpleHandler{
 		Path:    URLBase,
 		Methods: []string{http.MethodPatch},
-		Handler: func(w http.ResponseWriter, r *http.Request) {
+		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
 			RelFilename := strings.TrimPrefix(r.URL.Path, URLBase)
 			if RelFilename == "" {
@@ -283,7 +306,7 @@ func Patch(URLBase, ServeBase string) server.SimpleHandler {
 			}
 
 			ExitHandler(w, http.StatusAccepted, "Successfully appended to file [ %s ]", nil, RelFilename)
-		},
+		}),
 	}
 }
 
@@ -292,7 +315,7 @@ func Delete(URLBase, ServeBase string) server.SimpleHandler {
 	return server.SimpleHandler{
 		Path:    URLBase,
 		Methods: []string{http.MethodDelete},
-		Handler: func(w http.ResponseWriter, r *http.Request) {
+		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
 			RelFilename := strings.TrimPrefix(r.URL.Path, URLBase)
 			if RelFilename == "" {
@@ -306,7 +329,7 @@ func Delete(URLBase, ServeBase string) server.SimpleHandler {
 			}
 
 			ExitHandler(w, http.StatusNoContent, "Successfully deleted file [ %s ]", nil, RelFilename)
-		},
+		}),
 	}
 }
 

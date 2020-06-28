@@ -3,6 +3,7 @@ package server
 import (
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/gorilla/mux"
 )
@@ -36,7 +37,26 @@ func (S *SimpleServer) AddMiddlewares(middlewares ...MiddlewareHandler) {
 
 // AddHandlers will add the given handlers to the router, with the verbose
 // flag determining if a log message should be generated for each added route.
-func (S *SimpleServer) AddHandlers(Handlers ...SimpleHandler) {
+func (S *SimpleServer) AddHandlers(Router *mux.Router, Handlers ...SimpleHandler) {
+	S.addHandlers(Router, Handlers...)
+}
+
+// AddSubrouter will add the set of Handlers to the server by creating a dedicated Subrouter
+// of the given Router.
+//
+// Currently, these subrouters are defined based on PathPrefix.
+func (S *SimpleServer) AddSubrouter(Router *mux.Router, PathPrefix string, Handlers ...SimpleHandler) {
+
+	if !strings.HasSuffix(PathPrefix, "/") {
+		PathPrefix += "/"
+	}
+
+	s := Router.PathPrefix(PathPrefix).Subrouter()
+	S.logger.Printf("Creating subrouter for PathPrefix [ %s ] on Server at [ %s ]", PathPrefix, S.Addr())
+	S.addHandlers(s, Handlers...)
+}
+
+func (S *SimpleServer) addHandlers(Router *mux.Router, Handlers ...SimpleHandler) {
 	// Register the routes, this IS order dependent.
 	for _, Node := range Handlers {
 
@@ -59,6 +79,6 @@ func (S *SimpleServer) AddHandlers(Handlers ...SimpleHandler) {
 
 		// ...
 
-		S.logger.Printf("Added route: %s", RouteDescriptor)
+		S.logger.Printf("Added route: %sto server at [ %s ]", RouteDescriptor, S.Addr())
 	}
 }

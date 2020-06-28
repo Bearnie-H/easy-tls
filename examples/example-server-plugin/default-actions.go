@@ -12,6 +12,10 @@ func defaultInitialization(args ...interface{}) error {
 
 	Killed.Store(false)
 
+	if StatusChannel == nil {
+		StatusChannel = plugins.OpenStatusWriter(10, PluginName)
+	}
+
 	// ...
 
 	return nil
@@ -19,6 +23,9 @@ func defaultInitialization(args ...interface{}) error {
 
 // Status will prepare the StatusChannel and return it, a Non-Nil error implies a failure and means the channel is NOT initialized.
 func Status() (<-chan plugins.PluginStatus, error) {
+	if StatusChannel == nil {
+		StatusChannel = plugins.OpenStatusWriter(10, PluginName)
+	}
 	return StatusChannel.Channel()
 }
 

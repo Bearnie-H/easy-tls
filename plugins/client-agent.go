@@ -45,33 +45,41 @@ func NewClientAgent(Client *client.SimpleClient, PluginFolder string) (*ClientPl
 }
 
 // GetPluginByName will return a pointer to the requested plugin.  This is typically used to provide input arguments for when the plugin is Initiated.
-func (CA *ClientPluginAgent) GetPluginByName(Name string) (*ClientPlugin, error) {
+func (A *ClientPluginAgent) GetPluginByName(Name string) (*ClientPlugin, error) {
 
 	Name = strings.ToLower(Name)
-	for index, p := range CA.RegisteredPlugins {
+	for index, p := range A.RegisteredPlugins {
 		name := strings.ToLower(p.Name())
 		if strings.HasPrefix(name, Name) {
-			return CA.RegisteredPlugins[index], nil
+			return A.RegisteredPlugins[index], nil
 		}
 	}
 	return nil, fmt.Errorf("easytls plugin error: Failed to find plugin %s", Name)
 }
 
 // StopPluginByName will attempt to stop a given plugin by name, if it exists
-func (CA *ClientPluginAgent) StopPluginByName(Name string) error {
+func (A *ClientPluginAgent) StopPluginByName(Name string) error {
 
-	p, err := CA.GetPluginByName(Name)
+	p, err := A.GetPluginByName(Name)
 	if err != nil {
 		return err
 	}
 	return p.Kill()
 }
 
+// AddPluginArguments will configure the registered plugins to all receive a copy of args
+// when their Init() function is called.
+func (A *ClientPluginAgent) AddPluginArguments(args ...interface{}) {
+	for _, P := range A.RegisteredPlugins {
+		P.AppendInputArguments(args...)
+	}
+}
+
 // RegisterPlugins will configure and register all of the plugins in the previously specified PluginFolder.  This will not start any of the plugins, but will only load the necessary symbols from them.
-func (CA *ClientPluginAgent) RegisterPlugins() error {
+func (A *ClientPluginAgent) RegisterPlugins() error {
 
 	// Search for all plugins in the designated search folder...
-	files, err := filepath.Glob(path.Join(CA.PluginSearchFolder, "*.so"))
+	files, err := filepath.Glob(path.Join(A.PluginSearchFolder, "*.so"))
 	if err != nil {
 		return err
 	}
@@ -83,9 +91,9 @@ func (CA *ClientPluginAgent) RegisterPlugins() error {
 
 	// Attempt to load all of the plugins.
 	for index := range files {
-		newPlugin, err := InitializeClientPlugin(files[index], CA.frameworkVersion, CA.client)
+		newPlugin, err := InitializeClientPlugin(files[index], A.frameworkVersion, A.client)
 		if err == nil {
-			CA.RegisteredPlugins[newPlugin.Name()] = newPlugin
+			A.RegisteredPlugins[newPlugin.Name()] = newPlugin
 		} else {
 			if loadErrors == nil {
 				loadErrors = fmt.Errorf("easytls plugin agent error: %s", err)
@@ -100,25 +108,25 @@ func (CA *ClientPluginAgent) RegisterPlugins() error {
 
 // Run will start the ClientPlugin Agent, starting each of the registered plugins.
 // blocking represents if the rest of the application should block on this call or not.
-func (CA *ClientPluginAgent) Run(blocking bool) error {
+func (A *ClientPluginAgent) Run(blocking bool) error {
 
 	if blocking {
-		return CA.run()
+		return A.run()
 	}
 
-	go CA.run()
+	go A.run()
 	return nil
 }
 
-func (CA *ClientPluginAgent) run() error {
+func (A *ClientPluginAgent) run() error {
 
-	if len(CA.RegisteredPlugins) == 0 {
+	if len(A.RegisteredPlugins) == 0 {
 		return errors.New("easytls plugin error: Client Plugin Agent has 0 registered plugins")
 	}
 
-	for pluginName, registeredPlugin := range CA.RegisteredPlugins {
+	for pluginName, registeredPlugin := range A.RegisteredPlugins {
 		if err := registeredPlugin.readStatus(); err != nil {
-			CA.logger.Printf("easytls plugin error: Failed to start status logging for plugin [ %s ] - %s", pluginName, err)
+			A.logger.Printf("easytls plugin error: Failed to start status logging for plugin [ %s ] - %s", pluginName, err)
 			continue
 		}
 
@@ -126,17 +134,17 @@ func (CA *ClientPluginAgent) run() error {
 		registeredPlugin.Start()
 	}
 
-	CA.Wait()
+	A.Wait()
 
 	return nil
 }
 
 // Stop will cause ALL of the currently Running Plugins to safely stop.
-func (CA *ClientPluginAgent) Stop() error {
+func (A *ClientPluginAgent) Stop() error {
 
 	FailedPlugins := []string{}
 
-	for _, P := range CA.RegisteredPlugins {
+	for _, P := range A.RegisteredPlugins {
 		if err := P.Kill(); err != nil {
 			FailedPlugins = append(FailedPlugins, P.Name())
 		}
@@ -150,8 +158,17 @@ func (CA *ClientPluginAgent) Stop() error {
 }
 
 // Wait for the plugin agent to stop safely.
-func (CA *ClientPluginAgent) Wait() {
-	for _, P := range CA.RegisteredPlugins {
+func (A *ClientPluginAgent) Wait() {
+	for _, P := range A.RegisteredPlugins {
 		<-P.Done
 	}
+}
+
+func (A *ClientPluginAgent) sortedPluginNames() []string {
+	Names := []string{}
+	for n := range A.RegisteredPlugins {
+		Names = append(Names, n)
+	}
+	sort.Strings(Names)
+	return Names
 }

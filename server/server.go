@@ -4,7 +4,6 @@ import (
 	"crypto/tls"
 	"log"
 	"net/http"
-	"sync/atomic"
 	"time"
 
 	easytls "github.com/Bearnie-H/easy-tls"
@@ -19,11 +18,11 @@ const (
 
 // SimpleServer is the extension to the default http.Server this package provides.
 type SimpleServer struct {
-	server  *http.Server
-	router  *mux.Router
-	logger  *log.Logger
-	tls     *easytls.TLSBundle
-	stopped atomic.Value
+	server *http.Server
+	router *mux.Router
+	logger *log.Logger
+	tls    *easytls.TLSBundle
+	done   chan struct{}
 }
 
 // NewServerHTTP will create a new HTTP-only server which will serve on the
@@ -71,12 +70,11 @@ func NewServerHTTPS(TLS *easytls.TLSBundle, Addr ...string) (*SimpleServer, erro
 			ErrorLog:  logger,
 			Handler:   router,
 		},
-		router:  router,
-		logger:  logger,
-		tls:     TLS,
-		stopped: atomic.Value{},
+		router: router,
+		logger: logger,
+		tls:    TLS,
+		done:   make(chan struct{}),
 	}
-	Server.stopped.Store(false)
 
 	return Server, nil
 }
@@ -131,33 +129,46 @@ func (S *SimpleServer) Logger() *log.Logger {
 // ListenAndServe will start the SimpleServer, serving HTTPS if enabled,
 // or HTTP if not. This will properly wait for the shutdown
 // to FINISH before returning.
-func (S *SimpleServer) ListenAndServe() error {
+func (S *SimpleServer) ListenAndServe(NonBlocking ...bool) error {
 
-	S.stopped.Store(false)
+	S.enableAboutHandler()
 
 	S.logger.Printf("Starting server at [ %s ]", S.Addr())
 
+	var ListenAndServe func() error
+
 	if S.tls == nil || !S.tls.Enabled {
-		if err := S.server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			return err
+		ListenAndServe = func() error {
+			defer func() { <-S.done }()
+			if err := S.server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+				return err
+			}
+			return nil
 		}
 	} else {
-		if err := S.server.ListenAndServeTLS(S.tls.KeyPair.Certificate, S.tls.KeyPair.Key); err != nil && err != http.ErrServerClosed {
-			return err
+		ListenAndServe = func() error {
+			defer func() { <-S.done }()
+			if err := S.server.ListenAndServeTLS(S.tls.KeyPair.Certificate, S.tls.KeyPair.Key); err != nil && err != http.ErrServerClosed {
+				return err
+			}
+			return nil
 		}
 	}
 
-	// Block while waiting for the server to fully shutdown.
-	for !S.stopped.Load().(bool) {
-		time.Sleep(time.Millisecond * 250)
+	// If no arguments are given, run in blocking mode.
+	if NonBlocking == nil {
+		return ListenAndServe()
 	}
+
+	// If any args are given, run in non-blocking mode.
+	go ListenAndServe()
 
 	return nil
 }
 
 // Shutdown will safely shut down the SimpleServer, returning any errors
 func (S *SimpleServer) Shutdown() error {
-	defer S.stopped.Store(true)
+	defer func() { S.done <- struct{}{}; close(S.done) }()
 	S.Logger().Printf("Shutting down server at [ %s ]", S.Addr())
 	return S.server.Close()
 }

@@ -68,7 +68,7 @@ func main() {
 }
 
 func addRoutes(Server *server.SimpleServer) {
-	Server.AddHandlers(fileserver.Handlers(*URLRoot, *ServeDir, Server.Logger())...)
+	Server.AddHandlers(Server.Router(), fileserver.Handlers(*URLRoot, *ServeDir, false, Server.Logger())...)
 }
 
 func initSafeShutdown(Server *server.SimpleServer) {

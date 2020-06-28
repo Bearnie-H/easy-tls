@@ -7,6 +7,8 @@ import (
 // Module-specific HTTP handlers go here...
 
 // Template function definition to use.
-func template(w http.ResponseWriter, r *http.Request) {
-
+func template() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// ...
+	})
 }

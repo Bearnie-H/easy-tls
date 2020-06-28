@@ -40,7 +40,7 @@ func NotFoundHandlerProxyOverride(S *server.SimpleServer, c *client.SimpleClient
 // Finally, any middlewares desired can be added, noting that the
 // "MiddlewareDefaultLogger" is applied in all cases.
 // If No Server or Client are provided, default instances will be generated.
-func ConfigureReverseProxy(S *server.SimpleServer, Client *client.SimpleClient, logger *log.Logger, RouteMatcher ReverseProxyRouterFunc, PathPrefix string, Middlewares ...server.MiddlewareHandler) {
+func ConfigureReverseProxy(S *server.SimpleServer, Client *client.SimpleClient, logger *log.Logger, RouteMatcher ReverseProxyRouterFunc, PathPrefix string) {
 
 	// If No server is provided, create a default HTTP Server.
 	var err error
@@ -64,9 +64,7 @@ func ConfigureReverseProxy(S *server.SimpleServer, Client *client.SimpleClient, 
 		}
 	}
 
-	S.Router().PathPrefix(PathPrefix).HandlerFunc(DoReverseProxy(Client, RouteMatcher, logger))
-	S.AddMiddlewares(server.MiddlewareDefaultLogger(logger))
-	S.AddMiddlewares(Middlewares...)
+	S.AddSubrouter(S.Router(), PathPrefix, server.NewSimpleHandler(DoReverseProxy(Client, RouteMatcher, logger), PathPrefix))
 }
 
 // DoReverseProxy is the backbone of this package, and the reverse

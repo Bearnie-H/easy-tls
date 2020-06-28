@@ -28,7 +28,7 @@ func main() {
 	}
 
 	// Create a new plugin agent, reading plugins from ./active-modules
-	Agent, err := plugins.NewServerAgent(ModuleFolder, Server)
+	Agent, err := plugins.NewServerAgent(ModuleFolder, "/", Server)
 	if err != nil {
 		panic(err)
 	}
@@ -49,9 +49,6 @@ func main() {
 	Server.AddMiddlewares(server.MiddlewareLimitConnectionRate(time.Millisecond*10, time.Minute*15, Server.Logger()))
 	Server.AddMiddlewares(server.MiddlewareLimitMaxConnections(200, time.Minute*15, Server.Logger()))
 	Server.AddMiddlewares(server.MiddlewareDefaultLogger(Server.Logger()))
-
-	// Add in a route to display a route guide
-	Server.EnableAboutHandler()
 
 	// Set up the server so that any routes which are not found are checked against a routing table file, allowing this server to proxy requests it cannot serve itself, but has been configured to proxy for.
 	proxy.NotFoundHandlerProxyOverride(Server, nil, proxy.LiveFileRouter(RoutingRulesFile), Server.Logger())
