@@ -3,7 +3,9 @@ package server
 import (
 	"crypto/tls"
 	"log"
+	"net"
 	"net/http"
+	"sync"
 	"time"
 
 	easytls "github.com/Bearnie-H/easy-tls"
@@ -18,11 +20,24 @@ const (
 
 // SimpleServer is the extension to the default http.Server this package provides.
 type SimpleServer struct {
+
+	// The actual http.Server implementation
 	server *http.Server
+
+	// The router to use to match incoming requests to specific handlers
 	router *mux.Router
+
+	// The logger to write all messages to
 	logger *log.Logger
-	tls    *easytls.TLSBundle
-	done   chan struct{}
+
+	// The (optional) TLS resources to use
+	tls *easytls.TLSBundle
+
+	// A channel to signal when Shutdown is fully complete and successful
+	done chan struct{}
+
+	mu     *sync.Mutex
+	active bool
 }
 
 // NewServerHTTP will create a new HTTP-only server which will serve on the
@@ -74,6 +89,8 @@ func NewServerHTTPS(TLS *easytls.TLSBundle, Addr ...string) (*SimpleServer, erro
 		logger: logger,
 		tls:    TLS,
 		done:   make(chan struct{}),
+		mu:     &sync.Mutex{},
+		active: false,
 	}
 
 	return Server, nil
@@ -133,7 +150,7 @@ func (S *SimpleServer) ListenAndServe(NonBlocking ...bool) error {
 
 	S.enableAboutHandler()
 
-	S.logger.Printf("Starting server at [ %s ]", S.Addr())
+	S.Logger().Printf("Starting server at [ %s ]", S.Addr())
 
 	var ListenAndServe func() error
 
@@ -155,6 +172,10 @@ func (S *SimpleServer) ListenAndServe(NonBlocking ...bool) error {
 		}
 	}
 
+	S.mu.Lock()
+	S.active = true
+	S.mu.Unlock()
+
 	// If no arguments are given, run in blocking mode.
 	if NonBlocking == nil {
 		return ListenAndServe()
@@ -166,14 +187,49 @@ func (S *SimpleServer) ListenAndServe(NonBlocking ...bool) error {
 	return nil
 }
 
+// Serve will serve the SimpleServer at the given Listener, rather than allowing it to build
+// its own set.
+func (S *SimpleServer) Serve(l net.Listener, NonBlocking ...interface{}) error {
+
+	S.mu.Lock()
+	S.active = true
+	S.mu.Unlock()
+
+	S.server.Addr = l.Addr().String()
+
+	serve := func() error {
+		err := S.server.Serve(l)
+		<-S.done
+		return err
+	}
+
+	if NonBlocking == nil {
+		return serve()
+	}
+
+	go serve()
+	return nil
+}
+
 // Shutdown will safely shut down the SimpleServer, returning any errors
 func (S *SimpleServer) Shutdown() error {
-	defer func() { S.done <- struct{}{}; close(S.done) }()
+
+	S.mu.Lock()
+	if !S.active {
+		return nil
+	}
+	S.mu.Unlock()
+
+	defer func() {
+		S.done <- struct{}{}
+		close(S.done)
+	}()
+
 	S.Logger().Printf("Shutting down server at [ %s ]", S.Addr())
 	return S.server.Close()
 }
 
-// Addr exposes the underlying IP:Port address of the SimpleServer.
+// Addr exposes the underlying local address of the SimpleServer.
 func (S *SimpleServer) Addr() string {
 	return S.server.Addr
 }

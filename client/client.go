@@ -62,6 +62,17 @@ type SimpleClient struct {
 	policy TLSRetryPolicy
 }
 
+// NewClient will wrap an existing http.Client as a SimpleClient.
+func NewClient(C *http.Client) *SimpleClient {
+	return &SimpleClient{
+		client: C,
+		logger: easytls.NewDefaultLogger(),
+		tls:    false,
+		bundle: easytls.TLSBundle{},
+		policy: NoRetry,
+	}
+}
+
 // NewClientHTTP will fully initialize a SimpleClient with TLS settings turned
 // off. These settings CAN be turned on and off as required, either by
 // providing a TLSBundle, or by reusing one passed in earlier.

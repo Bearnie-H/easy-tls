@@ -16,13 +16,13 @@ var (
 	done chan struct{} = make(chan struct{})
 )
 
-func initSafeShutdown(Agent *plugins.ServerPluginAgent, Servers ...*server.SimpleServer) {
+func initSafeShutdown(Agent *plugins.ServerAgent, Servers ...*server.SimpleServer) {
 	sigChan := make(chan os.Signal)
 	signal.Notify(sigChan, os.Interrupt, os.Kill)
 	go doSafeShutdown(sigChan, Agent, Servers...)
 }
 
-func doSafeShutdown(C chan os.Signal, Agent *plugins.ServerPluginAgent, Servers ...*server.SimpleServer) {
+func doSafeShutdown(C chan os.Signal, Agent *plugins.ServerAgent, Servers ...*server.SimpleServer) {
 
 	// Wait on a signal
 	Sig := <-C
@@ -31,7 +31,7 @@ func doSafeShutdown(C chan os.Signal, Agent *plugins.ServerPluginAgent, Servers 
 	defer log.Println("Shut down application!")
 
 	// Close and stop the plugin agent
-	if err := Agent.Stop(); err != nil {
+	if err := Agent.Close(); err != nil {
 		log.Println(err)
 	}
 
@@ -105,15 +105,14 @@ func main() {
 	}
 
 	// Give every plugin a copy of this database handle
-	Agent.AddPluginArguments(Handle)
-
-	// Add all of the routes within all of the contained plugins
-	if err := Agent.LoadRoutes(); err != nil {
-		panic(err)
-	}
+	Agent.AddCommonArguments(Handle)
 
 	// Log all incoming connections
 	S.AddMiddlewares(server.MiddlewareDefaultLogger(S.Logger()))
+
+	if err := Agent.StartAll(); err != nil {
+		panic(err)
+	}
 
 	// Start the server
 	if err := S.ListenAndServe(true); err != nil {

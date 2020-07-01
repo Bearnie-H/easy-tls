@@ -52,7 +52,7 @@ func (S *SimpleServer) AddSubrouter(Router *mux.Router, PathPrefix string, Handl
 	}
 
 	s := Router.PathPrefix(PathPrefix).Subrouter()
-	S.logger.Printf("Creating subrouter for PathPrefix [ %s ] on Server at [ %s ]", PathPrefix, S.Addr())
+	S.Logger().Printf("Creating subrouter for PathPrefix [ %s ] on Server at [ %s ]", PathPrefix, S.Addr())
 	S.addHandlers(s, Handlers...)
 }
 
@@ -79,6 +79,6 @@ func (S *SimpleServer) addHandlers(Router *mux.Router, Handlers ...SimpleHandler
 
 		// ...
 
-		S.logger.Printf("Added route: %sto server at [ %s ]", RouteDescriptor, S.Addr())
+		S.Logger().Printf("Added route: %sto server at [ %s ]", RouteDescriptor, S.Addr())
 	}
 }

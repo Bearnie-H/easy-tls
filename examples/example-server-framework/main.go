@@ -2,6 +2,7 @@
 package main
 
 import (
+	"flag"
 	"log"
 	"os"
 	"os/signal"
@@ -15,11 +16,13 @@ import (
 // Example Constants, set these based on your application needs
 const (
 	ModuleFolder     = "./active-modules"
-	ServerAddress    = ":8080"
+	ServerAddress    = ":8090"
 	RoutingRulesFile = "./EasyTLS-Proxy.rules"
 )
 
 func main() {
+
+	flag.Parse()
 
 	// Create a new HTTP Server, which will listen on port 8080 on all interfaces.
 	Server, err := server.NewServerHTTP(ServerAddress)
@@ -27,21 +30,15 @@ func main() {
 		panic(err)
 	}
 
-	// Create a new plugin agent, reading plugins from ./active-modules
+	// Create a new plugin agent to load the modules into.
+	// If this fails with ErrOtherServerActive, this indicates there's
+	// already an identical plugin agent up and running, so this will instead attempt
+	// to send commands to it, using any remaining command-line arguments to
+	// build the commands to send.
 	Agent, err := plugins.NewServerAgent(ModuleFolder, "/", Server)
-	if err != nil {
-		panic(err)
-	}
-
-	if err := Agent.RegisterPlugins(); err != nil {
-		log.Println(err)
-	}
-
-	// Start status logging of the plugins.
-	Agent.Run(false)
-
-	// Walk the set of registered plugins, adding the routes from each to the router.
-	if err := Agent.LoadRoutes(); err != nil {
+	if err == plugins.ErrOtherServerActive {
+		os.Exit(0)
+	} else if err != nil {
 		panic(err)
 	}
 
@@ -56,6 +53,11 @@ func main() {
 	// Set the server-side timeouts
 	Server.SetTimeouts(time.Hour, time.Second*15, time.Hour, time.Second*5)
 
+	// Start all the modules, loading all the routes and beginning status logging.
+	if err := Agent.StartAll(); err != nil {
+		panic(err)
+	}
+
 	// Set up a go-routine to allow the application to safely shut down.
 	initSafeShutdown(Agent, Server)
 
@@ -67,13 +69,13 @@ func main() {
 	Agent.Wait()
 }
 
-func initSafeShutdown(A *plugins.ServerPluginAgent, S ...*server.SimpleServer) {
+func initSafeShutdown(A *plugins.ServerAgent, S ...*server.SimpleServer) {
 	sigChan := make(chan os.Signal)
 	signal.Notify(sigChan, os.Interrupt, os.Kill)
 	go doSafeShutdown(sigChan, A, S...)
 }
 
-func doSafeShutdown(C chan os.Signal, A *plugins.ServerPluginAgent, S ...*server.SimpleServer) {
+func doSafeShutdown(C chan os.Signal, A *plugins.ServerAgent, S ...*server.SimpleServer) {
 
 	// Wait on a signal
 	<-C
@@ -88,7 +90,7 @@ func doSafeShutdown(C chan os.Signal, A *plugins.ServerPluginAgent, S ...*server
 	}
 
 	// Close and stop the Plugin Agent
-	if err := A.Stop(); err != nil {
+	if err := A.Close(); err != nil {
 		log.Println(err)
 	}
 }

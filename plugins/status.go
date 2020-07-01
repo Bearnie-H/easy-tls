@@ -45,25 +45,40 @@ func (S *PluginStatus) Error() string {
 
 // StatusWriter is the encapsulation of how a plugin writes status messages out to the world.
 type StatusWriter struct {
-	out  chan PluginStatus
-	lock *sync.Mutex
-	name string
+	out    chan PluginStatus
+	lock   *sync.Mutex
+	active bool
+	name   string
+	length int
 }
 
 // OpenStatusWriter will open a new StatusWriter for a given plugin.
 func OpenStatusWriter(Length int, Name string) *StatusWriter {
+
 	if Length == 0 {
 		Length = 1
 	}
+
 	return &StatusWriter{
-		out:  make(chan PluginStatus, Length),
-		lock: &sync.Mutex{},
-		name: Name,
+		out:    make(chan PluginStatus, Length),
+		lock:   &sync.Mutex{},
+		active: true,
+		name:   Name,
+		length: Length,
 	}
 }
 
 // Channel will return the internal channel used by the plugin, to export it to the world
 func (W *StatusWriter) Channel() (<-chan PluginStatus, error) {
+
+	W.lock.Lock()
+	defer W.lock.Unlock()
+
+	if !W.active || W.out == nil {
+		W.out = make(chan PluginStatus, W.length)
+		W.active = true
+	}
+
 	return W.out, nil
 }
 
@@ -72,6 +87,10 @@ func (W *StatusWriter) Printf(Message string, Err error, args ...interface{}) {
 
 	W.lock.Lock()
 	defer W.lock.Unlock()
+
+	if !W.active {
+		return
+	}
 
 	W.out <- NewPluginStatus(
 		fmt.Sprintf("[%s]: %s", W.name, fmt.Sprintf(Message, args...)),
@@ -87,6 +106,10 @@ func (W *StatusWriter) Fatalf(Message string, Err error, args ...interface{}) {
 	W.lock.Lock()
 	defer W.lock.Unlock()
 
+	if !W.active {
+		return
+	}
+
 	W.out <- NewPluginStatus(
 		fmt.Sprintf("[%s]: %s", W.name, fmt.Sprintf(Message, args...)),
 		Err,
@@ -96,14 +119,26 @@ func (W *StatusWriter) Fatalf(Message string, Err error, args ...interface{}) {
 
 // Out allows sending a pre-formatted status message out
 func (W *StatusWriter) Out(S PluginStatus) {
+
 	W.lock.Lock()
 	defer W.lock.Unlock()
-	W.out <- S
+
+	if !W.active {
+		return
+	}
+
+	W.out <- NewPluginStatus(
+		fmt.Sprintf("[%s]: %s", W.name, S.message),
+		S.err,
+		S.fatal,
+	)
 }
 
 // Close will safely close and lock the channel, preventing all other access.
 func (W *StatusWriter) Close(err error) {
-	W.Printf("Stopped module %s", err, W.name)
 	W.lock.Lock()
+	W.active = false
+	defer W.lock.Unlock()
 	close(W.out)
+	W.out = nil
 }

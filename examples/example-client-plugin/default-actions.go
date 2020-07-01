@@ -43,6 +43,26 @@ func Name() string {
 	return fmt.Sprintf("%s-%s (%s)", PluginName, PluginVersion.String(), PluginType)
 }
 
+// Stop is the function to stop the plugin logic.
+func Stop() (err error) {
+
+	if dead, ok := Killed.Load().(bool); ok {
+		if dead {
+			return nil
+		}
+	} else {
+		Killed.Store(false)
+	}
+	Killed.Store(true)
+
+	err = customStopLogic()
+
+	StatusChannel.Close(err)
+	ThreadCount.Wait()
+
+	return err
+}
+
 func getFolderBase() (string, error) {
 	ex, err := os.Executable()
 	if err != nil {
