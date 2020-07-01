@@ -10,7 +10,7 @@ import (
 func Main(Client *client.SimpleClient, args ...interface{}) {
 
 	// Main plugin loop.
-	for {
+	for !Killed.Load().(bool) {
 		// ...
 
 		time.Sleep(DefaultPluginCycleTime)
