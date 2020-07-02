@@ -116,7 +116,7 @@ func main() {
 	}
 
 	// Start the server
-	if err := S.ListenAndServe(true); err != nil {
+	if err := S.ListenAndServe(); err != nil {
 		log.Println(err)
 	}
 

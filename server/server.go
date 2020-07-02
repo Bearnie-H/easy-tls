@@ -146,7 +146,7 @@ func (S *SimpleServer) Logger() *log.Logger {
 // ListenAndServe will start the SimpleServer, serving HTTPS if enabled,
 // or HTTP if not. This will properly wait for the shutdown
 // to FINISH before returning.
-func (S *SimpleServer) ListenAndServe(NonBlocking ...bool) error {
+func (S *SimpleServer) ListenAndServe() error {
 
 	S.enableAboutHandler()
 
@@ -176,15 +176,7 @@ func (S *SimpleServer) ListenAndServe(NonBlocking ...bool) error {
 	S.active = true
 	S.mu.Unlock()
 
-	// If no arguments are given, run in blocking mode.
-	if NonBlocking == nil {
-		return ListenAndServe()
-	}
-
-	// If any args are given, run in non-blocking mode.
-	go ListenAndServe()
-
-	return nil
+	return ListenAndServe()
 }
 
 // Serve will serve the SimpleServer at the given Listener, rather than allowing it to build
