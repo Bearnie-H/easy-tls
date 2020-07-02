@@ -1,6 +1,7 @@
 package client
 
 import (
+	"context"
 	"crypto/tls"
 	"fmt"
 	"io"
@@ -53,7 +54,7 @@ const (
 // The use and functionality of this is transparent to whether or not this is
 // running in HTTP or HTTPS mode, with a basic utility function to check.
 type SimpleClient struct {
-	client *http.Client
+	*http.Client
 	logger *log.Logger
 
 	tls    bool
@@ -65,7 +66,7 @@ type SimpleClient struct {
 // NewClient will wrap an existing http.Client as a SimpleClient.
 func NewClient(C *http.Client) *SimpleClient {
 	return &SimpleClient{
-		client: C,
+		Client: C,
 		logger: easytls.NewDefaultLogger(),
 		tls:    false,
 		bundle: easytls.TLSBundle{},
@@ -96,7 +97,7 @@ func NewClientHTTPS(TLS *easytls.TLSBundle, TLSPolicy TLSRetryPolicy) (*SimpleCl
 	}
 
 	s := &SimpleClient{
-		client: &http.Client{
+		Client: &http.Client{
 			Timeout: time.Hour,
 			Transport: &http.Transport{
 				TLSClientConfig:   tls,
@@ -161,6 +162,20 @@ func NewRequest(Method string, URL *url.URL, Headers http.Header, Contents io.Re
 	return req, nil
 }
 
+// NewRequestWithContext will create a new HTTP Request, ready to be used by any
+// implementation of an http.Client.
+func NewRequestWithContext(ctx context.Context, Method string, URL *url.URL, Headers http.Header, Contents io.Reader) (*http.Request, error) {
+
+	req, err := http.NewRequestWithContext(ctx, Method, URL.String(), Contents)
+	if err != nil {
+		return nil, err
+	}
+
+	header.Merge(&(req.Header), &Headers)
+
+	return req, nil
+}
+
 // EnableTLS will enable the TLS settings for a SimpleClient based on the
 // provided TLSBundle. If the client previously had a TLS bundle provided,
 // this will fall back and attempt to use that if none is given. If no
@@ -184,7 +199,7 @@ func (C *SimpleClient) EnableTLS(TLS ...*easytls.TLSBundle) (err error) {
 		}
 	}
 
-	C.client = &http.Client{
+	C.Client = &http.Client{
 		Timeout: time.Hour,
 		Transport: &http.Transport{
 			TLSClientConfig:   tlsConf,
@@ -199,7 +214,7 @@ func (C *SimpleClient) EnableTLS(TLS ...*easytls.TLSBundle) (err error) {
 // DisableTLS will turn off the TLS settings for a SimpleClient.
 func (C *SimpleClient) DisableTLS() {
 
-	C.client = &http.Client{
+	C.Client = &http.Client{
 		Timeout: time.Hour,
 		Transport: &http.Transport{
 			TLSClientConfig:   &tls.Config{},

@@ -1,7 +1,6 @@
 package plugins
 
 import (
-	"fmt"
 	"log"
 	"path/filepath"
 	"sort"
@@ -105,11 +104,19 @@ func (A *Agent) NewGenericModule(Filename string) *GenericPlugin {
 // StartAll will run Start() for all of the included modules of the agent.
 func (A *Agent) StartAll() error {
 
+	wg := &sync.WaitGroup{}
+
 	for _, M := range A.Modules() {
-		if err := M.Start(); err != nil {
-			return err
-		}
+		wg.Add(1)
+		go func(M Module, wg *sync.WaitGroup) {
+			defer wg.Done()
+			if err := M.Start(); err != nil {
+				A.Logger().Printf("plugin agent error: Error occured while starting module [ %s ] - %s", M.Name(), err)
+			}
+		}(M, wg)
 	}
+
+	wg.Wait()
 
 	return nil
 }
@@ -142,19 +149,21 @@ func (A *Agent) AddCommonArguments(args ...interface{}) {
 // StopAll will run Stop() for all of the included modules of the agent.
 func (A *Agent) StopAll() error {
 
-	var errs error
+	wg := &sync.WaitGroup{}
 
 	for _, M := range A.Modules() {
-		if err := M.Stop(); err != nil {
-			if errs == nil {
-				errs = err
-			} else {
-				errs = fmt.Errorf("%s. plugin error: Error occured while stopping plugin [ %s ] - %s", errs, M.Name(), err)
+		wg.Add(1)
+		go func(M Module, wg *sync.WaitGroup) {
+			defer wg.Done()
+			if err := M.Stop(); err != nil {
+				A.Logger().Printf("plugin agent error: Error occured while stopping module [ %s ] - %s", M.Name(), err)
 			}
-		}
+		}(M, wg)
 	}
 
-	return errs
+	wg.Wait()
+
+	return nil
 }
 
 // Close will close down an agent, stopping all plugins and releasing all resources

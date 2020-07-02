@@ -46,19 +46,23 @@ func Name() string {
 // Stop is the function to stop the plugin logic.
 func Stop() (err error) {
 
-	if dead, ok := Killed.Load().(bool); ok {
-		if dead {
-			return nil
-		}
-	} else {
-		Killed.Store(false)
+	// If the plugin is in the killed state, return immediately
+	if dead, ok := Killed.Load().(bool); ok && dead {
+		return nil
 	}
+
 	Killed.Store(true)
+
+	// Close all active contexts
+	Contexts.Close()
 
 	err = customStopLogic()
 
-	StatusChannel.Close(err)
+	// Wait for all of the go-routines spawned by the plugin to exit.
 	ThreadCount.Wait()
+
+	// Close all Status logging
+	StatusChannel.Close(err)
 
 	return err
 }

@@ -49,9 +49,11 @@ func (c *command) url(Agent *Agent) *url.URL {
 
 func (c *command) do(C *client.SimpleClient, A *Agent) error {
 
+	A.Logger().Printf("Subitting command [ %v ]", *c)
+
 	resp, err := C.Get(c.url(A), nil)
 	if err != nil && err != client.ErrInvalidStatusCode {
-		A.Logger().Printf("plugin command error: Error occured while submitting command [ %+v ] - %s", c, err)
+		A.Logger().Printf("plugin command error: Error occured while submitting command [ %+v ] - %s", *c, err)
 		return err
 	}
 

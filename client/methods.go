@@ -1,6 +1,7 @@
 package client
 
 import (
+	"context"
 	"errors"
 	"io"
 	"mime/multipart"
@@ -28,18 +29,7 @@ func (C *SimpleClient) setScheme(URL *url.URL) {
 // an error and nil response on an HTTP StatusCode which is outside the 200
 // block.
 func (C *SimpleClient) Get(URL *url.URL, Headers map[string][]string) (*http.Response, error) {
-
-	// Set the scheme, allowing for this to be missing, and be able to be defined by the internal TLS state of the Client.
-	C.setScheme(URL)
-
-	// Create the request
-	req, err := NewRequest(http.MethodGet, URL, Headers, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	// Perform the request
-	return C.Do(req)
+	return C.GetContext(context.Background(), URL, Headers)
 }
 
 // Head is the wrapper function for an HTTP "HEAD" request. This will create a
@@ -50,28 +40,7 @@ func (C *SimpleClient) Get(URL *url.URL, Headers map[string][]string) (*http.Res
 // an error and nil Header on an HTTP StatusCode which is outside the 200
 // block.
 func (C *SimpleClient) Head(URL *url.URL, Headers map[string][]string) (*http.Response, error) {
-
-	// Set the scheme, allowing for this to be missing, and be able to be defined by the internal TLS state of the Client.
-	C.setScheme(URL)
-
-	// Create the request
-	req, err := NewRequest(http.MethodHead, URL, Headers, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	// Perform the request
-	resp, err := C.Do(req)
-	switch err {
-	case nil:
-		defer resp.Body.Close()
-		return resp, nil
-	case ErrInvalidStatusCode:
-		defer resp.Body.Close()
-		return resp, err
-	default:
-		return nil, err
-	}
+	return C.HeadContext(context.Background(), URL, Headers)
 }
 
 // Post is the wrapper function for an HTTP "POST" request. This will create a
@@ -86,18 +55,7 @@ func (C *SimpleClient) Head(URL *url.URL, Headers map[string][]string) (*http.Re
 // io.Pipes and multipart.Writers, but this has not been tested, and multipart
 // Post is planned to be an explicit function in the future.
 func (C *SimpleClient) Post(URL *url.URL, Contents io.Reader, Headers map[string][]string) (*http.Response, error) {
-
-	// Set the scheme, allowing for this to be missing, and be able to be defined by the internal TLS state of the Client.
-	C.setScheme(URL)
-
-	// Create the request
-	req, err := NewRequest(http.MethodPost, URL, Headers, Contents)
-	if err != nil {
-		return nil, err
-	}
-
-	// Perform the request
-	return C.Do(req)
+	return C.PostContext(context.Background(), URL, Contents, Headers)
 }
 
 // PostMultipart is the wrapper function for an HTTP "POST" request with a
@@ -111,7 +69,7 @@ func (C *SimpleClient) Post(URL *url.URL, Contents io.Reader, Headers map[string
 //
 // NOTE: This has not yet been implemented.
 func (C *SimpleClient) PostMultipart(URL *url.URL, Contents multipart.Reader, Headers map[string][]string) (*http.Response, error) {
-	return nil, errors.New("Method POST-MULTIPART not yet implemented")
+	return C.PostMultipartContext(context.Background(), URL, Contents, Headers)
 }
 
 // Put is the wrapper function for an HTTP "PUT" request. This will create a
@@ -122,18 +80,7 @@ func (C *SimpleClient) PostMultipart(URL *url.URL, Contents multipart.Reader, He
 // Response from the server, unaltered. This function returns an error and nil
 // response on an HTTP StatusCode which is outside the 200 block.
 func (C *SimpleClient) Put(URL *url.URL, Contents io.Reader, Headers map[string][]string) (*http.Response, error) {
-
-	// Set the scheme, allowing for this to be missing, and be able to be defined by the internal TLS state of the Client.
-	C.setScheme(URL)
-
-	// Create the request
-	req, err := NewRequest(http.MethodPut, URL, Headers, Contents)
-	if err != nil {
-		return nil, err
-	}
-
-	// Perform the request
-	return C.Do(req)
+	return C.PutContext(context.Background(), URL, Contents, Headers)
 }
 
 // Delete is the wrapper function for an HTTP "DELETE" request. This will
@@ -142,28 +89,7 @@ func (C *SimpleClient) Put(URL *url.URL, Contents io.Reader, Headers map[string]
 // This will ONLY any errors encountered, and no HTTP Response.
 // The internal HTTP Response from the server will be safely closed by this function.
 func (C *SimpleClient) Delete(URL *url.URL, Headers map[string][]string) (*http.Response, error) {
-
-	// Set the scheme, allowing for this to be missing, and be able to be defined by the internal TLS state of the Client.
-	C.setScheme(URL)
-
-	// Create the request
-	req, err := NewRequest(http.MethodDelete, URL, Headers, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	// Perform the request
-	resp, err := C.Do(req)
-	switch err {
-	case nil:
-		defer resp.Body.Close()
-		return resp, nil
-	case ErrInvalidStatusCode:
-		defer resp.Body.Close()
-		return resp, err
-	default:
-		return nil, err
-	}
+	return C.DeleteContext(context.Background(), URL, Headers)
 }
 
 // Patch is the wrapper function for an HTTP "PATCH" request. This will create
@@ -174,26 +100,7 @@ func (C *SimpleClient) Delete(URL *url.URL, Headers map[string][]string) (*http.
 // Response from the server, unaltered. This function returns an error and nil
 // response on an HTTP StatusCode which is outside the 200 block.
 func (C *SimpleClient) Patch(URL *url.URL, Contents io.Reader, Headers map[string][]string) (*http.Response, error) {
-
-	// Set the scheme, allowing for this to be missing, and be able to be defined by the internal TLS state of the Client.
-	C.setScheme(URL)
-
-	// Create the request
-	req, err := NewRequest(http.MethodPatch, URL, Headers, Contents)
-	if err != nil {
-		return nil, err
-	}
-
-	// Perform the request
-	return C.Do(req)
-}
-
-// Connect is the wrapper function for an HTTP "CONNECT" request.
-//
-// NOTE: This is not yet implemented, and does not appear to be supported by
-// the standard library http package.
-func (C *SimpleClient) Connect(URL *url.URL, Headers map[string][]string) error {
-	return errors.New("Method CONNECT not yet implemented")
+	return C.PatchContext(context.Background(), URL, Contents, Headers)
 }
 
 // Options is the wrapper function for an HTTP "OPTIONS" request. This will
@@ -203,18 +110,7 @@ func (C *SimpleClient) Connect(URL *url.URL, Headers map[string][]string) error 
 // This function returns an error and nil response on an HTTP StatusCode
 //  which is outside the 200 block.
 func (C *SimpleClient) Options(URL *url.URL, Headers map[string][]string) (*http.Response, error) {
-
-	// Set the scheme, allowing for this to be missing, and be able to be defined by the internal TLS state of the Client.
-	C.setScheme(URL)
-
-	// Create the request
-	req, err := NewRequest(http.MethodOptions, URL, Headers, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	// Perform the request
-	return C.Do(req)
+	return C.OptionsContext(context.Background(), URL, Headers)
 }
 
 // Trace is the wrapper function for an HTTP "TRACE" request. This will create
@@ -224,18 +120,7 @@ func (C *SimpleClient) Options(URL *url.URL, Headers map[string][]string) (*http
 // This function returns an error and nil response on an HTTP StatusCode
 // which is outside the 200 block.
 func (C *SimpleClient) Trace(URL *url.URL, Headers map[string][]string) (*http.Response, error) {
-
-	// Set the scheme, allowing for this to be missing, and be able to be defined by the internal TLS state of the Client.
-	C.setScheme(URL)
-
-	// Create the request
-	req, err := NewRequest(http.MethodTrace, URL, Headers, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	// Perform the request
-	return C.Do(req)
+	return C.TraceContext(context.Background(), URL, Headers)
 }
 
 // Do is the wrapper function for a generic pre-generated HTTP request.
@@ -256,7 +141,7 @@ func (C *SimpleClient) Do(req *http.Request) (*http.Response, error) {
 	// Set the scheme, allowing for this to be missing, and be able to be defined by the internal TLS state of the Client.
 	C.setScheme(req.URL)
 
-	resp, err := C.client.Do(req)
+	resp, err := C.Client.Do(req)
 	if err != nil {
 		return C.shouldDowngrade(req, resp, err)
 	}

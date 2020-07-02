@@ -9,6 +9,9 @@ import (
 // Init is the function to start the plugin logic.
 func Init(Client *client.SimpleClient, args ...interface{}) error {
 
+	ThreadCount.Add(1)
+	defer ThreadCount.Done()
+
 	// Perform the non-specific module initialization steps.
 	if err := defaultInitialization(Client, args...); err != nil {
 		return fmt.Errorf("easytls module error: Failed to perform standard initialization - %s", err)

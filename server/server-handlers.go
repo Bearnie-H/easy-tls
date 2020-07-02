@@ -84,6 +84,7 @@ func (S *SimpleServer) enableAboutHandler() {
 	})
 
 	// Format the route information one node per row
+	sort.Strings(RouteList)
 	routes := strings.Join(RouteList, "\n")
 	aboutHandler := func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {

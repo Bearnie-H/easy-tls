@@ -18,6 +18,7 @@ const (
 	URLVersionHandler string = "/version/{Name}"
 	URLStopHandler    string = "/stop/{Name}"
 	URLStateHandler   string = "/state/{Name}"
+	URLListHandler    string = "/list"
 	URLActiveHandler  string = "/active"
 	URLHelpHandler    string = "/"
 )
@@ -29,6 +30,7 @@ var availableOptions = []string{
 	"version {name...}",
 	"state {name...}",
 	"stop {name...}",
+	"loaded",
 	"active",
 	"help",
 }
@@ -44,6 +46,7 @@ func formatCommandHandlers(Agent *Agent) []server.SimpleHandler {
 	h = append(h, server.NewSimpleHandler(versionHandler(Agent), URLVersionHandler, http.MethodGet, http.MethodPost))
 	h = append(h, server.NewSimpleHandler(stopHandler(Agent), URLStopHandler, http.MethodGet, http.MethodPost))
 	h = append(h, server.NewSimpleHandler(stateHandler(Agent), URLStateHandler, http.MethodGet, http.MethodPost))
+	h = append(h, server.NewSimpleHandler(loadedHandler(Agent), URLListHandler, http.MethodGet, http.MethodPost))
 	h = append(h, server.NewSimpleHandler(activeHandler(Agent), URLActiveHandler, http.MethodGet, http.MethodPost))
 	h = append(h, server.NewSimpleHandler(helpHandler(Agent), URLHelpHandler, http.MethodGet, http.MethodPost))
 
@@ -239,5 +242,31 @@ func stateHandler(Agent *Agent) http.Handler {
 		State := M.State()
 		s := exitHandler(w, http.StatusOK, "Module [ %s ] is [ %s ] (up for %s)", nil, M.Name(), State.String(), M.Uptime())
 		Agent.Logger().Println(s.String())
+	})
+}
+
+// LoadedHandler will accept a request and attempt to
+func loadedHandler(Agent *Agent) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+
+		b := bytes.NewBuffer(nil)
+
+		for _, M := range Agent.Modules() {
+			if M.State() >= stateLoaded {
+				b.WriteString(fmt.Sprintf("Module [ %s ] is [ %s ] (up for %s)\n", M.Name(), M.State(), M.Uptime().String()))
+			}
+		}
+
+		if b.Len() == 0 {
+			b.WriteString(fmt.Sprintf("No modules found"))
+		}
+
+		exitHandler(w, http.StatusOK, b.String(), nil)
+
+		for _, S := range strings.Split(b.String(), "\n") {
+			if S != "" {
+				Agent.Logger().Println(S)
+			}
+		}
 	})
 }

@@ -9,10 +9,19 @@ import (
 // Main is the top-level ACTION performed by this plugin.
 func Main(Client *client.SimpleClient, args ...interface{}) {
 
+	tf := time.NewTicker(time.Second)
+	ts := time.NewTicker(DefaultPluginCycleTime)
+
+	defer tf.Stop()
+	defer ts.Stop()
+
 	// Main plugin loop.
 	for !Killed.Load().(bool) {
-		// ...
-
-		time.Sleep(DefaultPluginCycleTime)
+		select {
+		case <-tf.C:
+			continue
+		case <-ts.C:
+			// ...
+		}
 	}
 }

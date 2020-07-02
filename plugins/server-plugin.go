@@ -116,11 +116,16 @@ func (p *ServerPlugin) Start() error {
 		return err
 	}
 
+	p.state = stateActive
+	p.started = time.Now()
+
 	switch {
 	case p.initHandlers != nil:
 		{
 			routes, err := p.initHandlers(p.args...)
 			if err != nil {
+				p.stop()
+				p.state = stateLoaded
 				return err
 			}
 			p.agent.server.AddHandlers(p.agent.router, routes...)
@@ -129,6 +134,8 @@ func (p *ServerPlugin) Start() error {
 		{
 			routes, prefix, err := p.initSubrouter(p.args...)
 			if err != nil {
+				p.stop()
+				p.state = stateLoaded
 				return err
 			}
 			p.agent.server.AddSubrouter(p.agent.router, prefix, routes...)
@@ -137,8 +144,6 @@ func (p *ServerPlugin) Start() error {
 		return fmt.Errorf("plugin error: No Init() function loaded for module [ %s ]", p.Name())
 	}
 
-	p.state = stateActive
-	p.started = time.Now()
 	p.agent.Logger().Printf("Started module [ %s ]", p.Name())
 
 	return nil

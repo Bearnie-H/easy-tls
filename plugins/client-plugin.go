@@ -110,10 +110,15 @@ func (p *ClientPlugin) Start() error {
 		return err
 	}
 
+	p.state = stateActive
+	p.started = time.Now()
+
 	switch {
 	case p.init != nil:
 		{
 			if err := p.init(p.agent.client, p.args...); err != nil {
+				p.stop()
+				p.state = stateLoaded
 				return err
 			}
 		}
@@ -121,8 +126,6 @@ func (p *ClientPlugin) Start() error {
 		return fmt.Errorf("plugin error: No Init() function loaded for module [ %s ]", p.Name())
 	}
 
-	p.state = stateActive
-	p.started = time.Now()
 	p.agent.Logger().Printf("Started module [ %s ]", p.Name())
 
 	return nil

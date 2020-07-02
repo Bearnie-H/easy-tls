@@ -22,7 +22,7 @@ const (
 type SimpleServer struct {
 
 	// The actual http.Server implementation
-	server *http.Server
+	*http.Server
 
 	// The router to use to match incoming requests to specific handlers
 	router *mux.Router
@@ -79,7 +79,7 @@ func NewServerHTTPS(TLS *easytls.TLSBundle, Addr ...string) (*SimpleServer, erro
 	}
 
 	Server := &SimpleServer{
-		server: &http.Server{
+		Server: &http.Server{
 			Addr:      Addr[0],
 			TLSConfig: tls,
 			ErrorLog:  logger,
@@ -112,22 +112,22 @@ func (S *SimpleServer) SetTimeouts(ReadTimeout, ReadHeaderTimeout, WriteTimeout,
 
 	// Timeout to read the full request
 	if ReadTimeout != 0 {
-		S.server.ReadTimeout = ReadTimeout
+		S.Server.ReadTimeout = ReadTimeout
 	}
 
 	// Timeout to read the header of a request
 	if ReadHeaderTimeout != 0 {
-		S.server.ReadHeaderTimeout = ReadHeaderTimeout
+		S.Server.ReadHeaderTimeout = ReadHeaderTimeout
 	}
 
 	// Timeout to finish the full response
 	if WriteTimeout != 0 {
-		S.server.WriteTimeout = WriteTimeout
+		S.Server.WriteTimeout = WriteTimeout
 	}
 
 	// How long to keep connections alive (if keep-alives are enabled.)
 	if IdleTimeout != 0 {
-		S.server.IdleTimeout = IdleTimeout
+		S.Server.IdleTimeout = IdleTimeout
 	}
 }
 
@@ -135,7 +135,7 @@ func (S *SimpleServer) SetTimeouts(ReadTimeout, ReadHeaderTimeout, WriteTimeout,
 // given output.
 func (S *SimpleServer) SetLogger(logger *log.Logger) {
 	S.logger = logger
-	S.server.ErrorLog = logger
+	S.Server.ErrorLog = logger
 }
 
 // Logger will return the internal logger used by the server.
@@ -157,7 +157,7 @@ func (S *SimpleServer) ListenAndServe(NonBlocking ...bool) error {
 	if S.tls == nil || !S.tls.Enabled {
 		ListenAndServe = func() error {
 			defer func() { <-S.done }()
-			if err := S.server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			if err := S.Server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 				return err
 			}
 			return nil
@@ -165,7 +165,7 @@ func (S *SimpleServer) ListenAndServe(NonBlocking ...bool) error {
 	} else {
 		ListenAndServe = func() error {
 			defer func() { <-S.done }()
-			if err := S.server.ListenAndServeTLS(S.tls.KeyPair.Certificate, S.tls.KeyPair.Key); err != nil && err != http.ErrServerClosed {
+			if err := S.Server.ListenAndServeTLS(S.tls.KeyPair.Certificate, S.tls.KeyPair.Key); err != nil && err != http.ErrServerClosed {
 				return err
 			}
 			return nil
@@ -195,10 +195,10 @@ func (S *SimpleServer) Serve(l net.Listener, NonBlocking ...interface{}) error {
 	S.active = true
 	S.mu.Unlock()
 
-	S.server.Addr = l.Addr().String()
+	S.Server.Addr = l.Addr().String()
 
 	serve := func() error {
-		err := S.server.Serve(l)
+		err := S.Server.Serve(l)
 		<-S.done
 		return err
 	}
@@ -226,19 +226,19 @@ func (S *SimpleServer) Shutdown() error {
 	}()
 
 	S.Logger().Printf("Shutting down server at [ %s ]", S.Addr())
-	return S.server.Close()
+	return S.Server.Close()
 }
 
 // Addr exposes the underlying local address of the SimpleServer.
 func (S *SimpleServer) Addr() string {
-	return S.server.Addr
+	return S.Server.Addr
 }
 
 // SetKeepAlives will configure the server for whether or not it
 // should use Keep-Alives. True implies to use Keep-Alives,
 // and false will disable them.
 func (S *SimpleServer) SetKeepAlives(SetTo bool) {
-	S.server.SetKeepAlivesEnabled(SetTo)
+	S.Server.SetKeepAlivesEnabled(SetTo)
 }
 
 // Router will return a pointer to the underlying router used by the server.
