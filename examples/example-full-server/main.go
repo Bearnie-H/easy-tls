@@ -52,7 +52,7 @@ func doSafeShutdown(C chan os.Signal, Agent *plugins.ServerAgent, Servers ...*se
 func main() {
 
 	// Create one server to listen on all interfaces on port 8080
-	S, err := server.NewServerHTTP(":8080")
+	S, err := server.NewServerHTTP()
 	if err != nil {
 		panic(err)
 	}
@@ -101,6 +101,7 @@ func main() {
 	Handle, err := sql.Open("", "")
 	if err != nil {
 		// The above call won't work since it has no arguments, so just ignore the error
+		// as this is just an example.
 		// panic(err)
 	}
 

@@ -30,7 +30,7 @@ var availableOptions = []string{
 	"version {name...}",
 	"state {name...}",
 	"stop {name...}",
-	"loaded",
+	"list",
 	"active",
 	"help",
 }

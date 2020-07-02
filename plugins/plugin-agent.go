@@ -204,13 +204,7 @@ func (A *Agent) Done() chan struct{} {
 
 // Wait will wait for all of the included modules to signal they are done before returning.
 func (A *Agent) Wait() {
-
-	// Wait for all modules to safely exit
-	for _, P := range A.Modules() {
-		<-P.Done()
-	}
-
-	//		Wait for the agent to fully close
+	// Wait for the agent to fully close
 	<-A.Done()
 }
 

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"log"
 	"os"
 	"os/signal"
@@ -9,10 +10,12 @@ import (
 )
 
 func main() {
+	flag.Parse()
 
 	// Create a Plugin Agent, which will create a default HTTP Client, to use modules found in ./active-modules, and to log all output to STDOUT.
 	Agent, err := plugins.NewClientAgent("./active-modules", nil)
 	if err == plugins.ErrOtherServerActive {
+		Agent.SendCommands(flag.Args()...)
 		os.Exit(0)
 	} else if err != nil {
 		panic(err)

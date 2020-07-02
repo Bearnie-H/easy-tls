@@ -16,7 +16,7 @@ import (
 // Example Constants, set these based on your application needs
 const (
 	ModuleFolder     = "./active-modules"
-	ServerAddress    = ":8090"
+	ServerAddress    = ":8080"
 	RoutingRulesFile = "./EasyTLS-Proxy.rules"
 )
 
@@ -48,7 +48,7 @@ func main() {
 	Server.AddMiddlewares(server.MiddlewareDefaultLogger(Server.Logger()))
 
 	// Set up the server so that any routes which are not found are checked against a routing table file, allowing this server to proxy requests it cannot serve itself, but has been configured to proxy for.
-	proxy.NotFoundHandlerProxyOverride(Server, nil, proxy.LiveFileRouter(RoutingRulesFile), Server.Logger())
+	proxy.NotFoundHandlerProxyOverride(Server, nil, proxy.LiveFileRouter(RoutingRulesFile), nil)
 
 	// Set the server-side timeouts
 	Server.SetTimeouts(time.Hour, time.Second*15, time.Hour, time.Second*5)

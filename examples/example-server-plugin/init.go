@@ -30,6 +30,8 @@ import (
 // Best practices for this prefix value is to simply use the "PluginName"
 // global variable, as this is both simple and a meaningfully clear value.
 func Init(args ...interface{}) ([]server.SimpleHandler, string, error) {
+	ThreadCount.Add(1)
+	defer ThreadCount.Done()
 
 	// Perform the non-specific module initialization steps.
 	if err := defaultInitialization(args...); err != nil {

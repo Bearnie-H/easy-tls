@@ -53,7 +53,7 @@ func main() {
 	Server.AddMiddlewares(server.MiddlewareLimitConnectionRate(time.Millisecond*10, time.Minute*15, nil))
 
 	// Add routes
-	addRoutes(Server)
+	Server.AddHandlers(Server.Router(), fileserver.Handlers(*URLRoot, *ServeDir, false, Server.Logger())...)
 
 	// Set the server-side timeouts
 	Server.SetTimeouts(time.Hour, time.Second*15, time.Hour, time.Second*5)
@@ -65,10 +65,6 @@ func main() {
 	if err := Server.ListenAndServe(); err != nil {
 		log.Println(err)
 	}
-}
-
-func addRoutes(Server *server.SimpleServer) {
-	Server.AddHandlers(Server.Router(), fileserver.Handlers(*URLRoot, *ServeDir, false, Server.Logger())...)
 }
 
 func initSafeShutdown(Server *server.SimpleServer) {

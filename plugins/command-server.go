@@ -41,7 +41,9 @@ func newCommandServer(Agent *Agent) (*server.SimpleServer, error) {
 	S.AddHandlers(S.Router(), formatCommandHandlers(Agent)...)
 
 	// Serve traffic on the listener
-	S.Serve(L, true)
+	go func(S *server.SimpleServer, L *net.UnixListener) {
+		S.Serve(L)
+	}(S, L)
 
 	Agent.Logger().Printf("Serving command server at [ %s ]", S.Addr())
 

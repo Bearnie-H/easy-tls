@@ -189,7 +189,7 @@ func (S *SimpleServer) ListenAndServe(NonBlocking ...bool) error {
 
 // Serve will serve the SimpleServer at the given Listener, rather than allowing it to build
 // its own set.
-func (S *SimpleServer) Serve(l net.Listener, NonBlocking ...interface{}) error {
+func (S *SimpleServer) Serve(l net.Listener) error {
 
 	S.mu.Lock()
 	S.active = true
@@ -197,18 +197,9 @@ func (S *SimpleServer) Serve(l net.Listener, NonBlocking ...interface{}) error {
 
 	S.Server.Addr = l.Addr().String()
 
-	serve := func() error {
-		err := S.Server.Serve(l)
-		<-S.done
-		return err
-	}
-
-	if NonBlocking == nil {
-		return serve()
-	}
-
-	go serve()
-	return nil
+	err := S.Server.Serve(l)
+	<-S.done
+	return err
 }
 
 // Shutdown will safely shut down the SimpleServer, returning any errors
