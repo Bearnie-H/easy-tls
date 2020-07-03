@@ -1,15 +1,18 @@
 package plugins
 
 import (
+	"context"
 	"crypto/sha1"
 	"encoding/hex"
 	"errors"
+	"io/ioutil"
+	"log"
 	"net"
+	"net/http"
 	"os"
 	"path"
-	"runtime"
-	"syscall"
 
+	"github.com/Bearnie-H/easy-tls/client"
 	"github.com/Bearnie-H/easy-tls/server"
 )
 
@@ -23,6 +26,20 @@ var (
 func newCommandServer(Agent *Agent) (*server.SimpleServer, error) {
 
 	Agent.commandServerSock = formatSocketName(Agent.moduleFolder)
+
+	// Check if there is already a socket open with this name
+	_, err := os.Stat(Agent.commandServerSock)
+	if err == nil {
+
+		// Check if someone is listening on the other end.
+		if Agent.commandServerActive() {
+			Agent.Logger().Printf("Plugin Agent socket already active.")
+			return nil, ErrOtherServerActive
+		}
+		if err := os.Remove(Agent.commandServerSock); err != nil {
+			return nil, err
+		}
+	}
 
 	// Spawn a new listener to listen on the unix domain socket
 	L, err := newCommandListener(Agent.commandServerSock)
@@ -40,14 +57,45 @@ func newCommandServer(Agent *Agent) (*server.SimpleServer, error) {
 	// Add in the dedicated handlers to perform actions on the plugins loaded by the agent
 	S.AddHandlers(S.Router(), formatCommandHandlers(Agent)...)
 
+	Agent.Logger().Printf("Serving command server at [ %s ]", S.Addr())
+
 	// Serve traffic on the listener
 	go func(S *server.SimpleServer, L *net.UnixListener) {
 		S.Serve(L)
 	}(S, L)
 
-	Agent.Logger().Printf("Serving command server at [ %s ]", S.Addr())
-
 	return S, nil
+}
+
+func (A *Agent) commandServerActive() bool {
+
+	// Create a new Client, with a customized dialer to communicate over the Unix socket.
+	C := client.NewClient(&http.Client{
+		Transport: &http.Transport{
+			DialContext: func(ctx context.Context, _, addr string) (net.Conn, error) {
+				dialer := net.Dialer{}
+				return dialer.DialContext(ctx, "unix", A.commandServerSock)
+			},
+		},
+	})
+
+	// Don't log any of these intermediate steps
+	l := A.Logger()
+
+	discardLogger := log.New(ioutil.Discard, "", 0)
+	C.SetLogger(discardLogger)
+	A.SetLogger(discardLogger)
+
+	defer A.SetLogger(l)
+
+	// Create the simplest request to send and try to get a response
+	c := command{action: "help", name: ""}
+
+	if err := c.do(C, A); err != nil {
+		return false
+	}
+
+	return true
 }
 
 func newCommandListener(SocketName string) (*net.UnixListener, error) {
@@ -60,11 +108,6 @@ func newCommandListener(SocketName string) (*net.UnixListener, error) {
 		},
 	)
 
-	// Check if the error fails because the socket is already bound...
-	if isErrorAddressAlreadyInUse(err) {
-		err = ErrOtherServerActive
-	}
-
 	return l, err
 }
 
@@ -73,33 +116,4 @@ func newCommandListener(SocketName string) (*net.UnixListener, error) {
 func formatSocketName(Seed string) string {
 	n := sha1.Sum([]byte(Seed))
 	return path.Join("/tmp", hex.EncodeToString(n[:])+".sock")
-}
-
-func isErrorAddressAlreadyInUse(err error) bool {
-
-	errOpError, ok := err.(*net.OpError)
-	if !ok {
-		return false
-	}
-
-	errSyscallError, ok := errOpError.Err.(*os.SyscallError)
-	if !ok {
-		return false
-	}
-
-	errErrno, ok := errSyscallError.Err.(syscall.Errno)
-	if !ok {
-		return false
-	}
-
-	if errErrno == syscall.EADDRINUSE {
-		return true
-	}
-
-	const WSAEADDRINUSE = 10048
-	if runtime.GOOS == "windows" && errErrno == WSAEADDRINUSE {
-		return true
-	}
-
-	return false
 }

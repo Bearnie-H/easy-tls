@@ -84,6 +84,7 @@ func NewClientHTTP() (*SimpleClient, error) {
 // NewClientHTTPS will fully initialize a SimpleClient with TLS settings turned
 // on. These settings CAN be turned on and off as required.
 func NewClientHTTPS(TLS *easytls.TLSBundle, TLSPolicy TLSRetryPolicy) (*SimpleClient, error) {
+
 	tls, err := easytls.NewTLSConfig(TLS)
 	if err != nil {
 		return nil, err
@@ -103,7 +104,7 @@ func NewClientHTTPS(TLS *easytls.TLSBundle, TLSPolicy TLSRetryPolicy) (*SimpleCl
 				TLSClientConfig:   tls,
 				ForceAttemptHTTP2: true,
 			}},
-		tls:    !(TLS == nil),
+		tls:    !(tls == nil),
 		logger: Logger,
 		bundle: saveBundle,
 		policy: TLSPolicy,

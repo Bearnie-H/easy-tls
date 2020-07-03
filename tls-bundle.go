@@ -47,14 +47,14 @@ func NewTLSConfig(TLS *TLSBundle) (*tls.Config, error) {
 
 	// If no TLS bundle is provided, or is it marked disabled, don't set any TLS settings.
 	if TLS == nil || !TLS.Enabled {
-		return &tls.Config{}, nil
+		return nil, nil
 	}
 
 	// If no KeyPairs are provided, don't attempt to load Client-side certificates
 	if TLS.KeyPair.Certificate != "" && TLS.KeyPair.Key != "" {
 		cert, err := tls.LoadX509KeyPair(TLS.KeyPair.Certificate, TLS.KeyPair.Key)
 		if err != nil {
-			return &tls.Config{}, err
+			return nil, err
 		}
 		returnConfig.Certificates = append(returnConfig.Certificates, cert)
 	}
@@ -66,7 +66,7 @@ func NewTLSConfig(TLS *TLSBundle) (*tls.Config, error) {
 			// Load the CA cert
 			caCert, err := ioutil.ReadFile(AutorityCert)
 			if err != nil {
-				return &tls.Config{}, err
+				return nil, err
 			}
 			// Create and append the CA Cert to the pool of approved certificate authorities.
 			// This sets up so that ONLY the CA who signed this 's certificate can verify the recieved server certificate.

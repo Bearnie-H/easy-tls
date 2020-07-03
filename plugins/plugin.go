@@ -164,7 +164,9 @@ func (p *GenericPlugin) ReadStatus() error {
 		defer func() {
 			p.agent.Logger().Printf("Finished logging for module [ %s ]", p.Name())
 			p.done <- struct{}{}
+			p.mu.Lock()
 			p.state = stateLoaded
+			p.mu.Unlock()
 			close(p.done)
 		}()
 
@@ -190,6 +192,8 @@ func (p *GenericPlugin) ReadStatus() error {
 
 // Uptime will return how long a module has been active for
 func (p *GenericPlugin) Uptime() time.Duration {
+	p.mu.Lock()
+	defer p.mu.Unlock()
 	if p.state == stateActive {
 		return time.Now().Sub(p.started)
 	}
@@ -216,7 +220,9 @@ func (p *GenericPlugin) Stop() error {
 
 	defer func(p *GenericPlugin) {
 		<-p.Done()
+		p.mu.Lock()
 		p.state = stateLoaded
+		p.mu.Unlock()
 		p.agent.Logger().Printf("Stopped module [ %s ]", p.Name())
 	}(p)
 
@@ -225,6 +231,8 @@ func (p *GenericPlugin) Stop() error {
 
 // State exposes the internal state variable, so it can be queried.
 func (p *GenericPlugin) State() PluginState {
+	p.mu.Lock()
+	defer p.mu.Unlock()
 	return p.state
 }
 
