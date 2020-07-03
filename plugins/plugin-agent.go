@@ -1,6 +1,7 @@
 package plugins
 
 import (
+	"errors"
 	"log"
 	"path/filepath"
 	"sort"
@@ -8,7 +9,6 @@ import (
 	"sync"
 
 	"github.com/Bearnie-H/easy-tls/server"
-	"github.com/pkg/errors"
 )
 
 var (
