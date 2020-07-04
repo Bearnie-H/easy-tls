@@ -2,7 +2,6 @@ package server
 
 import (
 	"fmt"
-	"net/http"
 	"strings"
 
 	"github.com/gorilla/mux"
@@ -20,8 +19,8 @@ func NewDefaultRouter() *mux.Router {
 	r.StrictSlash(true)
 
 	// Register some default handlers
-	r.NotFoundHandler = http.HandlerFunc(notFoundHandler)
-	r.MethodNotAllowedHandler = http.HandlerFunc(methodNotAllowedHandler)
+	r.NotFoundHandler = NotFoundHandler()
+	r.MethodNotAllowedHandler = MethodNotAllowedHandler()
 
 	return r
 }

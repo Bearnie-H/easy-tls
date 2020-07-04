@@ -33,16 +33,21 @@ func NewSimpleHandler(h http.Handler, Path string, Methods ...string) SimpleHand
 	}
 }
 
-// notFoundHandler represents the default function to call if the path
-// requested has not been registered.
-func notFoundHandler(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(http.StatusNotFound)
+// NotFoundHandler represents the default handler to use for a route that doesn't exist,
+// or used as a mechanism to "remove" a route by replacing the existing http.Handler
+// with this.
+func NotFoundHandler() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNotFound)
+	})
 }
 
-// methodNotAllowedHandler represents the default function to call if
+// MethodNotAllowedHandler represents the default function to call if
 // the method used on the path has not been registered explicitly.
-func methodNotAllowedHandler(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(http.StatusMethodNotAllowed)
+func MethodNotAllowedHandler() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusMethodNotAllowed)
+	})
 }
 
 // EnableAboutHandler will enable and set up the "about" handler,
