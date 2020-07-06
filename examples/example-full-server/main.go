@@ -52,10 +52,7 @@ func doSafeShutdown(C chan os.Signal, Agent *plugins.ServerAgent, Servers ...*se
 func main() {
 
 	// Create one server to listen on all interfaces on port 8080
-	S, err := server.NewServerHTTP()
-	if err != nil {
-		panic(err)
-	}
+	S := server.NewServerHTTP()
 
 	// Create a plugin agent to let this application load plugin modules
 	Agent, err := plugins.NewServerAgent("./plugins", "/", S)

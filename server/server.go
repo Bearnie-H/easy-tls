@@ -47,8 +47,9 @@ type SimpleServer struct {
 //
 // The default address of ":8080" will be used if none is provided.
 // Only the first string will be treated as the address.
-func NewServerHTTP(Addr ...string) (*SimpleServer, error) {
-	return NewServerHTTPS(nil, Addr...)
+func NewServerHTTP(Addr ...string) *SimpleServer {
+	S, _ := NewServerHTTPS(nil, Addr...)
+	return S
 }
 
 // NewServerHTTPS will create a new HTTPS-only server which will serve on
@@ -69,13 +70,6 @@ func NewServerHTTPS(TLS *easytls.TLSBundle, Addr ...string) (*SimpleServer, erro
 	tls, err := easytls.NewTLSConfig(TLS)
 	if err != nil {
 		return nil, err
-	}
-
-	// Handle a nil TLS bundle safely
-	if TLS == nil {
-		TLS = &easytls.TLSBundle{
-			Enabled: false,
-		}
 	}
 
 	Server := &SimpleServer{

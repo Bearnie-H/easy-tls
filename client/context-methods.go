@@ -6,7 +6,6 @@ import (
 	"io"
 	"mime/multipart"
 	"net/http"
-	"net/url"
 )
 
 // GetContext is the wrapper function for an HTTP "GET" request. This will create a
@@ -14,10 +13,7 @@ import (
 // be set to nil if no additional headers are required. This function returns
 // an error and nil response on an HTTP StatusCode which is outside the 200
 // block.
-func (C *SimpleClient) GetContext(ctx context.Context, URL *url.URL, Headers map[string][]string) (*http.Response, error) {
-
-	// Set the scheme, allowing for this to be missing, and be able to be defined by the internal TLS state of the Client.
-	C.setScheme(URL)
+func (C *SimpleClient) GetContext(ctx context.Context, URL string, Headers map[string][]string) (*http.Response, error) {
 
 	// Create the request
 	req, err := NewRequestWithContext(ctx, http.MethodGet, URL, Headers, nil)
@@ -36,10 +32,7 @@ func (C *SimpleClient) GetContext(ctx context.Context, URL *url.URL, Headers map
 // Body (if it exists) will be closed by this function. This function returns
 // an error and nil Header on an HTTP StatusCode which is outside the 200
 // block.
-func (C *SimpleClient) HeadContext(ctx context.Context, URL *url.URL, Headers map[string][]string) (*http.Response, error) {
-
-	// Set the scheme, allowing for this to be missing, and be able to be defined by the internal TLS state of the Client.
-	C.setScheme(URL)
+func (C *SimpleClient) HeadContext(ctx context.Context, URL string, Headers map[string][]string) (*http.Response, error) {
 
 	// Create the request
 	req, err := NewRequestWithContext(ctx, http.MethodHead, URL, Headers, nil)
@@ -72,10 +65,7 @@ func (C *SimpleClient) HeadContext(ctx context.Context, URL *url.URL, Headers ma
 // NOTE: This function "may" support MultiPart POST requests, by way of
 // io.Pipes and multipart.Writers, but this has not been tested, and multipart
 // Post is planned to be an explicit function in the future.
-func (C *SimpleClient) PostContext(ctx context.Context, URL *url.URL, Contents io.Reader, Headers map[string][]string) (*http.Response, error) {
-
-	// Set the scheme, allowing for this to be missing, and be able to be defined by the internal TLS state of the Client.
-	C.setScheme(URL)
+func (C *SimpleClient) PostContext(ctx context.Context, URL string, Contents io.Reader, Headers map[string][]string) (*http.Response, error) {
 
 	// Create the request
 	req, err := NewRequestWithContext(ctx, http.MethodPost, URL, Headers, Contents)
@@ -97,7 +87,7 @@ func (C *SimpleClient) PostContext(ctx context.Context, URL *url.URL, Contents i
 // StatusCode which is outside the 200 block.
 //
 // NOTE: This has not yet been implemented.
-func (C *SimpleClient) PostMultipartContext(ctx context.Context, URL *url.URL, Contents multipart.Reader, Headers map[string][]string) (*http.Response, error) {
+func (C *SimpleClient) PostMultipartContext(ctx context.Context, URL string, Contents multipart.Reader, Headers map[string][]string) (*http.Response, error) {
 	return nil, errors.New("Method POST-MULTIPART not yet implemented")
 }
 
@@ -108,10 +98,7 @@ func (C *SimpleClient) PostMultipartContext(ctx context.Context, URL *url.URL, C
 // create an empty Put body which is allowed. This will return the full HTTP
 // Response from the server, unaltered. This function returns an error and nil
 // response on an HTTP StatusCode which is outside the 200 block.
-func (C *SimpleClient) PutContext(ctx context.Context, URL *url.URL, Contents io.Reader, Headers map[string][]string) (*http.Response, error) {
-
-	// Set the scheme, allowing for this to be missing, and be able to be defined by the internal TLS state of the Client.
-	C.setScheme(URL)
+func (C *SimpleClient) PutContext(ctx context.Context, URL string, Contents io.Reader, Headers map[string][]string) (*http.Response, error) {
 
 	// Create the request
 	req, err := NewRequestWithContext(ctx, http.MethodPut, URL, Headers, Contents)
@@ -128,10 +115,7 @@ func (C *SimpleClient) PutContext(ctx context.Context, URL *url.URL, Contents io
 // The header map can be set to nil if no additional headers are required.
 // This will ONLY any errors encountered, and no HTTP Response.
 // The internal HTTP Response from the server will be safely closed by this function.
-func (C *SimpleClient) DeleteContext(ctx context.Context, URL *url.URL, Headers map[string][]string) (*http.Response, error) {
-
-	// Set the scheme, allowing for this to be missing, and be able to be defined by the internal TLS state of the Client.
-	C.setScheme(URL)
+func (C *SimpleClient) DeleteContext(ctx context.Context, URL string, Headers map[string][]string) (*http.Response, error) {
 
 	// Create the request
 	req, err := NewRequestWithContext(ctx, http.MethodDelete, URL, Headers, nil)
@@ -160,10 +144,7 @@ func (C *SimpleClient) DeleteContext(ctx context.Context, URL *url.URL, Headers 
 // create an empty Patch body which is allowed. This will return the full HTTP
 // Response from the server, unaltered. This function returns an error and nil
 // response on an HTTP StatusCode which is outside the 200 block.
-func (C *SimpleClient) PatchContext(ctx context.Context, URL *url.URL, Contents io.Reader, Headers map[string][]string) (*http.Response, error) {
-
-	// Set the scheme, allowing for this to be missing, and be able to be defined by the internal TLS state of the Client.
-	C.setScheme(URL)
+func (C *SimpleClient) PatchContext(ctx context.Context, URL string, Contents io.Reader, Headers map[string][]string) (*http.Response, error) {
 
 	// Create the request
 	req, err := NewRequestWithContext(ctx, http.MethodPatch, URL, Headers, Contents)
@@ -181,10 +162,7 @@ func (C *SimpleClient) PatchContext(ctx context.Context, URL *url.URL, Contents 
 // This will return the full HTTP Response from the server, unaltered.
 // This function returns an error and nil response on an HTTP StatusCode
 //  which is outside the 200 block.
-func (C *SimpleClient) OptionsContext(ctx context.Context, URL *url.URL, Headers map[string][]string) (*http.Response, error) {
-
-	// Set the scheme, allowing for this to be missing, and be able to be defined by the internal TLS state of the Client.
-	C.setScheme(URL)
+func (C *SimpleClient) OptionsContext(ctx context.Context, URL string, Headers map[string][]string) (*http.Response, error) {
 
 	// Create the request
 	req, err := NewRequestWithContext(ctx, http.MethodOptions, URL, Headers, nil)
@@ -202,10 +180,7 @@ func (C *SimpleClient) OptionsContext(ctx context.Context, URL *url.URL, Headers
 // This will return the full HTTP Response from the server, unaltered.
 // This function returns an error and nil response on an HTTP StatusCode
 // which is outside the 200 block.
-func (C *SimpleClient) TraceContext(ctx context.Context, URL *url.URL, Headers map[string][]string) (*http.Response, error) {
-
-	// Set the scheme, allowing for this to be missing, and be able to be defined by the internal TLS state of the Client.
-	C.setScheme(URL)
+func (C *SimpleClient) TraceContext(ctx context.Context, URL string, Headers map[string][]string) (*http.Response, error) {
 
 	// Create the request
 	req, err := NewRequestWithContext(ctx, http.MethodTrace, URL, Headers, nil)

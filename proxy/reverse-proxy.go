@@ -45,15 +45,12 @@ func NotFoundHandlerProxyOverride(S *server.SimpleServer, c *client.SimpleClient
 // Finally, any middlewares desired can be added, noting that the
 // "MiddlewareDefaultLogger" is applied in all cases.
 // If No Server or Client are provided, default instances will be generated.
-func ConfigureReverseProxy(S *server.SimpleServer, Client *client.SimpleClient, logger *log.Logger, RouteMatcher ReverseProxyRouterFunc, PathPrefix string) {
+func ConfigureReverseProxy(S *server.SimpleServer, Client *client.SimpleClient, logger *log.Logger, RouteMatcher ReverseProxyRouterFunc, PathPrefix string) *server.SimpleServer {
 
 	// If No server is provided, create a default HTTP Server.
 	var err error
 	if S == nil {
-		S, err = server.NewServerHTTP()
-		if err != nil {
-			panic(err)
-		}
+		S = server.NewServerHTTP()
 	}
 
 	// Assert a non-empty path prefix to proxy on
@@ -75,6 +72,8 @@ func ConfigureReverseProxy(S *server.SimpleServer, Client *client.SimpleClient, 
 	}
 
 	S.AddSubrouter(S.Router(), PathPrefix, server.NewSimpleHandler(DoReverseProxy(Client, RouteMatcher, logger), PathPrefix))
+
+	return S
 }
 
 // DoReverseProxy is the backbone of this package, and the reverse
@@ -113,7 +112,7 @@ func DoReverseProxy(C *client.SimpleClient, Matcher ReverseProxyRouterFunc, logg
 		}
 
 		// Create the new Request to send
-		proxyReq, err := client.NewRequest(r.Method, proxyURL, r.Header, r.Body)
+		proxyReq, err := client.NewRequest(r.Method, proxyURL.String(), r.Header, r.Body)
 		if err != nil {
 			logger.Printf("Failed to create proxy forwarding request for URL [ %s ] from %s - %s", r.URL.String(), r.RemoteAddr, err)
 			w.WriteHeader(http.StatusInternalServerError)

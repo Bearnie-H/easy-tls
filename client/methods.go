@@ -28,7 +28,7 @@ func (C *SimpleClient) setScheme(URL *url.URL) {
 // be set to nil if no additional headers are required. This function returns
 // an error and nil response on an HTTP StatusCode which is outside the 200
 // block.
-func (C *SimpleClient) Get(URL *url.URL, Headers map[string][]string) (*http.Response, error) {
+func (C *SimpleClient) Get(URL string, Headers map[string][]string) (*http.Response, error) {
 	return C.GetContext(context.Background(), URL, Headers)
 }
 
@@ -39,7 +39,7 @@ func (C *SimpleClient) Get(URL *url.URL, Headers map[string][]string) (*http.Res
 // Body (if it exists) will be closed by this function. This function returns
 // an error and nil Header on an HTTP StatusCode which is outside the 200
 // block.
-func (C *SimpleClient) Head(URL *url.URL, Headers map[string][]string) (*http.Response, error) {
+func (C *SimpleClient) Head(URL string, Headers map[string][]string) (*http.Response, error) {
 	return C.HeadContext(context.Background(), URL, Headers)
 }
 
@@ -54,7 +54,7 @@ func (C *SimpleClient) Head(URL *url.URL, Headers map[string][]string) (*http.Re
 // NOTE: This function "may" support MultiPart POST requests, by way of
 // io.Pipes and multipart.Writers, but this has not been tested, and multipart
 // Post is planned to be an explicit function in the future.
-func (C *SimpleClient) Post(URL *url.URL, Contents io.Reader, Headers map[string][]string) (*http.Response, error) {
+func (C *SimpleClient) Post(URL string, Contents io.Reader, Headers map[string][]string) (*http.Response, error) {
 	return C.PostContext(context.Background(), URL, Contents, Headers)
 }
 
@@ -68,7 +68,7 @@ func (C *SimpleClient) Post(URL *url.URL, Contents io.Reader, Headers map[string
 // StatusCode which is outside the 200 block.
 //
 // NOTE: This has not yet been implemented.
-func (C *SimpleClient) PostMultipart(URL *url.URL, Contents multipart.Reader, Headers map[string][]string) (*http.Response, error) {
+func (C *SimpleClient) PostMultipart(URL string, Contents multipart.Reader, Headers map[string][]string) (*http.Response, error) {
 	return C.PostMultipartContext(context.Background(), URL, Contents, Headers)
 }
 
@@ -79,7 +79,7 @@ func (C *SimpleClient) PostMultipart(URL *url.URL, Contents multipart.Reader, He
 // create an empty Put body which is allowed. This will return the full HTTP
 // Response from the server, unaltered. This function returns an error and nil
 // response on an HTTP StatusCode which is outside the 200 block.
-func (C *SimpleClient) Put(URL *url.URL, Contents io.Reader, Headers map[string][]string) (*http.Response, error) {
+func (C *SimpleClient) Put(URL string, Contents io.Reader, Headers map[string][]string) (*http.Response, error) {
 	return C.PutContext(context.Background(), URL, Contents, Headers)
 }
 
@@ -88,7 +88,7 @@ func (C *SimpleClient) Put(URL *url.URL, Contents io.Reader, Headers map[string]
 // The header map can be set to nil if no additional headers are required.
 // This will ONLY any errors encountered, and no HTTP Response.
 // The internal HTTP Response from the server will be safely closed by this function.
-func (C *SimpleClient) Delete(URL *url.URL, Headers map[string][]string) (*http.Response, error) {
+func (C *SimpleClient) Delete(URL string, Headers map[string][]string) (*http.Response, error) {
 	return C.DeleteContext(context.Background(), URL, Headers)
 }
 
@@ -99,7 +99,7 @@ func (C *SimpleClient) Delete(URL *url.URL, Headers map[string][]string) (*http.
 // create an empty Patch body which is allowed. This will return the full HTTP
 // Response from the server, unaltered. This function returns an error and nil
 // response on an HTTP StatusCode which is outside the 200 block.
-func (C *SimpleClient) Patch(URL *url.URL, Contents io.Reader, Headers map[string][]string) (*http.Response, error) {
+func (C *SimpleClient) Patch(URL string, Contents io.Reader, Headers map[string][]string) (*http.Response, error) {
 	return C.PatchContext(context.Background(), URL, Contents, Headers)
 }
 
@@ -109,7 +109,7 @@ func (C *SimpleClient) Patch(URL *url.URL, Contents io.Reader, Headers map[strin
 // This will return the full HTTP Response from the server, unaltered.
 // This function returns an error and nil response on an HTTP StatusCode
 //  which is outside the 200 block.
-func (C *SimpleClient) Options(URL *url.URL, Headers map[string][]string) (*http.Response, error) {
+func (C *SimpleClient) Options(URL string, Headers map[string][]string) (*http.Response, error) {
 	return C.OptionsContext(context.Background(), URL, Headers)
 }
 
@@ -119,7 +119,7 @@ func (C *SimpleClient) Options(URL *url.URL, Headers map[string][]string) (*http
 // This will return the full HTTP Response from the server, unaltered.
 // This function returns an error and nil response on an HTTP StatusCode
 // which is outside the 200 block.
-func (C *SimpleClient) Trace(URL *url.URL, Headers map[string][]string) (*http.Response, error) {
+func (C *SimpleClient) Trace(URL string, Headers map[string][]string) (*http.Response, error) {
 	return C.TraceContext(context.Background(), URL, Headers)
 }
 
@@ -137,9 +137,6 @@ func (C *SimpleClient) Trace(URL *url.URL, Headers map[string][]string) (*http.R
 // SimpleClient. This allows a client to attempt to handle HTTP/HTTPS mismatch
 // errors automatically by upgrading/downgrading as necessary.
 func (C *SimpleClient) Do(req *http.Request) (*http.Response, error) {
-
-	// Set the scheme, allowing for this to be missing, and be able to be defined by the internal TLS state of the Client.
-	C.setScheme(req.URL)
 
 	resp, err := C.Client.Do(req)
 	if err != nil {

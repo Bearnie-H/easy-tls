@@ -77,8 +77,9 @@ func NewClient(C *http.Client) *SimpleClient {
 // NewClientHTTP will fully initialize a SimpleClient with TLS settings turned
 // off. These settings CAN be turned on and off as required, either by
 // providing a TLSBundle, or by reusing one passed in earlier.
-func NewClientHTTP() (*SimpleClient, error) {
-	return NewClientHTTPS(nil, NoRetry)
+func NewClientHTTP() *SimpleClient {
+	C, _ := NewClientHTTPS(nil, NoRetry)
+	return C
 }
 
 // NewClientHTTPS will fully initialize a SimpleClient with TLS settings turned
@@ -151,9 +152,9 @@ func (C *SimpleClient) MakeURL(Hostname string, Port uint16, PathSegments ...str
 
 // NewRequest will create a new HTTP Request, ready to be used by any
 // implementation of an http.Client.
-func NewRequest(Method string, URL *url.URL, Headers http.Header, Contents io.Reader) (*http.Request, error) {
+func NewRequest(Method string, URL string, Headers http.Header, Contents io.Reader) (*http.Request, error) {
 
-	req, err := http.NewRequest(Method, URL.String(), Contents)
+	req, err := http.NewRequest(Method, URL, Contents)
 	if err != nil {
 		return nil, err
 	}
@@ -165,9 +166,9 @@ func NewRequest(Method string, URL *url.URL, Headers http.Header, Contents io.Re
 
 // NewRequestWithContext will create a new HTTP Request, ready to be used by any
 // implementation of an http.Client.
-func NewRequestWithContext(ctx context.Context, Method string, URL *url.URL, Headers http.Header, Contents io.Reader) (*http.Request, error) {
+func NewRequestWithContext(ctx context.Context, Method string, URL string, Headers http.Header, Contents io.Reader) (*http.Request, error) {
 
-	req, err := http.NewRequestWithContext(ctx, Method, URL.String(), Contents)
+	req, err := http.NewRequestWithContext(ctx, Method, URL, Contents)
 	if err != nil {
 		return nil, err
 	}
@@ -264,7 +265,7 @@ func (C *SimpleClient) retryWithDowngrade(r *http.Request, original *http.Respon
 		return original, fmt.Errorf("easytls client error: Failed to rewind request body in [ %s ] request to [ %s ] - %s", r.Method, r.URL.String(), err)
 	}
 
-	newReq, err := NewRequest(r.Method, &newURL, r.Header, rewoundBody)
+	newReq, err := NewRequest(r.Method, newURL.String(), r.Header, rewoundBody)
 	if err != nil {
 		return original, fmt.Errorf("easytls client error: Failed to re-create [ %s ] request during TLS upgrade retry - %s", r.Method, err)
 	}
@@ -306,7 +307,7 @@ func (C *SimpleClient) retryWithUpgrade(r *http.Request, original *http.Response
 		return original, fmt.Errorf("easytls client error: Failed to rewind request body in [ %s ] request to [ %s ] - %s", r.Method, r.URL.String(), err)
 	}
 
-	newReq, err := NewRequest(r.Method, &newURL, r.Header, rewoundBody)
+	newReq, err := NewRequest(r.Method, newURL.String(), r.Header, rewoundBody)
 	if err != nil {
 		return original, fmt.Errorf("easytls client error: Failed to re-create [ %s ] request during TLS upgrade retry - %s", r.Method, err)
 	}

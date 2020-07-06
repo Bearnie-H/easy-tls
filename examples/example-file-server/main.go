@@ -33,12 +33,10 @@ var (
 
 func main() {
 	flag.Parse()
+	var err error
 
 	// Create a new HTTP Server, which will listen on all interfaces.
-	Server, err := server.NewServerHTTP(fmt.Sprintf(":%d", *Addr))
-	if err != nil {
-		panic(err)
-	}
+	Server := server.NewServerHTTP(fmt.Sprintf(":%d", *Addr))
 
 	*ServeDir, err = filepath.Abs(*ServeDir)
 	if err != nil {

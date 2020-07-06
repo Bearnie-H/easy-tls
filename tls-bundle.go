@@ -37,6 +37,21 @@ type TLSBundle struct {
 	Enabled bool
 }
 
+// NewTLSBundle will create and return a new default TLSBundle from a given set of resources.
+// This will be enabled by default, with an ClientAuthType which doesn't require or care about client
+// certificates.
+func NewTLSBundle(CertificateFile, KeyFile string, CertificateAuthorityFiles ...string) *TLSBundle {
+	return &TLSBundle{
+		AuthorityCertificates: CertificateAuthorityFiles,
+		KeyPair: KeyPair{
+			Certificate: CertificateFile,
+			Key:         KeyFile,
+		},
+		Auth:    tls.NoClientCert,
+		Enabled: true,
+	}
+}
+
 // NewTLSConfig will convert the TLSBundle, containing the filenames of the
 // relevant certificates and Authorization policy, into a workable tls.Config
 // object, ready to be used by either a SimpleClient or SimpleServer application.

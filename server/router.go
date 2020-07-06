@@ -50,6 +50,10 @@ func (S *SimpleServer) AddSubrouter(Router *mux.Router, PathPrefix string, Handl
 		PathPrefix += "/"
 	}
 
+	if !strings.HasPrefix(PathPrefix, "/") {
+		PathPrefix = "/" + PathPrefix
+	}
+
 	// Don't create subrouters for URLRoots
 	if PathPrefix == "/" {
 		S.AddHandlers(Router, Handlers...)

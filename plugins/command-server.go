@@ -49,10 +49,7 @@ func newCommandServer(Agent *Agent) (*server.SimpleServer, error) {
 
 	// Create the server
 	Agent.Logger().Printf("Creating plugin command server at [ %s ]", L.Addr().String())
-	S, err := server.NewServerHTTP(L.Addr().String())
-	if err != nil {
-		return nil, err
-	}
+	S := server.NewServerHTTP(L.Addr().String())
 
 	// Add in the dedicated handlers to perform actions on the plugins loaded by the agent
 	S.AddHandlers(S.Router(), formatCommandHandlers(Agent)...)

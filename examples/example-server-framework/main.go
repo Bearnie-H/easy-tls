@@ -25,10 +25,7 @@ func main() {
 	flag.Parse()
 
 	// Create a new HTTP Server, which will listen on port 8080 on all interfaces.
-	Server, err := server.NewServerHTTP(ServerAddress)
-	if err != nil {
-		panic(err)
-	}
+	Server := server.NewServerHTTP(ServerAddress)
 
 	// Create a new plugin agent to load the modules into.
 	// If this fails with ErrOtherServerActive, this indicates there's

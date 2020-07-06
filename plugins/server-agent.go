@@ -4,6 +4,7 @@ import (
 	"path"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	"github.com/Bearnie-H/easy-tls/server"
 	"github.com/gorilla/mux"
@@ -15,6 +16,9 @@ type ServerAgent struct {
 
 	// A reference to the Server this agent will serve on
 	server *server.SimpleServer
+
+	// Protects router, preventing race conditions when adding routes
+	routerLock *sync.Mutex
 	// A reference to the base Router to use when registering routes
 	router *mux.Router
 	// The base URL to root all loaded modules at.
@@ -26,14 +30,13 @@ type ServerAgent struct {
 // into a state where all available plugins could be started.
 func NewServerAgent(ModuleFolder, URLRoot string, Server *server.SimpleServer) (A *ServerAgent, err error) {
 
-	A = &ServerAgent{}
+	A = &ServerAgent{
+		routerLock: &sync.Mutex{},
+	}
 
 	// If no server is provided, spawn a default
 	if Server == nil {
-		A.server, err = server.NewServerHTTP()
-		if err != nil {
-			return nil, err
-		}
+		A.server = server.NewServerHTTP()
 	} else {
 		A.server = Server
 	}

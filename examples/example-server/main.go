@@ -17,10 +17,7 @@ const (
 func main() {
 
 	// Create a new HTTP Server, which will listen on port 8080 on all interfaces.
-	Server, err := server.NewServerHTTP(ServerAddress)
-	if err != nil {
-		panic(err)
-	}
+	Server := server.NewServerHTTP(ServerAddress)
 
 	// Add some middlewares as an example
 	Server.AddMiddlewares(server.MiddlewareLimitConnectionRate(time.Millisecond*10, time.Minute*15, Server.Logger()))

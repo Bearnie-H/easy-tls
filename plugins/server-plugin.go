@@ -118,6 +118,8 @@ func (p *ServerPlugin) Start() error {
 
 	p.state = stateActive
 	p.started = time.Now()
+	p.agent.routerLock.Lock()
+	defer p.agent.routerLock.Unlock()
 
 	switch {
 	case p.initHandlers != nil:

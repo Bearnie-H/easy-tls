@@ -18,12 +18,9 @@ var (
 func main() {
 	flag.Parse()
 
-	s, err := server.NewServerHTTP(fmt.Sprintf("%s:%d", *AddressFlag, *PortFlag))
-	if err != nil {
-		panic(err)
-	}
+	s := server.NewServerHTTP(fmt.Sprintf("%s:%d", *AddressFlag, *PortFlag))
 
-	proxy.ConfigureReverseProxy(s, nil, s.Logger(), proxy.LiveFileRouter(*RulesFilename), "/")
+	proxy.ConfigureReverseProxy(s, nil, nil, proxy.LiveFileRouter(*RulesFilename), "/")
 
 	if err := s.ListenAndServe(); err != nil {
 		panic(err)

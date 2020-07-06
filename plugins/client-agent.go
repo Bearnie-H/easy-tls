@@ -25,10 +25,7 @@ func NewClientAgent(ModuleFolder string, Client *client.SimpleClient) (A *Client
 
 	// If no server is provided, spawn a default
 	if Client == nil {
-		A.client, err = client.NewClientHTTP()
-		if err != nil {
-			return nil, err
-		}
+		A.client = client.NewClientHTTP()
 	} else {
 		A.client = Client
 	}
