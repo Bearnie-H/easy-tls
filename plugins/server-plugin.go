@@ -130,6 +130,7 @@ func (p *ServerPlugin) Start() error {
 				p.state = stateLoaded
 				return err
 			}
+			routes = server.AddPrefixToRoutes(p.agent.urlRoot, routes...)
 			p.agent.server.AddHandlers(p.agent.router, routes...)
 		}
 	case p.initSubrouter != nil:
@@ -140,6 +141,7 @@ func (p *ServerPlugin) Start() error {
 				p.state = stateLoaded
 				return err
 			}
+			routes = server.AddPrefixToRoutes(p.agent.urlRoot, routes...)
 			p.agent.server.AddSubrouter(p.agent.router, prefix, routes...)
 		}
 	default:

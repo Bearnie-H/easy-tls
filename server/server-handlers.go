@@ -33,6 +33,28 @@ func NewSimpleHandler(h http.Handler, Path string, Methods ...string) SimpleHand
 	}
 }
 
+// AddPrefixToRoutes will assert that all routes have a given prefix
+func AddPrefixToRoutes(Prefix string, Handlers ...SimpleHandler) []SimpleHandler {
+
+	if Prefix == "" {
+		Prefix = "/"
+	}
+
+	if !strings.HasPrefix(Prefix, "/") {
+		Prefix = "/" + Prefix
+	}
+
+	if !strings.HasSuffix(Prefix, "/") {
+		Prefix = Prefix + "/"
+	}
+
+	for i := range Handlers {
+		Handlers[i].Path = Prefix + Handlers[i].Path
+	}
+
+	return Handlers
+}
+
 // NotFoundHandler represents the default handler to use for a route that doesn't exist,
 // or used as a mechanism to "remove" a route by replacing the existing http.Handler
 // with this.
