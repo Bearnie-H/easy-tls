@@ -49,6 +49,11 @@ type (
 
 	// StopFunc is the defined type of the Stop function exported by all compliant plugins.
 	StopFunc = func() error
+
+	// InitFunc is the defined type of the most generic Init function exported by generic plugins.
+	// This does not need to be exported, as long as SOME Init() function is exported, and whatever
+	// implementation of the Module interface is used, properly extracts this symbol.
+	InitFunc = func(...interface{}) error
 )
 
 // PluginState represents the current state of a plugin
@@ -73,7 +78,7 @@ func (S PluginState) String() string {
 	}
 }
 
-// GenericPlugin implements most of the Module interface, specifically the
+// GenericPlugin implements a basic version of the Module interface, specifically the
 // set of parameters and methods which are generic and common across either
 // client, server, or other modules.
 type GenericPlugin struct {
@@ -105,6 +110,9 @@ type GenericPlugin struct {
 	version VersionFunc
 	name    NameFunc
 	stop    StopFunc
+
+	// Generic Init() function, if no other more customized version is given.
+	init InitFunc
 }
 
 // GetVersion will return the version information of the plugin, as reported
@@ -129,6 +137,108 @@ func (p *GenericPlugin) Name() string {
 	}
 
 	return p.name()
+}
+
+// Load implements the most generic Load functionality for a generic plugin.
+// This will typically be overloaded/superceded by the more specific implementation
+// of the Module interface.
+func (p *GenericPlugin) Load() error {
+
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
+	switch p.state {
+	case stateNotLoaded:
+	case stateLoaded:
+		p.agent.Logger().Printf("Cannot Load() module [ %s ], symbols already loaded", p.Name())
+		return nil
+	case stateActive:
+		p.agent.Logger().Printf("Cannot Load() module [ %s ], already running", p.Name())
+		return nil
+	}
+
+	// Load the default symbols.
+	if err := p.loadDefaultSymbols(); err != nil {
+		p.agent.Logger().Printf("plugin load error: Failed to load default symbols from file [ %s ]", p.filename)
+		return err
+	}
+
+	p.state = stateLoaded
+
+	p.agent.Logger().Printf("Loaded symbols for module [ %s ]", p.Name())
+
+	return nil
+}
+
+// Start implements the most generic Start functionality for a generic plugin.
+// This will typically be overloaded/superceded by the more specific implementation
+// of the Module interface.
+func (p *GenericPlugin) Start() error {
+
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
+	switch p.state {
+	case stateNotLoaded:
+		if err := p.Load(); err != nil {
+			return err
+		}
+	case stateLoaded:
+	case stateActive:
+		p.agent.Logger().Printf("Cannot Start() module [ %s ], already running", p.Name())
+		return nil
+	}
+
+	if err := p.ReadStatus(); err != nil {
+		return err
+	}
+
+	p.state = stateActive
+	p.started = time.Now()
+
+	switch {
+	case p.init != nil:
+		{
+			if err := p.init(p.args...); err != nil {
+				p.stop()
+				p.state = stateLoaded
+				return err
+			}
+		}
+	default:
+		return fmt.Errorf("plugin error: No Init() function loaded for module [ %s ]", p.Name())
+	}
+
+	p.agent.Logger().Printf("Started module [ %s ]", p.Name())
+
+	return nil
+}
+
+// Reload implements the most generic Reload functionality for a generic plugin.
+// This will typically be overloaded/superceded by the more specific implementation
+// of the Module interface.
+func (p *GenericPlugin) Reload() error {
+
+	var err error
+
+	if err = p.Stop(); err != nil {
+		p.agent.Logger().Printf("plugin reload error: Error stopping plugin [ %s ] for reload - %s", p.Name(), err)
+		return err
+	}
+
+	p.unloadDefaultSymbols()
+
+	if err = p.Load(); err != nil {
+		p.agent.Logger().Printf("plugin reload error: Error loading plugin [ %s ] for reload - %s", p.Name(), err)
+		return err
+	}
+
+	if err = p.Start(); err != nil {
+		p.agent.Logger().Printf("plugin reload error: Error starting plugin [ %s ] for reload - %s", p.Name(), err)
+		return err
+	}
+
+	return nil
 }
 
 // AddArguments will append the given arguments to the set of arguments to pass in to the plugin
@@ -248,6 +358,7 @@ func (p *GenericPlugin) Done() <-chan struct{} {
 //	Version
 //	Name
 //	Stop
+//	Init (Not necessarily exported with the default signature)
 func (p *GenericPlugin) loadDefaultSymbols() error {
 
 	raw, err := plugin.Open(p.filename)
@@ -270,6 +381,9 @@ func (p *GenericPlugin) loadDefaultSymbols() error {
 	if err := p.loadDefaultSymbol(raw, "Stop"); err != nil {
 		return err
 	}
+
+	// Attempt to load a default Init() symbol, allowing this to fail if a more customized Init() symbol is present.
+	p.loadDefaultSymbol(raw, "Init")
 
 	// ...
 
@@ -294,6 +408,8 @@ func (p *GenericPlugin) loadDefaultSymbol(rawPlugin *plugin.Plugin, SymbolName s
 		p.name = s.(NameFunc)
 	case StopFunc:
 		p.stop = s.(StopFunc)
+	case InitFunc:
+		p.init = s.(InitFunc)
 	default:
 		return fmt.Errorf("plugin load error: Unknown type returned for symbol [ %s ] in file [ %s ], got [ %s ]", SymbolName, p.filename, getFuncSignature(s))
 	}
@@ -306,6 +422,7 @@ func (p *GenericPlugin) unloadDefaultSymbols() {
 	p.status = nil
 	p.stop = nil
 	p.version = nil
+	p.init = nil
 }
 
 func getFuncSignature(f interface{}) string {

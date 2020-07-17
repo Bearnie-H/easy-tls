@@ -96,6 +96,7 @@ func (A *Agent) NewGenericModule(Filename string) *GenericPlugin {
 		name:     nil,
 		version:  nil,
 		stop:     nil,
+		init:     nil,
 	}
 
 	return p
@@ -184,12 +185,12 @@ func (A *Agent) Close() error {
 
 	var err error
 
-	A.Logger().Printf("Stopping all modules")
+	A.Logger().Printf("Stopping all modules...")
 	if err = A.StopAll(); err != nil {
 		A.Logger().Printf("plugin agent error: Error(s) occurred while stopping - %s", err)
 	}
 
-	A.Logger().Printf("Shutting down command server")
+	A.Logger().Printf("Shutting down command server...")
 	if err = A.commandServer.Shutdown(); err != nil {
 		A.Logger().Printf("plugin agent error: Error occured while shutting down command server - %s", err)
 	}
