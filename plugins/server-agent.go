@@ -1,8 +1,7 @@
 package plugins
 
 import (
-	"path"
-	"path/filepath"
+	"errors"
 	"strings"
 	"sync"
 
@@ -12,7 +11,7 @@ import (
 
 // ServerAgent represents a plugin manager for Server-type plugins
 type ServerAgent struct {
-	Agent
+	*Agent
 
 	// A reference to the Server this agent will serve on
 	server *server.SimpleServer
@@ -54,17 +53,18 @@ func NewServerAgent(ModuleFolder, URLRoot string, Server *server.SimpleServer) (
 	if A.urlRoot == "/" {
 		A.router = A.server.Router()
 	} else {
-		A.router = A.server.Router().PathPrefix(URLRoot).Subrouter()
+		A.router = A.server.Router().PathPrefix(A.urlRoot).Subrouter()
 	}
 
 	// Create the new generic component of the agent.
 	OtherServerActive := false
-	A.Agent, err = newAgent(ServerFrameworkVersion, ModuleFolder, A.server.Logger())
+	A.Agent, err = NewAgent(ModuleFolder, A.server.Logger())
 	if err == ErrOtherServerActive {
 		OtherServerActive = true
 	} else if err != nil {
 		return nil, err
 	}
+	A.Agent.version = ServerFrameworkVersion
 
 	// Load the modules from disk, putting this agent into a position where it could be started.
 	if err := A.loadModules(); err != nil {
@@ -78,36 +78,35 @@ func NewServerAgent(ModuleFolder, URLRoot string, Server *server.SimpleServer) (
 	return A, nil
 }
 
-// NewServerModule will create a new Server Module
-func (A *ServerAgent) NewServerModule(Filename string) (*ServerPlugin, error) {
-
-	P := &ServerPlugin{
-		GenericPlugin: *A.NewGenericModule(Filename),
-		agent:         A,
-		initHandlers:  nil,
-		initSubrouter: nil,
-	}
-
-	return P, P.Load()
-}
-
 func (A *ServerAgent) loadModules() error {
 
-	files, err := filepath.Glob(path.Join(A.moduleFolder, "*.so"))
-	if err != nil {
-		return err
+	ServerModules := []*ServerPlugin{}
+
+	for _, M := range A.Modules() {
+
+		p, ok := M.(*GenericPlugin)
+		if !ok {
+			return errors.New("server plugin error: Invalid module type")
+		}
+
+		P := &ServerPlugin{
+			GenericPlugin: *p,
+			agent:         A,
+			initHandlers:  nil,
+			initSubrouter: nil,
+		}
+
+		if err := P.Load(); err != nil {
+			return err
+		}
+
+		ServerModules = append(ServerModules, P)
 	}
 
-	for _, f := range files {
+	A.loadedModules = nil
 
-		P, err := A.NewServerModule(f)
-		if err != nil {
-			return err
-		}
-
-		if err := A.registerModule(P); err != nil {
-			return err
-		}
+	for _, M := range ServerModules {
+		A.registerModule(M)
 	}
 
 	return nil

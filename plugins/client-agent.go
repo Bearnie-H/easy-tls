@@ -1,15 +1,14 @@
 package plugins
 
 import (
-	"path"
-	"path/filepath"
+	"errors"
 
 	"github.com/Bearnie-H/easy-tls/client"
 )
 
 // ClientAgent represents a plugin manager for Server-type plugins
 type ClientAgent struct {
-	Agent
+	*Agent
 
 	// A reference to the Client this agent will pass to all plugins, along
 	// with any set arguments
@@ -32,12 +31,13 @@ func NewClientAgent(ModuleFolder string, Client *client.SimpleClient) (A *Client
 
 	// Create the new generic component of the agent.
 	OtherServerActive := false
-	A.Agent, err = newAgent(ServerFrameworkVersion, ModuleFolder, A.client.Logger())
+	A.Agent, err = NewAgent(ModuleFolder, A.client.Logger())
 	if err == ErrOtherServerActive {
 		OtherServerActive = true
 	} else if err != nil {
 		return nil, err
 	}
+	A.Agent.version = ClientFrameworkVersion
 
 	// Load the modules from disk, putting this agent into a position where it could be started.
 	if err := A.loadModules(); err != nil {
@@ -51,35 +51,34 @@ func NewClientAgent(ModuleFolder string, Client *client.SimpleClient) (A *Client
 	return A, nil
 }
 
-// NewClientModule will create a new Client Module
-func (A *ClientAgent) NewClientModule(Filename string) (*ClientPlugin, error) {
-
-	P := &ClientPlugin{
-		GenericPlugin: *A.NewGenericModule(Filename),
-		agent:         A,
-		init:          nil,
-	}
-
-	return P, P.Load()
-}
-
 func (A *ClientAgent) loadModules() error {
 
-	files, err := filepath.Glob(path.Join(A.moduleFolder, "*.so"))
-	if err != nil {
-		return err
+	ClientModules := []*ClientPlugin{}
+
+	for _, M := range A.Modules() {
+
+		p, ok := M.(*GenericPlugin)
+		if !ok {
+			return errors.New("client plugin error: Invalid module type")
+		}
+
+		P := &ClientPlugin{
+			GenericPlugin: *p,
+			agent:         A,
+			init:          nil,
+		}
+
+		if err := P.Load(); err != nil {
+			return err
+		}
+
+		ClientModules = append(ClientModules, P)
 	}
 
-	for _, f := range files {
+	A.loadedModules = nil
 
-		P, err := A.NewClientModule(f)
-		if err != nil {
-			return err
-		}
-
-		if err := A.registerModule(P); err != nil {
-			return err
-		}
+	for _, M := range ClientModules {
+		A.registerModule(M)
 	}
 
 	return nil

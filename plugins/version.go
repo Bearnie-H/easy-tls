@@ -13,3 +13,10 @@ var ClientFrameworkVersion = SemanticVersion{
 	MinorRelease: 4,
 	Build:        1,
 }
+
+// GenericFrameworkVersion represents the current Semantic Version of the Generic Plugin agent framework
+var GenericFrameworkVersion = SemanticVersion{
+	MajorRelease: 1,
+	MinorRelease: 4,
+	Build:        1,
+}

@@ -3,6 +3,7 @@ package plugins
 import (
 	"errors"
 	"log"
+	"path"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -46,12 +47,13 @@ type Agent struct {
 	done chan struct{}
 }
 
-func newAgent(Version SemanticVersion, ModuleFolder string, logger *log.Logger) (Agent, error) {
+// NewAgent will create and return a new generic plugin agent.
+func NewAgent(ModuleFolder string, logger *log.Logger) (*Agent, error) {
 
 	var err error
 
-	A := Agent{
-		version:       Version,
+	A := &Agent{
+		version:       GenericFrameworkVersion,
 		logger:        logger,
 		mu:            &sync.Mutex{},
 		loadedModules: make(map[string]Module),
@@ -64,12 +66,40 @@ func newAgent(Version SemanticVersion, ModuleFolder string, logger *log.Logger) 
 
 	A.moduleFolder = ModuleFolder
 
-	A.commandServer, err = newCommandServer(&A)
+	A.commandServer, err = newCommandServer(A)
 	if err != nil {
 		return A, err
 	}
 
+	// Load the modules from disk, putting this agent into a position where it could be started.
+	if err := A.loadModules(); err != nil {
+		return nil, err
+	}
+
 	return A, nil
+}
+
+func (A *Agent) loadModules() error {
+
+	files, err := filepath.Glob(path.Join(A.moduleFolder, "*.so"))
+	if err != nil {
+		return err
+	}
+
+	for _, f := range files {
+
+		P := A.NewGenericModule(f)
+
+		if err := P.Load(); err != nil {
+			return err
+		}
+
+		if err := A.registerModule(P); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 // Logger returns the logger used by an Agent
@@ -240,10 +270,17 @@ func (A *Agent) getByName(Name string) Module {
 }
 
 func (A *Agent) registerModule(M Module) error {
+
 	A.mu.Lock()
 	defer A.mu.Unlock()
+
+	if A.loadedModules == nil {
+		A.loadedModules = make(map[string]Module)
+	}
+
 	A.Logger().Printf("Adding module [ %s ]", M.Name())
 	A.loadedModules[M.Name()] = M
+
 	return nil
 }
 

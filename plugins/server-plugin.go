@@ -89,7 +89,7 @@ func (p *ServerPlugin) Load() error {
 
 	p.state = stateLoaded
 
-	p.agent.Logger().Printf("Loaded symbols for module [ %s ]", p.Name())
+	p.agent.Logger().Printf("Loaded all server symbols for module [ %s ]", p.Name())
 
 	return nil
 }

@@ -49,7 +49,7 @@ func AddPrefixToRoutes(Prefix string, Handlers ...SimpleHandler) []SimpleHandler
 	}
 
 	for i := range Handlers {
-		Handlers[i].Path = Prefix + Handlers[i].Path
+		Handlers[i].Path = strings.ReplaceAll(Prefix+Handlers[i].Path, "//", "/")
 	}
 
 	return Handlers

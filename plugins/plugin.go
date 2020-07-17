@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"path"
 	"plugin"
 	"reflect"
 	"strings"
@@ -132,7 +133,7 @@ func (p *GenericPlugin) Name() string {
 
 	switch p.state {
 	case stateNotLoaded:
-		return "<Module Not Loaded>"
+		return path.Base(p.filename)
 	default:
 	}
 
@@ -163,9 +164,14 @@ func (p *GenericPlugin) Load() error {
 		return err
 	}
 
+	if p.init == nil {
+		p.agent.Logger().Printf("Loaded all symbols except Init() for module [ %s ]", p.Name())
+		return nil
+	}
+
 	p.state = stateLoaded
 
-	p.agent.Logger().Printf("Loaded symbols for module [ %s ]", p.Name())
+	p.agent.Logger().Printf("Loaded all symbols for module [ %s ]", p.Name())
 
 	return nil
 }

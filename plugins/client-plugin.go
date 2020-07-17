@@ -83,7 +83,7 @@ func (p *ClientPlugin) Load() error {
 
 	p.state = stateLoaded
 
-	p.agent.Logger().Printf("Loaded symbols for module [ %s ]", p.Name())
+	p.agent.Logger().Printf("Loaded all client symbols for module [ %s ]", p.Name())
 
 	return nil
 }

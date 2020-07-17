@@ -198,11 +198,12 @@ func (S *SimpleServer) Shutdown() error {
 	S.mu.Unlock()
 
 	defer func() {
+		S.Logger().Printf("Finished shutting down server at [ %s ].", S.Addr())
 		S.done <- struct{}{}
 		close(S.done)
 	}()
 
-	S.Logger().Printf("Shutting down server at [ %s ]", S.Addr())
+	S.Logger().Printf("Shutting down server at [ %s ]...", S.Addr())
 	return S.Server.Close()
 }
 
