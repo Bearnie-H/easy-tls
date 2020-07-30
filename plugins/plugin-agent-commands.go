@@ -14,8 +14,9 @@ import (
 )
 
 type command struct {
-	action string
-	name   string
+	action    string
+	name      string
+	arguments []string
 }
 
 func newCommand(args ...string) (*command, []string, error) {
@@ -49,9 +50,15 @@ func (c *command) url(Agent *Agent) *url.URL {
 
 func (c *command) do(C *client.SimpleClient, A *Agent) error {
 
-	A.Logger().Printf("Subitting command [ %v ]", *c)
+	A.Logger().Printf("Subitting command [ %+v ]", *c)
 
-	resp, err := C.Get(c.url(A).String(), nil)
+	H := http.Header{}
+
+	if c.arguments != nil {
+		H[HeaderArgumentKey] = c.arguments
+	}
+
+	resp, err := C.Get(c.url(A).String(), H)
 	if err != nil && err != client.ErrInvalidStatusCode {
 		A.Logger().Printf("plugin command error: Error occured while submitting command [ %+v ] - %s", *c, err)
 		return err
@@ -114,16 +121,84 @@ func (A *Agent) SendCommands(Args ...string) {
 
 func (A *Agent) sendCommands(C *client.SimpleClient, args ...string) {
 
-	c := command{
-		action: args[0],
-	}
-
-	if len(args) == 1 {
-		c.do(C, A)
-	} else {
+	switch args[0] {
+	case "start":
+		Command := command{
+			action:    args[0],
+			name:      args[1],
+			arguments: args[2:],
+		}
+		if err := Command.do(C, A); err != nil {
+			A.Logger().Printf("Error submitting [ %s ] command - %s", Command.action, err)
+		}
+	case "restart":
+		Command := command{
+			action:    args[0],
+			name:      args[1],
+			arguments: args[2:],
+		}
+		if err := Command.do(C, A); err != nil {
+			A.Logger().Printf("Error submitting [ %s ] command - %s", Command.action, err)
+		}
+	case "reload":
+		Command := command{
+			action:    args[0],
+			name:      args[1],
+			arguments: args[2:],
+		}
+		if err := Command.do(C, A); err != nil {
+			A.Logger().Printf("Error submitting [ %s ] command - %s", Command.action, err)
+		}
+	case "version":
+		Command := command{
+			action: args[0],
+		}
 		for _, name := range args[1:] {
-			c.name = name
-			c.do(C, A)
+			Command.name = name
+			if err := Command.do(C, A); err != nil {
+				A.Logger().Printf("Error submitting [ %s ] command - %s", Command.action, err)
+			}
+		}
+	case "state":
+		Command := command{
+			action: args[0],
+		}
+		for _, name := range args[1:] {
+			Command.name = name
+			if err := Command.do(C, A); err != nil {
+				A.Logger().Printf("Error submitting [ %s ] command - %s", Command.action, err)
+			}
+		}
+	case "stop":
+		Command := command{
+			action: args[0],
+		}
+		for _, name := range args[1:] {
+			Command.name = name
+			if err := Command.do(C, A); err != nil {
+				A.Logger().Printf("Error submitting [ %s ] command - %s", Command.action, err)
+			}
+		}
+	case "list":
+		Command := command{
+			action: args[0],
+		}
+		if err := Command.do(C, A); err != nil {
+			A.Logger().Printf("Error submitting [ %s ] command - %s", Command.action, err)
+		}
+	case "active":
+		Command := command{
+			action: args[0],
+		}
+		if err := Command.do(C, A); err != nil {
+			A.Logger().Printf("Error submitting [ %s ] command - %s", Command.action, err)
+		}
+	default:
+		Command := command{
+			action: "help",
+		}
+		if err := Command.do(C, A); err != nil {
+			A.Logger().Printf("Error submitting [ %s ] command - %s", Command.action, err)
 		}
 	}
 }

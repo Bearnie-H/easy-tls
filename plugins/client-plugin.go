@@ -27,8 +27,7 @@ type ClientPlugin struct {
 }
 
 // Reload will fully reload a module.
-// This will stop a running module, load the symbols fresh from disk
-// and then start the module again.
+// This will stop a running module, and load the symbols fresh from disk.
 func (p *ClientPlugin) Reload() error {
 
 	var err error
@@ -42,11 +41,6 @@ func (p *ClientPlugin) Reload() error {
 
 	if err = p.Load(); err != nil {
 		p.agent.Logger().Printf("plugin reload error: Error loading plugin [ %s ] for reload - %s", p.Name(), err)
-		return err
-	}
-
-	if err = p.Start(); err != nil {
-		p.agent.Logger().Printf("plugin reload error: Error starting plugin [ %s ] for reload - %s", p.Name(), err)
 		return err
 	}
 
@@ -90,7 +84,7 @@ func (p *ClientPlugin) Load() error {
 
 // Start will start the module, performing any initialization and putting
 // it into a state where the logic included by the plugin can be used.
-func (p *ClientPlugin) Start() error {
+func (p *ClientPlugin) Start(Args ...interface{}) error {
 
 	p.mu.Lock()
 	defer p.mu.Unlock()
@@ -116,7 +110,8 @@ func (p *ClientPlugin) Start() error {
 	switch {
 	case p.init != nil:
 		{
-			if err := p.init(p.agent.client, p.args...); err != nil {
+			Args = append(p.args, Args...)
+			if err := p.init(p.agent.client, Args...); err != nil {
 				p.stop()
 				p.state = stateLoaded
 				return err

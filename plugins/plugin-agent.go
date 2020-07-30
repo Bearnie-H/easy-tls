@@ -9,6 +9,7 @@ import (
 	"strings"
 	"sync"
 
+	easytls "github.com/Bearnie-H/easy-tls"
 	"github.com/Bearnie-H/easy-tls/server"
 )
 
@@ -51,6 +52,10 @@ type Agent struct {
 func NewAgent(ModuleFolder string, logger *log.Logger) (*Agent, error) {
 
 	var err error
+
+	if logger == nil {
+		logger = easytls.NewDefaultLogger()
+	}
 
 	A := &Agent{
 		version:       GenericFrameworkVersion,

@@ -52,7 +52,7 @@ function helpMenu() {
 
     #   Print the current help menu/usage information to the user
     echo -e "
-    $BLUE$scriptName   -   A bash tool to build an EasyTLS-Compliant Golang module, either server or client.$WHITE
+    $BLUE$scriptName   -   A bash tool to build an EasyTLS-Compliant Golang module, either generic, server or client.$WHITE
 
     $GREEN$scriptName$YELLOW -x Hash [-f] [-h] [-o Output-File] [-q] [-r] [-z] $WHITE
 
@@ -118,7 +118,7 @@ function log() {
         if [ -z "$LogPrefix" ]; then
             ToWrite="$Timestamp ${LogLevels[$Level]} $Message"
         else
-            ToWrite="$Timestamp [ $LogPrefix ] ${LogLevels[$Level]}: $Message"
+            ToWrite="$Timestamp [ $LogPrefix ] ${LogLevels[$Level]} $Message"
         fi
 
         #   If log colouring is on, check if it's writing to an output file
@@ -201,11 +201,8 @@ function main() {
     cd "$buildDir"
 
     moduleName=$(basename "$buildDir")
-    if [ ! -z $(echo "$buildDir" | grep 'server') ]; then
-        moduleName="server-$moduleName"
-    else
-        moduleName="client-$moduleName"
-    fi
+    moduleType=$(grep 'const PluginType' 'standard-definitions.go' | sed 's/^.*\"\(.*\)"$/\1/g')
+    moduleName="$moduleType-$moduleName"
 
     if [ -z "$ForceMode" ]; then
         if [ ! -e "RELEASE" ]; then

@@ -82,7 +82,7 @@ func (W *StatusWriter) Channel() (<-chan PluginStatus, error) {
 	return W.out, nil
 }
 
-// Printf will format and print out a status message usng the given Message fmt string and optional error.
+// Printf will format and print out a status message using the given Message fmt string and optional error.
 func (W *StatusWriter) Printf(Message string, Err error, args ...interface{}) {
 
 	W.lock.Lock()

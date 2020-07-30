@@ -23,13 +23,18 @@ const (
 	URLHelpHandler    string = "/"
 )
 
+// HTTP Header Key definition, to easily share between sender and receiver
+const (
+	HeaderArgumentKey string = "Agent-Arguments"
+)
+
 var availableOptions = []string{
-	"start {name...}",
-	"restart {name...}",
-	"reload {name...}",
-	"version {name...}",
-	"state {name...}",
-	"stop {name...}",
+	"start <Name> <Key=Value...>",
+	"restart <Name> <Key=Value...>",
+	"reload <Name> <Key=Value...>",
+	"version <Name>",
+	"state <Name>",
+	"stop <Name>",
 	"list",
 	"active",
 	"help",
@@ -89,7 +94,12 @@ func startHandler(Agent *Agent) http.Handler {
 			return
 		}
 
-		if err := M.Start(); err != nil {
+		ExtraArgs := []interface{}{}
+		for _, arg := range r.Header[HeaderArgumentKey] {
+			ExtraArgs = append(ExtraArgs, arg)
+		}
+
+		if err := M.Start(ExtraArgs...); err != nil {
 			s := exitHandler(w, http.StatusInternalServerError, "Failed to start module [ %s ]", err, M.Name())
 			Agent.Logger().Println(s.String())
 		} else {
@@ -118,7 +128,12 @@ func restartHandler(Agent *Agent) http.Handler {
 			return
 		}
 
-		if err := M.Start(); err != nil {
+		ExtraArgs := []interface{}{}
+		for _, arg := range r.Header[HeaderArgumentKey] {
+			ExtraArgs = append(ExtraArgs, arg)
+		}
+
+		if err := M.Start(ExtraArgs...); err != nil {
 			s := exitHandler(w, http.StatusInternalServerError, "Failed to start module [ %s ]", err, M.Name())
 			Agent.Logger().Println(s.String())
 			return
@@ -144,6 +159,17 @@ func reloadHandler(Agent *Agent) http.Handler {
 
 		if err := M.Reload(); err != nil {
 			s := exitHandler(w, http.StatusInternalServerError, "Failed to reload module [ %s ]", err, M.Name())
+			Agent.Logger().Println(s.String())
+			return
+		}
+
+		ExtraArgs := []interface{}{}
+		for _, arg := range r.Header[HeaderArgumentKey] {
+			ExtraArgs = append(ExtraArgs, arg)
+		}
+
+		if err := M.Start(ExtraArgs...); err != nil {
+			s := exitHandler(w, http.StatusInternalServerError, "Failed to start module [ %s ]", err, M.Name())
 			Agent.Logger().Println(s.String())
 			return
 		}

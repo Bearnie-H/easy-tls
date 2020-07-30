@@ -5,7 +5,12 @@
 
 #   Purpose:
 #
-#       This is the standard Build Script for an EasyTLS-compliant Golang module.
+#       This script fulfills the basic requirements of a build script for
+#       an application building on the EasyTLS Client Framework. This is 
+#       very likely insufficient for complex applications, but will work
+#       as the starting point to get this example up and running, and should
+#       be simple to extend into the more complete build script for the overall
+#       application.
 
 #   Terminal Colour Codes
 FATAL="\e[7m\e[31m"
@@ -36,13 +41,14 @@ TimeFormat="+%F %H:%M:%S"
 #   Catch errors, interrupts, and more to allow a safe shutdown
 trap 'cleanup 1' 1 2 3 6 8 9 15
 
-#   Command-line / Global variables
 HelpFlag=
-BuildHash=
-RaceDetector=""
 
-artefactDirectory="$GOPATH/src/easytls-compiled-plugins"
-ForceMode=
+#   Command-line / Global variables
+RaceDetectorEnabled=
+RaceDetectorFlag=
+PluginRootDirectory=    #   Set this to wherever the plugins are located
+BuildHash="$(date "+%F %T %N" | sha1sum | awk '{print $1}')"
+
 
 #   Function to display a help/usage menu to the user in a standardized format.
 function helpMenu() {
@@ -52,14 +58,14 @@ function helpMenu() {
 
     #   Print the current help menu/usage information to the user
     echo -e "
-    $BLUE$scriptName   -   A bash tool to build an EasyTLS-Compliant Golang module, either server or client.$WHITE
+    $BLUE$scriptName   -   A bash tool to perform a basic build of the EasyTLS Client Framework.$WHITE
 
-    $GREEN$scriptName$YELLOW -x Hash [-f] [-h] [-o Output-File] [-q] [-r] [-z] $WHITE
+    $GREEN$scriptName$YELLOW [-h] [-o Output-File] [-q] [-r] [-z]$WHITE
 
-    "$YELLOW"Build Options:$WHITE
-        $BLUE-f$WHITE  -    Force Mode. Build the module, even without the presence of a RELEASE file.
-        $BLUE-r$WHITE  -    Race Detection. Include the Golang Race Detector in the binary.
-                This comes at a slight memory and performance cost, but can be valuable in testing.
+    "$YELLOW"Go Build Options:$WHITE
+        $BLUE-r$WHITE  -    Race Detector. Enable the Go Race detector for the built binary.
+                    This will propegate down to the plugins as well, ensuring that the framework
+                    and modules are all either using or not using the race detector together.
 
     "$YELLOW"Output Options:$WHITE
         $BLUE-o$WHITE  -    Log File. Redirect STDOUT to the given file, creating it if it doesn't exist yet.
@@ -68,27 +74,28 @@ function helpMenu() {
 
     "$YELLOW"Miscellaneous Options:$WHITE
         $BLUE-h$WHITE  -    Help Menu. Display this help menu and exit.
-        $BLUE-x$WHITE  -    Build Hash. Used to allow concurrent builds, and to prevent clobbering of prior builds.
 
     "$GREEN"Note:$WHITE
+        This is intended to be updated to keep in line with the requirements of the build process as the
+        application grows.
+
         The flags passed to the \"go build...\" command are very important, as these must be present here
         and they must be present in the Plugin build scripts to allow the Plugins to be successfully
         loaded into the framework during execution.  Furthermore, it is best practice to compile the
         framework application AND the desired plugins in one pass, as the ABI of the compiled Shared Object
-        Libraries may vary if built with different versions of the imported modules.
+        Libraries has been observed to vary if built with different versions of the imported modules.
     "$CLEAR
 }
 
 function cleanup() {
 
     #   Implement whatever cleanup logic is needed for the specific script, followed by resetting the terminal and exiting.
-    #   ...
 
-    if [ $1 -eq 0 ]; then
-        log $LOG_INFO "Successfully executed and beginning cleanup..."
-    else
-        log $LOG_ATTENTION "Unsuccessfully executed and beginning cleanup..."
-    fi
+    # if [ $1 -eq 0 ]; then
+    #     log $LOG_INFO "Successfully executed and beginning cleanup..."
+    # else
+    #     log $LOG_ATTENTION "Unsuccessfully executed and beginning cleanup..."
+    # fi
 
     stop $1
 }
@@ -118,7 +125,7 @@ function log() {
         if [ -z "$LogPrefix" ]; then
             ToWrite="$Timestamp ${LogLevels[$Level]} $Message"
         else
-            ToWrite="$Timestamp [ $LogPrefix ] ${LogLevels[$Level]} $Message"
+            ToWrite="$Timestamp [ $LogPrefix ] ${LogLevels[$Level]}: $Message"
         fi
 
         #   If log colouring is on, check if it's writing to an output file
@@ -192,91 +199,53 @@ function assertDirectoryExists() {
     fi
 }
 
+#   Print out the state of the race detector for the current build.
+function PrintRaceDetectorState() {
+
+    if [ -z "$RaceDetectorEnabled" ]; then
+        log $LOG_INFO "Race Detector is [ DISABLED ]."
+        return
+    fi
+
+    log $LOG_INFO "Race Detector is [ ENABLED ]."
+}
+
 #   Main function, this is the entry point of the actual logic of the script, AFTER all of the input validation and top-level script pre-script set up has been completed.
 function main() {
 
-    artefactDirectory="$artefactDirectory-$BuildHash"
+    PrintRaceDetectorState
 
-    buildDir=$(cd "$(dirname "$0")"; pwd)
-    cd "$buildDir"
+    log $LOG_INFO "Building Golang Framework."
+    go build $RaceDetectorFlag -gcflags="all=-N -l"
 
-    moduleName=$(basename "$buildDir")
-    moduleType=$(grep 'const PluginType' 'standard-definitions.go' | sed 's/^.*\"\(.*\)"$/\1/g')
-    moduleName="$moduleType-$moduleName"
+    assertDirectoryExists "./active-modules"
 
-    if [ -z "$ForceMode" ]; then
-        if [ ! -e "RELEASE" ]; then
-            log $LOG_ATTENTION "Module $(basename $buildDir) not marked for release. Skipping..."
-            exit 0
-        else
-            log $LOG_NOTICE "Building Module $(basename $buildDir)..."
-        fi
-    fi
-
-    checkGitBranch "$moduleName"
-
-    if [ ! -z "$RaceDetector" ]; then
-        log $LOG_NOTICE "Building [ with ] Race Detection."
-    else
-        log $LOG_NOTICE "Building [ without ] Race Detection."
-    fi
-
-    log $LOG_INFO "Updating Module Build Number..."
-    incrementBuildCount
-
-    log $LOG_INFO "Compiling Golang Module [ $moduleName ]..."
-    go build -buildmode=plugin -o "$artefactDirectory/$moduleName.so" -gcflags="all=-N -l" "$RaceDetector"
-    if [ $? -eq 0 ]; then
-        log $LOG_NOTICE "Successfully built module [ $moduleName ]."
-        log $LOG_NOTICE "Build artefact located at [ $artefactDirectory/$moduleName.so ]"
-        cd - 2>&1 > /dev/null
-    else
-        log $LOG_FATAL "Failed to build module [ $moduleName ]"
-        cd - 2>&1 > /dev/null
+    if [ ! -z "$PluginRootDirectory" ]; then
+        log $LOG_INFO "Building Golang Plugins from [ $PluginRootDirectory ]."
+        IFS=$'\n'
+        for BuildScript in $(find "$PluginRootDirectory" -type f -iname build-plugin.sh); do
+            bash "$BuildScript" -f -x "$BuildHash" "$RaceDetectorEnabled"
+        done
+        mv -fv "$HOME/go/src/easytls-compiled-plugins-$BuildHash/"*.so "./active-modules/"
+        rm -rf "$HOME/go/src/easytls-compiled-plugins-$BuildHash/"
     fi
 
     return
 }
 
-function incrementBuildCount() {
-
-    local VersionFile="version.go"
-
-    if ! fileExists "$VersionFile"; then
-        log $LOG_FATAL "Cannot find required file [ $VersionFile ]!"
-    fi
-
-    local lastBuildCount=$(cat "$VersionFile" | grep 'Build' | sed 's/[ \t,]*//g' | awk -F: '{print $2}');
-    lastBuildCount=$(( $lastBuildCount + 1 ))
-    sed -i "s/Build\:[ \t]*[0-9]*/Build:$lastBuildCount/g" "$VersionFile"
-    gofmt -s -w "$VersionFile"
-}
-
-function checkGitBranch() {
-
-    #   We want to explicitly let the user know which branch they are on when building the application.
-    local CurrentBranch=$(git branch | grep '\*' | sed 's/^\* \(.*\)$/\1/g')
-
-    local moduleName="$1"
-    
-    log $LOG_INFO "Building Golang module [ $moduleName ] from branch [ $CurrentBranch ]."
-}
 
 #   Parse the command line arguments.  Add the flag name to the list (in alphabetical order), and add a ":" after if it requires an argument present.
 #   The value of the argument will be located in the "$OPTARG" variable
-while getopts "fho:qrx:z" opt; do
+while getopts "ho:qrz" opt; do
     case "$opt" in
-    f)  ForceMode="-f"
-        ;;
     h)  HelpFlag=1
         ;;
     o)  OutputFile="$OPTARG"
         ;;
     q)  Quiet="-q"
         ;;
-    r)  RaceDetector="-race"
-        ;;
-    x)  BuildHash="$OPTARG"
+    r)  RaceDetectorEnabled="-r"
+        RaceDetectorFlag="-race"
         ;;
     z)  ColourLog=
         ColourFlag="-z"
@@ -286,7 +255,7 @@ while getopts "fho:qrx:z" opt; do
     esac
 done
 
-case HelpFlag in
+case $HelpFlag in
     1)  helpMenu
         cleanup 0
         ;;
@@ -295,7 +264,7 @@ case HelpFlag in
         ;;
 esac
 
-SetLogPrefix "$(basename "$(dirname "$(readlink -e "$0")")")"
+argSet "$OutputFile" "-o"
 
 if [[ ! "$OutputFile" == "-" ]]; then
 
@@ -312,7 +281,13 @@ if [[ ! "$OutputFile" == "-" ]]; then
     OutputFile=$(readlink -e "$OutputFile")
 fi
 
-argSet "$BuildHash" "-x"
+#   Assert all of the required arguments are set here
+
+#   argSet <Variable> <Command Line Flag>
+#   ...
+
+#   Other argument validation here...
+
 
 #   Call main, running the full logic of the script.
 main

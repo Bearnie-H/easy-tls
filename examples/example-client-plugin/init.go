@@ -8,6 +8,12 @@ import (
 
 // Init is the function to start the plugin logic.
 func Init(Client *client.SimpleClient, args ...interface{}) error {
+	defer func() {
+		r := recover()
+		if e, ok := r.(error); ok {
+			StatusChannel.Fatalf("easytls plugin error: Panic during execution", e)
+		}
+	}()
 
 	ThreadCount.Add(1)
 	defer ThreadCount.Done()

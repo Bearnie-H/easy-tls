@@ -33,6 +33,10 @@ func NewContextManager() *ContextManager {
 // NewContext creates and new context.WithCancel() context to be used by the caller.
 // This function saves the CancelFunc for the generated context, returning
 // and int64 token which can be used to manipulate the CancelFunc later.
+//
+// This returned context should be extended to any other type of context as necessary,
+// such as WithDeadline() or WithValue(). This simply ensures the parent context is cancellable
+// to prevent undesirable waits when stopping plugins.
 func (C *ContextManager) NewContext() (ctx context.Context, x int64) {
 
 	C.Lock()
@@ -42,7 +46,7 @@ func (C *ContextManager) NewContext() (ctx context.Context, x int64) {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	// Generate a unique token for this context
-	for x = C.r.Int63(); C.active[x] != nil; {
+	for x = C.r.Int63(); C.active[x] != nil; x = C.r.Int63() {
 	}
 
 	// Internalize the returned CancelFunc
@@ -61,9 +65,19 @@ func (C *ContextManager) NewContext() (ctx context.Context, x int64) {
 //	ctx, Key := Manager.NewContext()
 //	defer Manager.RemoveContext(Key)
 //	// functionality here to use ctx.
+//
+// Or:
+//
+//	ctx, Key := Manager.NewContext()
+//	// Use ctx
+//	Manager.RemoveContext(Key)
 func (C *ContextManager) RemoveContext(Key int64) {
 	C.Lock()
 	defer C.Unlock()
+
+	if cancel, exist := C.active[Key]; exist {
+		cancel()
+	}
 
 	delete(C.active, Key)
 }

@@ -12,26 +12,12 @@ var (
 	// What minimum framework version is supported/required
 	RequiresFrameworkMinVersion = plugins.SemanticVersion{
 		MajorRelease: 1,
-		MinorRelease: 1,
+		MinorRelease: 4,
 		Build:        1,
 	}
 
 	// What maximum framework version is supported/required
 	RequiresFrameworkMaxVersion = plugins.SemanticVersion{
-		MajorRelease: 2,
-		MinorRelease: 1,
-		Build:        1,
-	}
-
-	// What minimum server-side plugin version is supported/required
-	RequiresServerPluginMinVersion = plugins.SemanticVersion{
-		MajorRelease: 1,
-		MinorRelease: 1,
-		Build:        1,
-	}
-
-	// What maximum server-side plugin version is supported/required
-	RequiresServerPluginMaxVersion = plugins.SemanticVersion{
 		MajorRelease: 2,
 		MinorRelease: 1,
 		Build:        1,

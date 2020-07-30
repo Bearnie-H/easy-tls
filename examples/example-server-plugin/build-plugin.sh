@@ -118,7 +118,7 @@ function log() {
         if [ -z "$LogPrefix" ]; then
             ToWrite="$Timestamp ${LogLevels[$Level]} $Message"
         else
-            ToWrite="$Timestamp [ $LogPrefix ] ${LogLevels[$Level]}: $Message"
+            ToWrite="$Timestamp [ $LogPrefix ] ${LogLevels[$Level]} $Message"
         fi
 
         #   If log colouring is on, check if it's writing to an output file
@@ -201,11 +201,8 @@ function main() {
     cd "$buildDir"
 
     moduleName=$(basename "$buildDir")
-    if [ ! -z $(echo "$buildDir" | grep 'server') ]; then
-        moduleName="server-$moduleName"
-    else
-        moduleName="client-$moduleName"
-    fi
+    moduleType=$(grep 'const PluginType' 'standard-definitions.go' | sed 's/^.*\"\(.*\)"$/\1/g')
+    moduleName="$moduleType-$moduleName"
 
     if [ -z "$ForceMode" ]; then
         if [ ! -e "RELEASE" ]; then

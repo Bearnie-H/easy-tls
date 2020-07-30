@@ -2,6 +2,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"log"
 	"os"
@@ -77,17 +78,31 @@ func doSafeShutdown(C chan os.Signal, A *plugins.ServerAgent, S ...*server.Simpl
 	// Wait on a signal
 	<-C
 	log.Println("Shutting down EasyTLS Server framework...")
-	defer log.Println("Shut down EasyTLS Server framework!")
 
-	// Close and stop the Server(s)
-	for _, srv := range S {
-		if err := srv.Shutdown(); err != nil {
+	Done := make(chan struct{}, 1)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+	defer cancel()
+
+	go func(Done chan<- struct{}) {
+
+		// Close and stop the Server(s)
+		for _, srv := range S {
+			if err := srv.Shutdown(); err != nil {
+				log.Println(err)
+			}
+		}
+
+		// Close and stop the Plugin Agent
+		if err := A.Close(); err != nil {
 			log.Println(err)
 		}
-	}
+	}(Done)
 
-	// Close and stop the Plugin Agent
-	if err := A.Close(); err != nil {
-		log.Println(err)
+	select {
+	case <-Done:
+		log.Println("Successfully shut down EasyTLS Server Framework!")
+	case <-ctx.Done():
+		log.Println("Failed to shut down EasyTLS Server Framework before timeout!")
+		os.Exit(1)
 	}
 }

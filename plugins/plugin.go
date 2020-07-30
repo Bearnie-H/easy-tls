@@ -22,7 +22,7 @@ type Module interface {
 
 	// These functions will be accessible via the Command-Server interface
 
-	Start() error
+	Start(...interface{}) error
 	GetVersion() (*SemanticVersion, error)
 	Uptime() time.Duration
 	Reload() error
@@ -179,7 +179,7 @@ func (p *GenericPlugin) Load() error {
 // Start implements the most generic Start functionality for a generic plugin.
 // This will typically be overloaded/superceded by the more specific implementation
 // of the Module interface.
-func (p *GenericPlugin) Start() error {
+func (p *GenericPlugin) Start(Args ...interface{}) error {
 
 	p.mu.Lock()
 	defer p.mu.Unlock()
@@ -205,7 +205,8 @@ func (p *GenericPlugin) Start() error {
 	switch {
 	case p.init != nil:
 		{
-			if err := p.init(p.args...); err != nil {
+			Args = append(p.args, Args...)
+			if err := p.init(Args...); err != nil {
 				p.stop()
 				p.state = stateLoaded
 				return err
@@ -239,11 +240,6 @@ func (p *GenericPlugin) Reload() error {
 		return err
 	}
 
-	if err = p.Start(); err != nil {
-		p.agent.Logger().Printf("plugin reload error: Error starting plugin [ %s ] for reload - %s", p.Name(), err)
-		return err
-	}
-
 	return nil
 }
 
@@ -270,7 +266,7 @@ func (p *GenericPlugin) ReadStatus() error {
 		return errors.New("plugin error: Module returned nil status channel")
 	}
 
-	p.done = make(chan struct{})
+	p.done = make(chan struct{}, 1)
 
 	go func(p *GenericPlugin, C <-chan PluginStatus) {
 
@@ -429,6 +425,7 @@ func (p *GenericPlugin) unloadDefaultSymbols() {
 	p.stop = nil
 	p.version = nil
 	p.init = nil
+	p.state = stateNotLoaded
 }
 
 func getFuncSignature(f interface{}) string {

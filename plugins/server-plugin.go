@@ -33,8 +33,7 @@ type ServerPlugin struct {
 }
 
 // Reload will fully reload a module.
-// This will stop a running module, load the symbols fresh from disk
-// and then start the module again.
+// This will stop a running module, and load the symbols fresh from disk.
 func (p *ServerPlugin) Reload() error {
 
 	var err error
@@ -48,11 +47,6 @@ func (p *ServerPlugin) Reload() error {
 
 	if err = p.Load(); err != nil {
 		p.agent.Logger().Printf("plugin reload error: Error loading plugin [ %s ] for reload - %s", p.Name(), err)
-		return err
-	}
-
-	if err = p.Start(); err != nil {
-		p.agent.Logger().Printf("plugin reload error: Error starting plugin [ %s ] for reload - %s", p.Name(), err)
 		return err
 	}
 
@@ -96,7 +90,7 @@ func (p *ServerPlugin) Load() error {
 
 // Start will start the module, performing any initialization and putting
 // it into a state where the logic included by the plugin can be used.
-func (p *ServerPlugin) Start() error {
+func (p *ServerPlugin) Start(Args ...interface{}) error {
 
 	p.mu.Lock()
 	defer p.mu.Unlock()
@@ -121,10 +115,12 @@ func (p *ServerPlugin) Start() error {
 	p.agent.routerLock.Lock()
 	defer p.agent.routerLock.Unlock()
 
+	Args = append(p.args, Args...)
+
 	switch {
 	case p.initHandlers != nil:
 		{
-			routes, err := p.initHandlers(p.args...)
+			routes, err := p.initHandlers(Args...)
 			if err != nil {
 				p.stop()
 				p.state = stateLoaded
@@ -135,7 +131,7 @@ func (p *ServerPlugin) Start() error {
 		}
 	case p.initSubrouter != nil:
 		{
-			routes, prefix, err := p.initSubrouter(p.args...)
+			routes, prefix, err := p.initSubrouter(Args...)
 			if err != nil {
 				p.stop()
 				p.state = stateLoaded
