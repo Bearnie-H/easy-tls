@@ -23,7 +23,7 @@ var ThreadCount = &sync.WaitGroup{}
 // by the Stop() function.
 var Contexts = plugins.NewContextManager()
 
-// PluginType tells which type of plugin this is, server or client.
+// PluginType tells which type of plugin this is, server, client or generic.
 const PluginType string = "server"
 
 // DefaultPluginCycleTime represents the amount of time to wait between cycles of the plugin Main loop.

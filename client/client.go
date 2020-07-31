@@ -153,15 +153,7 @@ func (C *SimpleClient) MakeURL(Hostname string, Port uint16, PathSegments ...str
 // NewRequest will create a new HTTP Request, ready to be used by any
 // implementation of an http.Client.
 func NewRequest(Method string, URL string, Headers http.Header, Contents io.Reader) (*http.Request, error) {
-
-	req, err := http.NewRequest(Method, URL, Contents)
-	if err != nil {
-		return nil, err
-	}
-
-	header.Merge(&(req.Header), &Headers)
-
-	return req, nil
+	return NewRequestWithContext(context.Background(), Method, URL, Headers, Contents)
 }
 
 // NewRequestWithContext will create a new HTTP Request, ready to be used by any

@@ -22,7 +22,7 @@ var ThreadCount = &sync.WaitGroup{}
 // by the Stop() function.
 var Contexts = plugins.NewContextManager()
 
-// PluginType tells which type of plugin this is, server or client.
+// PluginType tells which type of plugin this is, server, client or generic.
 const PluginType string = "generic"
 
 // Must be present but empty.
