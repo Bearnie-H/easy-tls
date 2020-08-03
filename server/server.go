@@ -28,6 +28,10 @@ type SimpleServer struct {
 	// The router to use to match incoming requests to specific handlers
 	router *mux.Router
 
+	// The set of routes added to the server.
+	// Used to build the "/about" handler
+	routes []SimpleHandler
+
 	// The logger to write all messages to
 	logger *log.Logger
 
@@ -193,10 +197,10 @@ func (S *SimpleServer) Serve(l net.Listener) error {
 func (S *SimpleServer) Shutdown() error {
 
 	S.mu.Lock()
+	defer S.mu.Unlock()
 	if !S.active {
 		return nil
 	}
-	S.mu.Unlock()
 
 	defer func() {
 		S.Logger().Printf("Finished shutting down server at [ %s ].", S.Addr())

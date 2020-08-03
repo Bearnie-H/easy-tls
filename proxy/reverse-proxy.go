@@ -71,7 +71,18 @@ func ConfigureReverseProxy(S *server.SimpleServer, Client *client.SimpleClient, 
 		Client.SetLogger(logger)
 	}
 
-	S.AddSubrouter(S.Router(), PathPrefix, server.NewSimpleHandler(DoReverseProxy(Client, RouteMatcher, logger), PathPrefix))
+	S.AddSubrouter(
+		S.Router(),
+		PathPrefix,
+		server.NewSimpleHandler(
+			DoReverseProxy(
+				Client,
+				RouteMatcher,
+				logger,
+			),
+			PathPrefix,
+		),
+	)
 
 	return S
 }

@@ -80,13 +80,27 @@ func (S *SimpleServer) addHandlers(Router *mux.Router, Handlers ...SimpleHandler
 		}
 
 		// Assign any methods
-		if len(Node.Methods) != 0 {
+		if len(Node.Methods) > 0 {
 			Route = Route.Methods(Node.Methods...)
 			RouteDescriptor = fmt.Sprintf("%s%v ", RouteDescriptor, Node.Methods)
 		}
 
-		// ...
+		// Add any host-specific matching criteria
+		if Node.Host != "" {
+			Route = Route.Host(Node.Host)
+		}
+
+		// Add any URL QueryString matchin criteria
+		if len(Node.Queries) > 0 {
+			Pairs := make([]string, len(Node.Queries)*2)
+			for _, Q := range Node.Queries {
+				Pairs = append(Pairs, Q.Key, Q.Value)
+			}
+			Route = Route.Queries(Pairs...)
+		}
 
 		S.Logger().Printf("Added route: %sto server at [ %s ]", RouteDescriptor, S.Addr())
 	}
+
+	S.routes = append(S.routes, Handlers...)
 }

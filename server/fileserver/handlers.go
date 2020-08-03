@@ -32,7 +32,7 @@ type fileDetails struct {
 	Size         int64  `easytls:"File-Size"`
 	Permissions  string `easytls:"File-Mode"`
 	LastModified string `easytls:"Last-Modified-Time"`
-	IsDirectory  bool   `easytls:"-"`
+	IsDirectory  bool   `easytls:"Directory"`
 }
 
 // Handlers will return the standard full set of HTTP handlers to fully
@@ -95,8 +95,9 @@ func ExitHandler(w http.ResponseWriter, StatusCode int, Message string, err erro
 // Get will attempt to read out the requested file from disk.
 func Get(URLBase, ServeBase string, ShowHidden bool) server.SimpleHandler {
 	return server.SimpleHandler{
-		Path:    URLBase,
-		Methods: []string{http.MethodGet},
+		Path:        URLBase,
+		Methods:     []string{http.MethodGet},
+		Description: "Attempt to read and serve the requested file from the filesystem.",
 		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
 			RelFilename := strings.TrimPrefix(r.URL.Path, URLBase)
@@ -178,8 +179,9 @@ func Get(URLBase, ServeBase string, ShowHidden bool) server.SimpleHandler {
 // Head will...
 func Head(URLBase, ServeBase string) server.SimpleHandler {
 	return server.SimpleHandler{
-		Path:    URLBase,
-		Methods: []string{http.MethodHead},
+		Path:        URLBase,
+		Methods:     []string{http.MethodHead},
+		Description: "Read out the permissions, access time, and other meta-data about the requested file.",
 		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
 			RelFilename := strings.TrimPrefix(r.URL.Path, URLBase)
@@ -211,8 +213,9 @@ func Head(URLBase, ServeBase string) server.SimpleHandler {
 // Post will...
 func Post(URLBase, ServeBase string) server.SimpleHandler {
 	return server.SimpleHandler{
-		Path:    URLBase,
-		Methods: []string{http.MethodPost},
+		Path:        URLBase,
+		Methods:     []string{http.MethodPost},
+		Description: "Write the incoming request body to the filesystem based on the filename of the URL.",
 		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
 			RelFilename := strings.TrimPrefix(r.URL.Path, URLBase)
@@ -246,8 +249,9 @@ func Post(URLBase, ServeBase string) server.SimpleHandler {
 // Put will...
 func Put(URLBase, ServeBase string) server.SimpleHandler {
 	return server.SimpleHandler{
-		Path:    URLBase,
-		Methods: []string{http.MethodPut},
+		Path:        URLBase,
+		Methods:     []string{http.MethodPut},
+		Description: "Overwrite the existing file with the contents of this request, failing if the file does not exist.",
 		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
 			RelFilename := strings.TrimPrefix(r.URL.Path, URLBase)
@@ -280,8 +284,9 @@ func Put(URLBase, ServeBase string) server.SimpleHandler {
 // Patch will...
 func Patch(URLBase, ServeBase string) server.SimpleHandler {
 	return server.SimpleHandler{
-		Path:    URLBase,
-		Methods: []string{http.MethodPatch},
+		Path:        URLBase,
+		Methods:     []string{http.MethodPatch},
+		Description: "Append the contents of the request to the end of the specified file, failing if the file does not exist.",
 		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
 			RelFilename := strings.TrimPrefix(r.URL.Path, URLBase)
@@ -313,8 +318,9 @@ func Patch(URLBase, ServeBase string) server.SimpleHandler {
 // Delete will...
 func Delete(URLBase, ServeBase string) server.SimpleHandler {
 	return server.SimpleHandler{
-		Path:    URLBase,
-		Methods: []string{http.MethodDelete},
+		Path:        URLBase,
+		Methods:     []string{http.MethodDelete},
+		Description: "Delete the specified file from the filesystem.",
 		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
 			RelFilename := strings.TrimPrefix(r.URL.Path, URLBase)
