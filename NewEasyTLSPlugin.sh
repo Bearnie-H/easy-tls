@@ -134,7 +134,7 @@ function log() {
         if [ -z "$LogPrefix" ]; then
             ToWrite="$Timestamp ${LogLevels[$Level]} $Message"
         else
-            ToWrite="$Timestamp [ $LogPrefix ] ${LogLevels[$Level]}: $Message"
+            ToWrite="$Timestamp [ $LogPrefix ] ${LogLevels[$Level]} $Message"
         fi
 
         #   If log colouring is on, check if it's writing to an output file

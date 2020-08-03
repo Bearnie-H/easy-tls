@@ -40,7 +40,7 @@ type fileDetails struct {
 //
 // The standard set of handlers are:
 //	GET:	Read the file from disk.
-//	HEAD:	Write out basic details about the file.
+//	HEAD:	Read out basic details about the file.
 //	POST:	Write the contents of the request body to disk as a new file.
 //	PUT:	Overwrite an existing file on disk with the contents of the request body.
 //	PATCH:	Append the request body to the existing file on disk.

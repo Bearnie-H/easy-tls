@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"crypto/tls"
 	"log"
 	"net"
@@ -204,7 +205,18 @@ func (S *SimpleServer) Shutdown() error {
 	}()
 
 	S.Logger().Printf("Shutting down server at [ %s ]...", S.Addr())
-	return S.Server.Close()
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*30)
+	defer cancel()
+
+	if err := S.Server.Shutdown(ctx); err != nil {
+		if err == context.DeadlineExceeded {
+			return S.Server.Close()
+		}
+		return err
+	}
+
+	return nil
 }
 
 // Addr exposes the underlying local address of the SimpleServer.
