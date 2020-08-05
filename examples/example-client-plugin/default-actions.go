@@ -17,6 +17,8 @@ func defaultInitialization(Client *client.SimpleClient, args ...interface{}) err
 		StatusChannel = plugins.OpenStatusWriter(10, PluginName)
 	}
 
+	Contexts = plugins.NewContextManager()
+
 	// ...
 
 	return nil

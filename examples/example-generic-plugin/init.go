@@ -6,6 +6,9 @@ import (
 
 // Init is the function to start the plugin logic.
 func Init(args ...interface{}) error {
+
+	// Defer a call to recover, to assert that no panic can possibly
+	// cross the API boundary between a plugin and the overarching framework.
 	defer func() {
 		r := recover()
 		if e, ok := r.(error); ok {

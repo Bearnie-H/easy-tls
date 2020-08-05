@@ -8,6 +8,9 @@ import (
 
 // Init is the function to start the plugin logic.
 func Init(Client *client.SimpleClient, args ...interface{}) error {
+
+	// Defer a call to recover, to assert that no panic can possibly
+	// cross the API boundary between a plugin and the overarching framework.
 	defer func() {
 		r := recover()
 		if e, ok := r.(error); ok {
@@ -29,8 +32,8 @@ func Init(Client *client.SimpleClient, args ...interface{}) error {
 	}
 
 	// Now the all of the initialization steps are finished, spawn a go-routine to implement the "Main" logic of this plugin.
+	ThreadCount.Add(1)
 	go func(Client *client.SimpleClient, args ...interface{}) {
-		ThreadCount.Add(1)
 		defer ThreadCount.Done()
 		Main(Client, args...)
 	}(Client, args...)

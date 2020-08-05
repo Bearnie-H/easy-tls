@@ -20,7 +20,7 @@ var ThreadCount = &sync.WaitGroup{}
 
 // Contexts tracks all active contexts for the plugin, allowing them to be safely cancelled
 // by the Stop() function.
-var Contexts = plugins.NewContextManager()
+var Contexts *plugins.ContextManager = nil
 
 // PluginType tells which type of plugin this is, server, client or generic.
 const PluginType string = "generic"

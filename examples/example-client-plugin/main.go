@@ -9,18 +9,23 @@ import (
 // Main is the top-level ACTION performed by this plugin.
 func Main(Client *client.SimpleClient, args ...interface{}) {
 
-	tf := time.NewTicker(time.Second)
-	ts := time.NewTicker(DefaultPluginCycleTime)
+	// Create a top-level cancellable context to oversee the entire main function.
+	ctx, Key := Contexts.NewContext()
+	defer Contexts.RemoveContext(Key)
 
-	defer tf.Stop()
-	defer ts.Stop()
+	// Set up a timer to let the module perform whatever action at some regular interval
+	t := time.NewTicker(DefaultPluginCycleTime)
+	defer t.Stop()
 
-	// Main plugin loop.
-	for !Killed.Load().(bool) {
+	// Main plugin loop
+	// If the context has been cancelled by an external call to Stop(),
+	// simply abort and return, otherwise block until it's time to do whatever
+	// this module does.
+	for {
 		select {
-		case <-tf.C:
-			continue
-		case <-ts.C:
+		case <-ctx.Done():
+			return
+		case <-t.C:
 			// ...
 		}
 	}

@@ -41,6 +41,9 @@ type SimpleServer struct {
 	// A channel to signal when Shutdown is fully complete and successful
 	done chan struct{}
 
+	// How long to wait for a safe shutdown of the server.
+	shutdownTime time.Duration
+
 	mu     *sync.Mutex
 	active bool
 }
@@ -84,12 +87,13 @@ func NewServerHTTPS(TLS *easytls.TLSBundle, Addr ...string) (*SimpleServer, erro
 			ErrorLog:  logger,
 			Handler:   router,
 		},
-		router: router,
-		logger: logger,
-		tls:    TLS,
-		done:   make(chan struct{}),
-		mu:     &sync.Mutex{},
-		active: false,
+		router:       router,
+		logger:       logger,
+		tls:          TLS,
+		done:         make(chan struct{}),
+		mu:           &sync.Mutex{},
+		active:       false,
+		shutdownTime: time.Second * 30,
 	}
 
 	return Server, nil
@@ -210,12 +214,14 @@ func (S *SimpleServer) Shutdown() error {
 
 	S.Logger().Printf("Shutting down server at [ %s ]...", S.Addr())
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*30)
+	ctx, cancel := context.WithTimeout(context.Background(), S.shutdownTime)
 	defer cancel()
 
 	if err := S.Server.Shutdown(ctx); err != nil {
-		if err == context.DeadlineExceeded {
-			return S.Server.Close()
+		S.Logger().Printf("Failed to shut down server at [ %s ] before timeout, force closing - %s", S.Addr(), err)
+		if err := S.Server.Close(); err != nil {
+			S.Logger().Printf("Error while force closing server at [ %s ] - %s", S.Addr(), err)
+			return err
 		}
 		return err
 	}

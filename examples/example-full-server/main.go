@@ -2,6 +2,7 @@ package main
 
 import (
 	"database/sql"
+	"flag"
 	"log"
 	"os"
 	"os/signal"
@@ -14,6 +15,13 @@ import (
 
 var (
 	done chan struct{} = make(chan struct{})
+)
+
+// Example Constants, set these based on your application needs
+const (
+	ModuleFolder     = "./active-modules"
+	ServerAddress    = ":8080"
+	RoutingRulesFile = "./EasyTLS-Proxy.rules"
 )
 
 func initSafeShutdown(Agent *plugins.ServerAgent, Servers ...*server.SimpleServer) {
@@ -54,9 +62,16 @@ func main() {
 	// Create one server to listen on all interfaces on port 8080
 	S := server.NewServerHTTP()
 
-	// Create a plugin agent to let this application load plugin modules
-	Agent, err := plugins.NewServerAgent("./plugins", "/", S)
-	if err != nil {
+	// Create a new plugin agent to load the modules into.
+	// If this fails with ErrOtherServerActive, this indicates there's
+	// already an identical plugin agent up and running, so this will instead attempt
+	// to send commands to it, using any remaining command-line arguments to
+	// build the commands to send.
+	Agent, err := plugins.NewServerAgent(ModuleFolder, "/", S)
+	if err == plugins.ErrOtherServerActive {
+		Agent.SendCommands(flag.Args()...)
+		os.Exit(0)
+	} else if err != nil {
 		panic(err)
 	}
 

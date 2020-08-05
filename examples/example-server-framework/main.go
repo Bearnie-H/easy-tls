@@ -35,6 +35,7 @@ func main() {
 	// build the commands to send.
 	Agent, err := plugins.NewServerAgent(ModuleFolder, "/", Server)
 	if err == plugins.ErrOtherServerActive {
+		Agent.SendCommands(flag.Args()...)
 		os.Exit(0)
 	} else if err != nil {
 		panic(err)

@@ -19,6 +19,7 @@ type ContextManager struct {
 	*sync.Mutex
 	active map[int64]context.CancelFunc
 	r      rand.Source
+	closed bool
 }
 
 // NewContextManager will initialize a new ContextManager, making it ready to use.
@@ -27,6 +28,7 @@ func NewContextManager() *ContextManager {
 		Mutex:  &sync.Mutex{},
 		active: make(map[int64]context.CancelFunc),
 		r:      rand.NewSource(time.Now().UnixNano()),
+		closed: false,
 	}
 }
 
@@ -47,6 +49,13 @@ func (C *ContextManager) NewContext() (ctx context.Context, x int64) {
 
 	// Generate a unique token for this context
 	for x = C.r.Int63(); C.active[x] != nil; x = C.r.Int63() {
+	}
+
+	// If the manager is closed, don't internalize the context and pre-cancel it
+	// so anything that uses it will only see the already cancelled context
+	if C.closed {
+		cancel()
+		return ctx, x
 	}
 
 	// Internalize the returned CancelFunc
@@ -121,6 +130,7 @@ func (C *ContextManager) Cancel(Key int64) error {
 func (C *ContextManager) Close() {
 
 	C.Lock()
+	C.closed = true
 	defer C.Unlock()
 
 	// Call the CancelFunc's for all active contexts
