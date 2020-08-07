@@ -111,7 +111,7 @@ func (S *SimpleServer) TLSBundle() *easytls.TLSBundle {
 
 // SetTimeouts will set the given timeouts of the Server.
 // Set 0 to leave uninitialized.
-func (S *SimpleServer) SetTimeouts(ReadTimeout, ReadHeaderTimeout, WriteTimeout, IdleTimeout time.Duration) {
+func (S *SimpleServer) SetTimeouts(ReadTimeout, ReadHeaderTimeout, WriteTimeout, IdleTimeout, ShutdownTimeout time.Duration) {
 
 	// Timeout to read the full request
 	if ReadTimeout != 0 {
@@ -131,6 +131,11 @@ func (S *SimpleServer) SetTimeouts(ReadTimeout, ReadHeaderTimeout, WriteTimeout,
 	// How long to keep connections alive (if keep-alives are enabled.)
 	if IdleTimeout != 0 {
 		S.Server.IdleTimeout = IdleTimeout
+	}
+
+	// Set the shutdown timeout to somewhere between 1 second and 1 minute
+	if ShutdownTimeout > 0 && ShutdownTimeout < time.Minute {
+		S.shutdownTime = ShutdownTimeout
 	}
 }
 

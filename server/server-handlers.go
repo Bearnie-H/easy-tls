@@ -10,6 +10,12 @@ import (
 	"strings"
 )
 
+// QueryKeyValue is a key-value pair used to register routes with URL Query parameters.
+type QueryKeyValue struct {
+	Key   string
+	Value string
+}
+
 // SimpleHandler represents a simplification to the standard http handlerFuncs,
 // allowing simpler registration and logging with Routers.
 type SimpleHandler struct {
@@ -30,10 +36,7 @@ type SimpleHandler struct {
 	// in order for this handler to be called.
 	// See the mux.Route.Queries() for more details on the form and shape
 	// of these values.
-	Queries []struct {
-		Key   string
-		Value string
-	} `json:",omitempty"`
+	Queries []QueryKeyValue `json:",omitempty"`
 
 	// Optional: An additional description of the route, to provide additional context
 	// and understanding when displayed via the "/about" handler.
@@ -69,13 +72,7 @@ func (H *SimpleHandler) AddQueries(QueryPairs ...string) error {
 
 	// Walk the given set of Key/Value pairs, adding them to the handler.
 	for i := 0; i < len(QueryPairs); i += 2 {
-		H.Queries = append(H.Queries, struct {
-			Key   string
-			Value string
-		}{
-			QueryPairs[i],
-			QueryPairs[i+1],
-		})
+		H.Queries = append(H.Queries, QueryKeyValue{QueryPairs[i], QueryPairs[i+1]})
 	}
 
 	return nil

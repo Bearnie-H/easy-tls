@@ -92,7 +92,7 @@ func (S *SimpleServer) addHandlers(Router *mux.Router, Handlers ...SimpleHandler
 
 		// Add any URL QueryString matchin criteria
 		if len(Node.Queries) > 0 {
-			Pairs := make([]string, len(Node.Queries)*2)
+			Pairs := []string{}
 			for _, Q := range Node.Queries {
 				Pairs = append(Pairs, Q.Key, Q.Value)
 			}

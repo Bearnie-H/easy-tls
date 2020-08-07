@@ -50,7 +50,7 @@ func main() {
 	proxy.NotFoundHandlerProxyOverride(Server, nil, proxy.LiveFileRouter(RoutingRulesFile), nil)
 
 	// Set the server-side timeouts
-	Server.SetTimeouts(time.Hour, time.Second*15, time.Hour, time.Second*5)
+	Server.SetTimeouts(time.Hour, time.Second*15, time.Hour, time.Second*5, 0)
 
 	// Start all the modules, loading all the routes and beginning status logging.
 	if err := Agent.StartAll(); err != nil {

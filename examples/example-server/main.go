@@ -28,7 +28,7 @@ func main() {
 	addRoutes(Server)
 
 	// Set the server-side timeouts
-	Server.SetTimeouts(time.Hour, time.Second*15, time.Hour, time.Second*5)
+	Server.SetTimeouts(time.Hour, time.Second*15, time.Hour, time.Second*5, 0)
 
 	// Set up a go-routine to allow the application to safely shut down.
 	initSafeShutdown(Server)
