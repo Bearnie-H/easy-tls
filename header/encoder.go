@@ -7,12 +7,10 @@ import (
 	"reflect"
 )
 
-const (
-	// EasyTLSStructTag represents the Struct Tag key used by this package.
-	// Structs can customize the key used when encoding into an http.Header
-	// by using this struct tag analagous to how the json tags work.
-	EasyTLSStructTag = `easytls`
-)
+// EasyTLSStructTag represents the Struct Tag key used by this package.
+// Structs can customize the key used when encoding into an http.Header
+// by using this struct tag analagous to how the json tags work.
+const EasyTLSStructTag = `easytls`
 
 // Encoder will implement the necessary functionality for parsing a Go struct
 // into a valid http.Header.

@@ -47,7 +47,7 @@ HelpFlag=
 RaceDetectorEnabled=
 RaceDetectorFlag=
 PluginRootDirectory=    #   Set this to wherever the plugins are located
-BuildHash="$(date "+%F %T %N" | sha1sum | awk '{print $1}')"
+BuildHash="$(date "+%F %T %N" | cksum | awk '{print $1}')"
 
 
 #   Function to display a help/usage menu to the user in a standardized format.
@@ -276,9 +276,6 @@ if [[ ! "$OutputFile" == "-" ]]; then
         #   Create the empty file.
         >"$OutputFile"
     fi
-
-    #   Resolve the output file to an absolute path
-    OutputFile=$(readlink -e "$OutputFile")
 fi
 
 #   Assert all of the required arguments are set here

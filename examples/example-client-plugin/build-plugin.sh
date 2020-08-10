@@ -254,12 +254,16 @@ function incrementBuildCount() {
 
 function checkGitBranch() {
 
-    #   We want to explicitly let the user know which branch they are on when building the application.
-    local CurrentBranch=$(git branch | grep '\*' | sed 's/^\* \(.*\)$/\1/g')
+    if git status 2>&1 > /dev/null; then
+        #   We want to explicitly let the user know which branch they are on when building the application.
+        local CurrentBranch=$(git branch | grep '\*' | sed 's/^\* \(.*\)$/\1/g')
 
-    local moduleName="$1"
-    
-    log $LOG_INFO "Building Golang module [ $moduleName ] from branch [ $CurrentBranch ]."
+        local moduleName="$1"
+        
+        log $LOG_INFO "Building Golang module [ $moduleName ] from branch [ $CurrentBranch ]."
+    else
+        log $LOG_NOTICE "Building non source-controlled Golang module [ $moduleName ]."
+    fi
 }
 
 #   Parse the command line arguments.  Add the flag name to the list (in alphabetical order), and add a ":" after if it requires an argument present.
@@ -286,7 +290,7 @@ while getopts "fho:qrx:z" opt; do
     esac
 done
 
-case HelpFlag in
+case $HelpFlag in
     1)  helpMenu
         cleanup 0
         ;;
@@ -295,7 +299,7 @@ case HelpFlag in
         ;;
 esac
 
-SetLogPrefix "$(basename "$(dirname "$(readlink -e "$0")")")"
+SetLogPrefix "$(basename "$(dirname "$0")")"
 
 if [[ ! "$OutputFile" == "-" ]]; then
 
@@ -307,9 +311,6 @@ if [[ ! "$OutputFile" == "-" ]]; then
         #   Create the empty file.
         >"$OutputFile"
     fi
-
-    #   Resolve the output file to an absolute path
-    OutputFile=$(readlink -e "$OutputFile")
 fi
 
 argSet "$BuildHash" "-x"

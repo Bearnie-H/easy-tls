@@ -284,9 +284,6 @@ if [[ ! "$OutputFile" == "-" ]]; then
         #   Create the empty file.
         >"$OutputFile"
     fi
-
-    #   Resolve the output file to an absolute path
-    OutputFile=$(readlink -e "$OutputFile")
 fi
 
 #   Assert all of the required arguments are set here
