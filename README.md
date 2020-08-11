@@ -211,11 +211,13 @@ The `plugins` package is the biggest novel development of this entire library. T
 A *plugin* within the context of this library, is anything that has the following properties (satisifes the interface):
 
 1. Is a self-contained piece of code, containing a `main` package (and potentially others), built with the `go build -buildmode=plugin` flag.
-2. Contains the following exported symbols: `Init()`, `Version()`, `Status()`, `Name()`, `Stop()`, satisfying the type-requirements described in **plugins/plugin.go** and one of **plugins/client-plugin.go** or **plugins/server-plugin.go**.
+2. Contains the following exported symbols: `Init()`, `Version()`, `Status()`, `Name()`, `Stop()`, satisfying the type-requirements described in **plugins/plugin.go** and one of **plugins/client-plugin.go**, **plugins/generic-plugin.go** or **plugins/server-plugin.go**.
 
 The `Version()`, `Status()`, `Name()`, and `Stop()` symbols have common function sigatures across any type of plugin, with the `Init()` symbol expected to vary depending on the exact nature of the plugin itself.
 
 For example, in a **Server** plugin, the `Init()` function must return the set of http.Handlers (server.SimpleHandlers to be exact), which the plugin is providing to the framework to be registered with the server. In contrast, the `Init()` function of a **Client** plugin must only return any errors which occur during startup, as well as *forking* a go-routine to continue executing the main loop of the plugin until the `Stop()` function is called.
+
+To create new plugins for an application, see the included `NewEasyTLSPlugin.sh` administrative script to help copy and prepare one of the plugin templates for use.
 
 ## Plugin Agents
 A Plugin Agent within the conext of this library is the thing which manages plugins. This involves loading the Shared Object files, extracting the necessary symbols, starting/stopping them, logging their output, and anything else related to the meta-functionality required to let the Plugin logic execute.
