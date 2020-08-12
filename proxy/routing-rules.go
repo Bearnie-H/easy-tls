@@ -91,7 +91,12 @@ func (R *ReverseProxyRoutingRule) ToURL(in *url.URL) (*url.URL, error) {
 	// Replace the prefix with the specified value
 	out.Path = strings.Replace(out.Path, R.PathPrefix, R.NewPrefix, 1)
 
-	// More manipulations of the incoming URL before returning it
+	// If the scheme is empty, set to http
+	if out.Scheme == "" {
+		out.Scheme = "http"
+	}
+
+	// Other manipulations of the URI
 	// ...
 
 	return out, nil

@@ -138,6 +138,8 @@ func (C *SimpleClient) Trace(URL string, Headers map[string][]string) (*http.Res
 // errors automatically by upgrading/downgrading as necessary.
 func (C *SimpleClient) Do(req *http.Request) (*http.Response, error) {
 
+	C.setScheme(req.URL)
+
 	resp, err := C.Client.Do(req)
 	if err != nil {
 		return C.shouldDowngrade(req, resp, err)
