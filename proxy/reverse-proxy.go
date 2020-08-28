@@ -42,8 +42,6 @@ func NotFoundHandlerProxyOverride(S *server.SimpleServer, c *client.SimpleClient
 // must map individual requests to URLs to forward to.
 // The PathPrefix defines the base path to proxy from, with a default of "/"
 // indicating that ALL incoming requests should be proxied.
-// Finally, any middlewares desired can be added, noting that the
-// "MiddlewareDefaultLogger" is applied in all cases.
 // If No Server or Client are provided, default instances will be generated.
 func ConfigureReverseProxy(S *server.SimpleServer, Client *client.SimpleClient, logger *log.Logger, RouteMatcher ReverseProxyRouterFunc, PathPrefix string) *server.SimpleServer {
 
@@ -58,6 +56,7 @@ func ConfigureReverseProxy(S *server.SimpleServer, Client *client.SimpleClient, 
 		PathPrefix = "/"
 	}
 
+	// If there's no logger provided, use the one from the server
 	if logger == nil {
 		logger = S.Logger()
 	}

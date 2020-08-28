@@ -22,10 +22,18 @@ type TLSBundle struct {
 	// AuthorityCertificates is a set of filenames, of the set of Certificate
 	// Authorities to use when building the whitelist of acceptable Certificate
 	// Authorities for TLS communications.
+	//
+	// If no explicit CA Certificates are provided, the default set of System
+	// Certificate Authorities will be used.
 	AuthorityCertificates []string
 
 	// KeyPair is the matched pair of "Client" Certificate and Key to use and
 	// present during a TLS handshake.
+	//
+	// Optional for Clients unless the server being contacted is configured to
+	// require client certifiates.
+	//
+	// Required for Servers.
 	KeyPair KeyPair
 
 	// Auth defines the policy to use during the TLS handshake to verify the
@@ -33,7 +41,8 @@ type TLSBundle struct {
 	Auth tls.ClientAuthType
 
 	// Enabled allows this to be toggled. If disabled, this will create an
-	// empty tls.Config when used.
+	// nil tls.Config when used, turning TLS off for whatever client or server
+	// which uses the returned tls.Config{}.
 	Enabled bool
 }
 
@@ -57,13 +66,13 @@ func NewTLSBundle(CertificateFile, KeyFile string, CertificateAuthorityFiles ...
 // object, ready to be used by either a SimpleClient or SimpleServer application.
 func NewTLSConfig(TLS *TLSBundle) (*tls.Config, error) {
 
-	// Create the tls.Config to return if everything goes well.
-	returnConfig := &tls.Config{}
-
 	// If no TLS bundle is provided, or is it marked disabled, don't set any TLS settings.
 	if TLS == nil || !TLS.Enabled {
 		return nil, nil
 	}
+
+	// Create the tls.Config to return if everything goes well.
+	returnConfig := &tls.Config{}
 
 	// If no KeyPairs are provided, don't attempt to load Client-side certificates
 	if TLS.KeyPair.Certificate != "" && TLS.KeyPair.Key != "" {
@@ -74,21 +83,33 @@ func NewTLSConfig(TLS *TLSBundle) (*tls.Config, error) {
 		returnConfig.Certificates = append(returnConfig.Certificates, cert)
 	}
 
-	// If no CA Certificates are provided, don't attempt to load any
-	if len(TLS.AuthorityCertificates) != 0 {
+	// If CA Certificates are provided, attempt to load and build a pool from the full set
+	if TLS.AuthorityCertificates == nil || len(TLS.AuthorityCertificates) > 0 {
 		caCertPool := x509.NewCertPool()
-		for _, AutorityCert := range TLS.AuthorityCertificates {
+
+		for _, AuthorityCert := range TLS.AuthorityCertificates {
+
 			// Load the CA cert
-			caCert, err := ioutil.ReadFile(AutorityCert)
+			caCert, err := ioutil.ReadFile(AuthorityCert)
 			if err != nil {
 				return nil, err
 			}
+
 			// Create and append the CA Cert to the pool of approved certificate authorities.
 			// This sets up so that ONLY the CA who signed this 's certificate can verify the recieved server certificate.
 			caCertPool.AppendCertsFromPEM(caCert)
 		}
 
 		// The way we implement TLS CAs here expects that the full set of accepted CAs is a whitelist, and whether we check or care about certificates is based on the ClientAuth.
+		returnConfig.RootCAs = caCertPool
+		returnConfig.ClientCAs = caCertPool
+	} else {
+		// If no CA Certificates are provided, default to the system Certificate Pool
+		caCertPool, err := x509.SystemCertPool()
+		if err != nil {
+			return nil, err
+		}
+
 		returnConfig.RootCAs = caCertPool
 		returnConfig.ClientCAs = caCertPool
 	}

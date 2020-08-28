@@ -12,7 +12,10 @@ import "net/http"
 // As long as these functions return an http.Handler, they can have any input
 
 // HideOnStop is a simple piece of middleware to allow for a handler to no longer be accessible
-// if the overall module has been Stopped()
+// if the overall module has been Stopped().  This piece of middleware, along with
+// the sync.Once{} generation of the route-list for the module combine to
+// allow for seamless starting and stopping of modules and their corresponding
+// handlers.
 func HideOnStop(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 

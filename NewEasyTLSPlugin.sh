@@ -225,7 +225,7 @@ function main() {
     fi
 
     log $LOG_INFO "Setting \"PluginName\" field of [ $PluginType ] module..."
-    if ! sed -i "s/^\(.*\)DEFINE_ME\(.*\)$/\1$PluginName\2/" $DestinationFolder/$PluginName/module-definitions.go; then
+    if ! sed -i "s/^\(.*\)DEFINE_ME\(.*\)$/\1$PluginName\2/" "$DestinationFolder/$PluginName/module-definitions.go"; then
         log $LOG_ERROR "Failed to set \"PluginName\" field of new [ $PluginType ] module!"
     else
         log $LOG_NOTICE "Successfully to set \"PluginName\" field of [ $PluginType ] module to [ $PluginName ]."

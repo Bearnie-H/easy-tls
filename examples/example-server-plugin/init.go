@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"net/http"
 
 	"github.com/Bearnie-H/easy-tls/server"
 )
@@ -58,7 +57,12 @@ func Init(args ...interface{}) ([]server.SimpleHandler, string, error) {
 
 	// Perform this only once, on the first instance of the module being started.
 	Registered.Do(func() {
-		h = append(h, server.NewSimpleHandler(GetPluginVersion(), fmt.Sprintf("%s/version", PluginName), http.MethodGet, http.MethodHead, http.MethodPost))
+		// Canonically, the handlers to be returned should be formatted and constructed in the manner of GetPluginVersion.
+		// This allows for a full decorator-like pattern for the full set of routing / matching properties, as well
+		// as the ability to have the internal handler logic function as a closure over extracted properties.
+		// Furthermore, this style also provides room and opportunity for route-specific "middle-ware" which can be selectively
+		// applied to only some routes, rather than applying a given middleware to all routes of a module.
+		h = append(h, GetPluginVersion())
 		// ... Append your handlers here
 	})
 

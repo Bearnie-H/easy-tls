@@ -28,6 +28,13 @@ func (a ReverseProxyRuleSet) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
 
 // Less is defined in "reverse" order,
 // as longer path-prefixes should be matched against first.
+// This allows nested trees of URLs to potentially be proxied further
+// to additional services or servers.
+//
+// For Example:
+//
+//	/foo/bar	-> Forward to service 1 and add a set of URL Query values
+//	/foo		-> Forward to service 1 and do not add URL Query values
 func (a ReverseProxyRuleSet) Less(i, j int) bool { return a[i].PathPrefix > a[j].PathPrefix }
 
 // Find will return either the new Host:Port/Path to forward to

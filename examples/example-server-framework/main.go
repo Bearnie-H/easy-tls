@@ -46,7 +46,9 @@ func main() {
 	Server.AddMiddlewares(server.MiddlewareLimitMaxConnections(200, time.Minute*15, Server.Logger()))
 	Server.AddMiddlewares(server.MiddlewareDefaultLogger(Server.Logger()))
 
-	// Set up the server so that any routes which are not found are checked against a routing table file, allowing this server to proxy requests it cannot serve itself, but has been configured to proxy for.
+	// Set up the server so that any routes which are not found are checked against
+	// a routing table file, allowing this server to proxy requests it cannot serve
+	// itself, but has been configured to proxy for.
 	proxy.NotFoundHandlerProxyOverride(Server, nil, proxy.LiveFileRouter(RoutingRulesFile), nil)
 
 	// Set the server-side timeouts

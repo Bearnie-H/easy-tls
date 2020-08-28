@@ -48,7 +48,11 @@ func (C *ContextManager) NewContext() (ctx context.Context, x int64) {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	// Generate a unique token for this context
-	for x = C.r.Int63(); C.active[x] != nil; x = C.r.Int63() {
+	for {
+		x := C.r.Int63()
+		if _, exist := C.active[x]; !exist {
+			break
+		}
 	}
 
 	// If the manager is closed, don't internalize the context and pre-cancel it
@@ -114,15 +118,13 @@ func (C *ContextManager) Cancel(Key int64) error {
 	C.Lock()
 	defer C.Unlock()
 
-	Cancel := C.active[Key]
-
-	if Cancel == nil {
-		return ErrNoContext
+	if cancel, exist := C.active[Key]; exist {
+		cancel()
+		delete(C.active, Key)
+		return nil
 	}
 
-	Cancel()
-	delete(C.active, Key)
-	return nil
+	return ErrNoContext
 }
 
 // Close will close a ContextManager, cancelling all contexts which have not
@@ -130,8 +132,9 @@ func (C *ContextManager) Cancel(Key int64) error {
 func (C *ContextManager) Close() {
 
 	C.Lock()
-	C.closed = true
 	defer C.Unlock()
+
+	C.closed = true
 
 	// Call the CancelFunc's for all active contexts
 	for _, Cancel := range C.active {

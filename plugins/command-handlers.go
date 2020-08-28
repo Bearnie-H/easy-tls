@@ -66,7 +66,7 @@ func exitHandler(w http.ResponseWriter, StatusCode int, Message string, Err erro
 	return s
 }
 
-// HelloHandler is a test function, used to see if the server is working
+// HelpHandler shows the available set of options for the Socket API
 func helpHandler(Agent *Agent) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		b := bytes.NewBuffer(nil)
