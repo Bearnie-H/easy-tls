@@ -167,7 +167,7 @@ func Get(URLBase, ServeBase string, ShowHidden bool) server.SimpleHandler {
 				HandlerLogger.Printf("Succesfully served directory [ %s ]", Filename)
 			} else {
 				if _, err := io.Copy(w, f); err != nil {
-					ExitHandler(w, http.StatusInternalServerError, "file-server error: Failed to write directory contents for folder [ %s ]", err, path.Dir(Filename))
+					ExitHandler(w, http.StatusInternalServerError, "file-server error: Failed to write file [ %s ] to network", err, Filename)
 					return
 				}
 				HandlerLogger.Printf("Successfully served file [ %s ]", Filename)
