@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-// MiddlewareHandler represents the Type which must be satified by any
+// MiddlewareHandler represents the Type which must be satisfied by any
 // function to be used as a middleware function in the Server chain.
 type MiddlewareHandler = func(http.Handler) http.Handler
 
@@ -17,7 +17,7 @@ type MiddlewareHandler = func(http.Handler) http.Handler
 func MiddlewareDefaultLogger(logger *log.Logger) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			logger.Printf("[MiddlewareDefaultLogger] Recieved [ %s ] [ %s ] Request for URL \"%s\" from Address: [ %s ].\n", r.Proto, r.Method, r.URL.String(), r.RemoteAddr)
+			logger.Printf("[MiddlewareDefaultLogger] Received [ %s ] [ %s ] Request for URL \"%s\" from Address: [ %s ].\n", r.Proto, r.Method, r.URL.String(), r.RemoteAddr)
 			next.ServeHTTP(w, r)
 		})
 	}

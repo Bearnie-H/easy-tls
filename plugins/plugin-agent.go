@@ -147,7 +147,7 @@ func (A *Agent) StartAll() error {
 		go func(M Module, wg *sync.WaitGroup) {
 			defer wg.Done()
 			if err := M.Start(); err != nil {
-				A.Logger().Printf("plugin agent error: Error occured while starting module [ %s ] - %s", M.Name(), err)
+				A.Logger().Printf("plugin agent error: Error occurred while starting module [ %s ] - %s", M.Name(), err)
 			}
 		}(M, wg)
 	}
@@ -192,7 +192,7 @@ func (A *Agent) StopAll() error {
 		go func(M Module, wg *sync.WaitGroup) {
 			defer wg.Done()
 			if err := M.Stop(); err != nil {
-				A.Logger().Printf("plugin agent error: Error occured while stopping module [ %s ] - %s", M.Name(), err)
+				A.Logger().Printf("plugin agent error: Error occurred while stopping module [ %s ] - %s", M.Name(), err)
 			}
 		}(M, wg)
 	}
@@ -227,7 +227,7 @@ func (A *Agent) Close() error {
 
 	A.Logger().Printf("Shutting down command server...")
 	if err = A.commandServer.Shutdown(); err != nil {
-		A.Logger().Printf("plugin agent error: Error occured while shutting down command server - %s", err)
+		A.Logger().Printf("plugin agent error: Error occurred while shutting down command server - %s", err)
 	}
 
 	return err

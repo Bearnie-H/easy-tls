@@ -19,7 +19,7 @@ type (
 	ServerInitSubrouterFunc = func(...interface{}) ([]server.SimpleHandler, string, error)
 )
 
-// ServerPlugin extends GenericPlugin to fulfill the Module interface
+// ServerPlugin extends GenericPlugin to satisfy the Module interface
 // with Init() functions specific to server-type plugins.
 type ServerPlugin struct {
 	GenericPlugin

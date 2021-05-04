@@ -19,7 +19,7 @@ import (
 var (
 	// ErrOtherServerActive indicates that the server cannot activate, since there is already a server
 	// active on the bind address it uses.
-	ErrOtherServerActive error = errors.New("plugin command server error: Failed to initalize, bind address already active")
+	ErrOtherServerActive error = errors.New("plugin command server error: Failed to initialize, bind address already active")
 )
 
 // newCommandServer will return a new, fully configured Command server to the plugin agent.

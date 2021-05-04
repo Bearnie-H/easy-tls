@@ -248,7 +248,7 @@ func (p *GenericPlugin) AddArguments(args ...interface{}) {
 	p.args = append(p.args, args...)
 }
 
-// ReadStatus wiill spawn a go-routine to read messages off the Status() channel
+// ReadStatus will spawn a go-routine to read messages off the Status() channel
 // from the plugin until it is closed.
 func (p *GenericPlugin) ReadStatus() error {
 
@@ -315,7 +315,7 @@ func (p *GenericPlugin) Uptime() time.Duration {
 // Stop implements the Stop method of the Module interface.
 // This will stop the logic of the plugin according to the exported Stop()
 // function, and will wait for ALL status messages to be written out before
-// returning any errors which occured during shutdown
+// returning any errors which occurred during shutdown
 func (p *GenericPlugin) Stop() error {
 
 	p.agent.Logger().Printf("Stopping module [ %s ]", p.Name())

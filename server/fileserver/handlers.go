@@ -20,7 +20,7 @@ import (
 // network.
 const ModifiedTimeFormat = time.Stamp
 
-// HandlerLogger is the reference to the logger to use for the FileServer handlers
+// HandlerLogger is the reference to the default logger to use for the FileServer handlers
 var HandlerLogger *log.Logger
 
 // fileDetails is the set of file properties returned as headers during GET

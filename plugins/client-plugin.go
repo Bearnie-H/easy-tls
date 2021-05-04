@@ -14,7 +14,7 @@ type (
 	ClientInitFunc = func(*client.SimpleClient, ...interface{}) error
 )
 
-// ClientPlugin extends GenericPlugin to fulfill the Module interface
+// ClientPlugin extends GenericPlugin to satisfy the Module interface
 // with Init() functions specific to client-type plugins.
 type ClientPlugin struct {
 	GenericPlugin

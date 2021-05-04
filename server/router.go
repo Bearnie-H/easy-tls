@@ -9,7 +9,7 @@ import (
 
 // NewDefaultRouter will create a new Router, based on the gorilla/mux
 // implementation. This will pre-set the "trailing-slash" behaviour to not be
-// pedantic, as well as initialing the "Not-Found" and "Method-Not-Allowed"
+// pedantic, as well as initialzing the "Not-Found" and "Method-Not-Allowed"
 // behaviours to simply return the corresponding status codes.
 // These can be overridden if desired.
 func NewDefaultRouter() *mux.Router {

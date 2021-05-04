@@ -50,7 +50,7 @@ func (c *command) url(Agent *Agent) *url.URL {
 
 func (c *command) do(C *client.SimpleClient, A *Agent) error {
 
-	A.Logger().Printf("Subitting command [ %+v ]", *c)
+	A.Logger().Printf("Submitting command [ %+v ]", *c)
 
 	H := http.Header{}
 
@@ -59,14 +59,14 @@ func (c *command) do(C *client.SimpleClient, A *Agent) error {
 	}
 
 	resp, err := C.Get(c.url(A).String(), H)
-	if err != nil && err != client.ErrInvalidStatusCode {
-		A.Logger().Printf("plugin command error: Error occured while submitting command [ %+v ] - %s", *c, err)
+	if err != nil {
+		A.Logger().Printf("plugin command error: Error occurred while submitting command [ %+v ] - %s", *c, err)
 		return err
 	}
 
 	Contents, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		A.Logger().Printf("plugin command error: Error occured while reading response body - %s", err)
+		A.Logger().Printf("plugin command error: Error occurred while reading response body - %s", err)
 		return err
 	}
 

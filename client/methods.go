@@ -2,17 +2,11 @@ package client
 
 import (
 	"context"
-	"errors"
 	"io"
 	"mime/multipart"
 	"net/http"
 	"net/url"
-	"strings"
 )
-
-// ErrInvalidStatusCode is the standard error to return when an HTTP request
-// succeeds, but returns with a status code indicating some sort of error.
-var ErrInvalidStatusCode = errors.New("Invalid status code - Expected 2xx")
 
 // Set the URL Scheme based on the TLS settings of the Client.
 func (C *SimpleClient) setScheme(URL *url.URL) {
@@ -126,62 +120,7 @@ func (C *SimpleClient) Trace(URL string, Headers map[string][]string) (*http.Res
 // Do is the wrapper function for a generic pre-generated HTTP request.
 //
 // This is the generic underlying call used by the rest of this library.
-//
-// This will perform no alterations to the provided request, and no alterations
-// to the returned Response. This function returns ErrInvalidStatusCode and the
-// full response on an HTTP StatusCode which is outside the 200 block.
-// This is still a meaningful response, but a helpful error to quickly
-// disambiguate errors of transport versus errors of action.
-//
-// This function is extended by the use of a TLSRetryPolicy within the
-// SimpleClient. This allows a client to attempt to handle HTTP/HTTPS mismatch
-// errors automatically by upgrading/downgrading as necessary.
 func (C *SimpleClient) Do(req *http.Request) (*http.Response, error) {
-
 	C.setScheme(req.URL)
-
-	resp, err := C.Client.Do(req)
-	if err != nil {
-		return C.shouldDowngrade(req, resp, err)
-	}
-
-	if 200 <= resp.StatusCode && resp.StatusCode < 300 {
-		return resp, nil
-	}
-
-	return C.shouldUpgrade(req, resp, ErrInvalidStatusCode)
-}
-
-// Check if the client should downgrade to HTTP and attempt to perform the request again.
-func (C *SimpleClient) shouldDowngrade(req *http.Request, resp *http.Response, respErr error) (*http.Response, error) {
-
-	// If the Client Retry policy indicates either no retries, or only upgrades, don't attempt anything
-	if C.policy == NoRetry ||
-		C.policy == UpgradeNoReset ||
-		C.policy == UpgradeWithReset {
-		return resp, respErr
-	}
-
-	// Check if we have a standard golang http package error indicating an HTTP response for HTTPS client.
-	if strings.Contains(respErr.Error(), "http: server gave HTTP response to HTTPS client") {
-		return C.retryWithDowngrade(req, resp)
-	}
-
-	// Perform more, or other checks...
-
-	return resp, respErr
-}
-
-// Check if the client should try to upgrade to HTTPS and attempt to perform the request again.
-func (C *SimpleClient) shouldUpgrade(req *http.Request, resp *http.Response, respErr error) (*http.Response, error) {
-
-	if C.policy == NoRetry ||
-		C.policy == DowngradeNoReset ||
-		C.policy == DowngradeWithReset {
-		return resp, respErr
-	}
-
-	// if resp.StatusCode == http.StatusBadRequest
-
-	return resp, respErr
+	return C.Client.Do(req)
 }

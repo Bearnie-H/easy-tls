@@ -31,7 +31,7 @@ type TLSBundle struct {
 	// present during a TLS handshake.
 	//
 	// Optional for Clients unless the server being contacted is configured to
-	// require client certifiates.
+	// require client certificates.
 	//
 	// Required for Servers.
 	KeyPair KeyPair
@@ -96,7 +96,7 @@ func NewTLSConfig(TLS *TLSBundle) (*tls.Config, error) {
 			}
 
 			// Create and append the CA Cert to the pool of approved certificate authorities.
-			// This sets up so that ONLY the CA who signed this 's certificate can verify the recieved server certificate.
+			// This sets up so that ONLY the CA who signed this certificate can verify the received server certificate.
 			caCertPool.AppendCertsFromPEM(caCert)
 		}
 

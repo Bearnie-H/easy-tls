@@ -99,7 +99,7 @@ func (W *StatusWriter) Printf(Message string, Err error, args ...interface{}) {
 	)
 }
 
-// Fatalf will format and print out a status message usng the given Message fmt string
+// Fatalf will format and print out a status message using the given Message fmt string
 // and optional error. This will tell the framework to hard stop the plugin.
 func (W *StatusWriter) Fatalf(Message string, Err error, args ...interface{}) {
 

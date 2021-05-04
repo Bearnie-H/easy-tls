@@ -15,40 +15,6 @@ import (
 	"github.com/Bearnie-H/easy-tls/header"
 )
 
-// TLSRetryPolicy defines the possible policies that a SimpleClient can take
-// when it communicates with the wrong HTTP/HTTPS to the server.
-type TLSRetryPolicy int
-
-// Enum definition of the available TLSRetryPolicy values
-// NOTE: Currently only NoRetry and Downgrade are implemented.
-const (
-
-	// Don't retry the attempt using a different Scheme
-	NoRetry TLSRetryPolicy = iota
-
-	// Attempt only downgrading from HTTPS to HTTP, and don't reset the
-	// SimpleClient after the request.
-	DowngradeNoReset
-
-	// Attempt only downgrading from HTTPS to HTTP, and reset the SimpleClient
-	// after the request.
-	DowngradeWithReset
-
-	// Attempt only upgrading from HTTP to HTTPS, but reset the SimpleClient to
-	// HTTP after the request.
-	UpgradeNoReset
-
-	// Attempt only upgrading from HTTP to HTTPS, and keep the SimpleClient
-	// configured for HTTPS after the request.
-	UpgradeWithReset
-
-	// Attempt to swap HTTP <-> HTTPS, and don't reset the SimpleClient after.
-	SwapNoReset
-
-	// Attempt to swap HTTP <-> HTTPS, and do reset the SimpleClient after.
-	SwapWithReset
-)
-
 // SimpleClient is the primary object of this library. This is the
 // implementation of the simplified HTTP Client provided by this package.
 // The use and functionality of this is transparent to whether or not this is
@@ -59,8 +25,6 @@ type SimpleClient struct {
 
 	tls    bool
 	bundle easytls.TLSBundle
-
-	policy TLSRetryPolicy
 }
 
 // NewClient will wrap an existing http.Client as a SimpleClient.
@@ -70,7 +34,6 @@ func NewClient(C *http.Client) *SimpleClient {
 		logger: easytls.NewDefaultLogger(),
 		tls:    false,
 		bundle: easytls.TLSBundle{},
-		policy: NoRetry,
 	}
 }
 
@@ -78,13 +41,13 @@ func NewClient(C *http.Client) *SimpleClient {
 // off. These settings CAN be turned on and off as required, either by
 // providing a TLSBundle, or by reusing one passed in earlier.
 func NewClientHTTP() *SimpleClient {
-	C, _ := NewClientHTTPS(nil, NoRetry)
+	C, _ := NewClientHTTPS(nil)
 	return C
 }
 
 // NewClientHTTPS will fully initialize a SimpleClient with TLS settings turned
 // on. These settings CAN be turned on and off as required.
-func NewClientHTTPS(TLS *easytls.TLSBundle, TLSPolicy TLSRetryPolicy) (*SimpleClient, error) {
+func NewClientHTTPS(TLS *easytls.TLSBundle) (*SimpleClient, error) {
 
 	tls, err := easytls.NewTLSConfig(TLS)
 	if err != nil {
@@ -108,7 +71,6 @@ func NewClientHTTPS(TLS *easytls.TLSBundle, TLSPolicy TLSRetryPolicy) (*SimpleCl
 		tls:    !(tls == nil),
 		logger: Logger,
 		bundle: saveBundle,
-		policy: TLSPolicy,
 	}
 
 	return s, nil
@@ -216,99 +178,4 @@ func (C *SimpleClient) DisableTLS() {
 		},
 	}
 	C.tls = false
-}
-
-// retryWithDowngrade will attempt to re-send an HTTP request, after
-// downgrading from HTTPS to HTTP. If this errors out, simply return the
-// original response back, as if this never happpened.
-//
-// NOTE: This currently only works with requests that have empty bodies.
-func (C *SimpleClient) retryWithDowngrade(r *http.Request, original *http.Response) (resp *http.Response, err error) {
-
-	// Check the Upgrade/Downgrade policy
-	switch C.policy {
-
-	// If the policy implies resetting the TLS status, defer that to happen at the end
-	case DowngradeWithReset, SwapWithReset:
-		defer func(err *error) {
-			err2 := C.EnableTLS()
-			if *err != nil {
-				if err2 != nil {
-					*err = fmt.Errorf("%s. easytls client error: Failed to re-enable TLS - %s", *err, err2)
-				}
-			}
-		}(&err) // Allow the reset of the TLS settings to report it's error back
-
-	// If the policy doesn't specify resetting, don't defer resetting it
-	case DowngradeNoReset, SwapNoReset:
-
-		// If the policy is anything else, we shouldn't have gotten here, but just return and ignore this call.
-	default:
-		return original, nil
-	}
-
-	C.DisableTLS()
-
-	newURL := *r.URL
-	newURL.Scheme = "http"
-
-	rewoundBody, err := C.rewindRequestBody(r)
-	if err != nil {
-		return original, fmt.Errorf("easytls client error: Failed to rewind request body in [ %s ] request to [ %s ] - %s", r.Method, r.URL.String(), err)
-	}
-
-	newReq, err := NewRequest(r.Method, newURL.String(), r.Header, rewoundBody)
-	if err != nil {
-		return original, fmt.Errorf("easytls client error: Failed to re-create [ %s ] request during TLS upgrade retry - %s", r.Method, err)
-	}
-
-	return C.Do(newReq)
-}
-
-// retryWithUpgrade will attempt to re-send an HTTP request, after upgrading
-// from HTTP to HTTPS. If this errors out, simply return the original response
-// back, as if this never happpened.
-//
-// NOTE: This doesn't work yet, as it's unclear how to generically identify
-// when a client would need to attempt an upgrade.
-func (C *SimpleClient) retryWithUpgrade(r *http.Request, original *http.Response) (*http.Response, error) {
-	// Check the Upgrade/Downgrade policy
-	switch C.policy {
-
-	// If the policy implies resetting the TLS status, defer that to happen at the end
-	case UpgradeWithReset, SwapWithReset:
-		defer C.DisableTLS()
-
-	// If the policy doesn't specify resetting, don't defer resetting it
-	case UpgradeNoReset, SwapNoReset:
-
-		// If the policy is anything else, we shouldn't have gotten here, but just return and ignore this call.
-	default:
-		return original, nil
-	}
-
-	if err := C.EnableTLS(); err != nil {
-		return original, fmt.Errorf("easytls client error: Failed to enable TLS during retry attempt - %s", err)
-	}
-
-	newURL := *r.URL
-	newURL.Scheme = "https"
-
-	rewoundBody, err := C.rewindRequestBody(r)
-	if err != nil {
-		return original, fmt.Errorf("easytls client error: Failed to rewind request body in [ %s ] request to [ %s ] - %s", r.Method, r.URL.String(), err)
-	}
-
-	newReq, err := NewRequest(r.Method, newURL.String(), r.Header, rewoundBody)
-	if err != nil {
-		return original, fmt.Errorf("easytls client error: Failed to re-create [ %s ] request during TLS upgrade retry - %s", r.Method, err)
-	}
-
-	return C.Do(newReq)
-}
-
-func (C *SimpleClient) rewindRequestBody(r *http.Request) (io.ReadCloser, error) {
-
-	// NOTE: This needs to be implemented. This should either attempt to rewind the request body if possible, or return a meaningful error.
-	return r.Body, nil
 }

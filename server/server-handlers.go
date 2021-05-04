@@ -151,7 +151,7 @@ func (S *SimpleServer) enableAboutHandler() {
 	S.Router().Path("/about").HandlerFunc(aboutHandler)
 }
 
-// RegisterSPAHandler will regitster an HTTP Handler to allow serving a Single Page Application.
+// RegisterSPAHandler will register an HTTP Handler to allow serving a Single Page Application.
 // The application will be based off URLBase, and will serve content based out of PathBase.
 //
 // The URLBase must be the same as what's defined to be <base href="/URLBase"> within

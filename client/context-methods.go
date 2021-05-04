@@ -41,17 +41,7 @@ func (C *SimpleClient) HeadContext(ctx context.Context, URL string, Headers map[
 	}
 
 	// Perform the request
-	resp, err := C.Do(req)
-	switch err {
-	case nil:
-		defer resp.Body.Close()
-		return resp, nil
-	case ErrInvalidStatusCode:
-		defer resp.Body.Close()
-		return resp, err
-	default:
-		return nil, err
-	}
+	return C.Do(req)
 }
 
 // PostContext is the wrapper function for an HTTP "POST" request. This will create a
@@ -124,17 +114,7 @@ func (C *SimpleClient) DeleteContext(ctx context.Context, URL string, Headers ma
 	}
 
 	// Perform the request
-	resp, err := C.Do(req)
-	switch err {
-	case nil:
-		defer resp.Body.Close()
-		return resp, nil
-	case ErrInvalidStatusCode:
-		defer resp.Body.Close()
-		return resp, err
-	default:
-		return nil, err
-	}
+	return C.Do(req)
 }
 
 // PatchContext is the wrapper function for an HTTP "PATCH" request. This will create

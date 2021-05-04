@@ -25,7 +25,7 @@ func NotFoundHandlerProxyOverride(S *server.SimpleServer, c *client.SimpleClient
 	}
 
 	if c == nil {
-		c, err = client.NewClientHTTPS(S.TLSBundle(), client.DowngradeWithReset)
+		c, err = client.NewClientHTTPS(S.TLSBundle())
 		if err != nil {
 			panic(err)
 		}
@@ -38,7 +38,7 @@ func NotFoundHandlerProxyOverride(S *server.SimpleServer, c *client.SimpleClient
 // ConfigureReverseProxy will convert a freshly created SimpleServer
 // into a ReverseProxy. This will use the provided SimpleClient
 // (or a default HTTP SimpleClient) to perform the requests.
-// The ReverseProxyRouterFunc defines HOW the routing will be peformed, and
+// The ReverseProxyRouterFunc defines HOW the routing will be performed, and
 // must map individual requests to URLs to forward to.
 // The PathPrefix defines the base path to proxy from, with a default of "/"
 // indicating that ALL incoming requests should be proxied.
@@ -63,7 +63,7 @@ func ConfigureReverseProxy(S *server.SimpleServer, Client *client.SimpleClient, 
 
 	// If no client is given, attempt to create one, using any TLS resources the potential server had.
 	if Client == nil {
-		Client, err = client.NewClientHTTPS(S.TLSBundle(), client.DowngradeWithReset)
+		Client, err = client.NewClientHTTPS(S.TLSBundle())
 		if err != nil {
 			panic(err)
 		}
@@ -140,24 +140,7 @@ func DoReverseProxy(C *client.SimpleClient, Matcher ReverseProxyRouterFunc, logg
 
 		// Perform the full proxy request
 		proxyResp, err := C.Do(proxyReq)
-		switch err {
-		case nil:
-			defer proxyResp.Body.Close()
-			break
-		case client.ErrInvalidStatusCode:
-			defer proxyResp.Body.Close()
-			logger.Printf("Failed to perform proxy request for URL [ %s ] from %s - %s", r.URL.String(), r.RemoteAddr, err)
-			proxyResp.Header.Del("Content-Length")
-			H := w.Header()
-			header.Merge(&H, &proxyResp.Header)
-			w.WriteHeader(proxyResp.StatusCode)
-			w.Write([]byte(fmt.Sprintf("Failed to perform proxy request for URL [ %s ] - %s.\n", r.URL.String(), err)))
-			if _, err := io.Copy(w, proxyResp.Body); err != nil {
-				logger.Printf("Failed to write back failed proxy response for URL [ %s ] from %s - %s", r.URL.String(), r.RemoteAddr, err)
-				return
-			}
-			return
-		default:
+		if err != nil {
 			logger.Printf("Failed to perform proxy request for URL [ %s ] from %s - %s", r.URL.String(), r.RemoteAddr, err)
 			w.WriteHeader(http.StatusInternalServerError)
 			w.Write([]byte(fmt.Sprintf("Failed to perform proxy request for URL [ %s ] - %s.\n", r.URL.String(), err)))

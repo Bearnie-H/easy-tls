@@ -9,7 +9,7 @@ import (
 
 // EasyTLSStructTag represents the Struct Tag key used by this package.
 // Structs can customize the key used when encoding into an http.Header
-// by using this struct tag analagous to how the json tags work.
+// by using this struct tag analogous to how the json tags work.
 const EasyTLSStructTag = `easytls`
 
 // Encoder will implement the necessary functionality for parsing a Go struct
@@ -39,7 +39,7 @@ func DefaultEncode(v interface{}) (http.Header, error) {
 }
 
 // Header returns a copy of the underlying HTTP Header, as the Encoder
-// currenty sees it.
+// currently sees it.
 func (E *Encoder) Header() http.Header {
 	return E.h
 }
