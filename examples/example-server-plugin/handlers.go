@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"html"
 	"net/http"
 
 	"github.com/Bearnie-H/easy-tls/server"
@@ -43,7 +44,7 @@ func template() server.SimpleHandler {
 
 			// Add your actual handler logic below...
 			w.WriteHeader(http.StatusNotImplemented)
-			w.Write([]byte(fmt.Sprintf("Handler for [ %s ] request to [ %s ] is not yet implemented", r.Method, r.URL.Path)))
+			w.Write([]byte(html.EscapeString(fmt.Sprintf("Handler for [ %s ] request to [ %s ] is not yet implemented", r.Method, r.URL.Path))))
 		})),
 	}
 }

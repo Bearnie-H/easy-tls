@@ -90,7 +90,7 @@ func (D *Decoder) decode() error {
 			if err != nil {
 				return err
 			}
-			FieldValue.SetInt(int64(v))
+			FieldValue.SetInt(v)
 		case reflect.Float32, reflect.Float64:
 			v, err := D.decodeFloat(HeaderValue)
 			if err != nil {
@@ -109,10 +109,10 @@ func (D *Decoder) decode() error {
 				for index, val := range v.([]bool) {
 					V.Index(index).SetBool(val)
 				}
-			case []int:
-				V = reflect.MakeSlice(FieldValue.Type(), len(v.([]int)), cap(v.([]int)))
-				for index, val := range v.([]int) {
-					V.Index(index).SetInt(int64(val))
+			case []int64:
+				V = reflect.MakeSlice(FieldValue.Type(), len(v.([]int64)), cap(v.([]int64)))
+				for index, val := range v.([]int64) {
+					V.Index(index).SetInt(val)
 				}
 			case []float64:
 				V = reflect.MakeSlice(FieldValue.Type(), len(v.([]float64)), cap(v.([]float64)))
@@ -161,7 +161,7 @@ func (D *Decoder) decodeBool(HeaderValue []string) (bool, error) {
 	}
 }
 
-func (D *Decoder) decodeInt(HeaderValue []string) (int, error) {
+func (D *Decoder) decodeInt(HeaderValue []string) (int64, error) {
 	if HeaderValue == nil || len(HeaderValue) == 0 {
 		return 0, nil
 	}
@@ -171,7 +171,7 @@ func (D *Decoder) decodeInt(HeaderValue []string) (int, error) {
 		return 0, fmt.Errorf("decoder error: Invalid integer value (%s) - %s", HeaderValue[0], err)
 	}
 
-	return int(temp), nil
+	return temp, nil
 }
 
 func (D *Decoder) decodeFloat(HeaderValue []string) (float64, error) {
@@ -208,7 +208,7 @@ func (D *Decoder) decodeSlice(HeaderValue []string, SliceKind reflect.Kind) (int
 		}
 		return s, nil
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-		s := []int{}
+		s := []int64{}
 		for _, x := range HeaderValue {
 			v, err := D.decodeInt([]string{x})
 			if err != nil {

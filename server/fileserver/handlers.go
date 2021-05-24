@@ -2,6 +2,7 @@ package fileserver
 
 import (
 	"fmt"
+	"html"
 	"io"
 	"log"
 	"net/http"
@@ -81,7 +82,7 @@ func Handlers(URLBase, ServeBase string, ShowHidden bool, Logger *log.Logger) []
 // fmt.Sprintf(Message, args...) to the response, and to the logger
 func ExitHandler(w http.ResponseWriter, StatusCode int, Message string, err error, args ...interface{}) {
 	w.WriteHeader(StatusCode)
-	w.Write([]byte(fmt.Sprintf(Message, args...)))
+	w.Write([]byte(html.EscapeString(fmt.Sprintf(Message, args...))))
 	if HandlerLogger != nil {
 		if err == nil {
 			HandlerLogger.Printf(Message, args...)
@@ -101,6 +102,12 @@ func Get(URLBase, ServeBase string, ShowHidden bool) server.SimpleHandler {
 		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
 			RelFilename := strings.TrimPrefix(r.URL.Path, URLBase)
+
+			if strings.Count(RelFilename, ".") > 1 {
+				ExitHandler(w, http.StatusBadRequest, "file-server error: Filename [ %s ] cannot have more than 1 [ . ] character", nil)
+				return
+			}
+
 			Filename := path.Join(ServeBase, RelFilename)
 
 			Details, err := describeFile(Filename)
@@ -126,7 +133,7 @@ func Get(URLBase, ServeBase string, ShowHidden bool) server.SimpleHandler {
 				ExitHandler(w, http.StatusNotFound, "file-server error: File [ %s ] could not be found", err, Filename)
 				return
 			} else if err != nil {
-				ExitHandler(w, http.StatusInternalServerError, "file-server error: Error occured while opening file [ %s ]", err, Filename)
+				ExitHandler(w, http.StatusInternalServerError, "file-server error: Error occurred while opening file [ %s ]", err, Filename)
 				return
 			}
 			defer f.Close()
@@ -161,10 +168,10 @@ func Get(URLBase, ServeBase string, ShowHidden bool) server.SimpleHandler {
 						continue
 					}
 
-					name = fmt.Sprintf("<a href=\"%s%s\">%s</a><br/>\n", r.URL.Path, name, name)
+					name = fmt.Sprintf("<a href=\"%s%s\">%s</a><br/>\n", r.URL.Path, html.EscapeString(name), html.EscapeString(name))
 					w.Write([]byte(name))
 				}
-				HandlerLogger.Printf("Succesfully served directory [ %s ]", Filename)
+				HandlerLogger.Printf("Successfully served directory [ %s ]", Filename)
 			} else {
 				if _, err := io.Copy(w, f); err != nil {
 					ExitHandler(w, http.StatusInternalServerError, "file-server error: Failed to write file [ %s ] to network", err, Filename)
@@ -185,6 +192,12 @@ func Head(URLBase, ServeBase string) server.SimpleHandler {
 		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
 			RelFilename := strings.TrimPrefix(r.URL.Path, URLBase)
+
+			if strings.Count(RelFilename, ".") > 1 {
+				ExitHandler(w, http.StatusBadRequest, "file-server error: Filename [ %s ] cannot have more than 1 [ . ] character", nil)
+				return
+			}
+
 			Filename := path.Join(ServeBase, RelFilename)
 
 			Details, err := describeFile(Filename)
@@ -219,6 +232,12 @@ func Post(URLBase, ServeBase string) server.SimpleHandler {
 		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
 			RelFilename := strings.TrimPrefix(r.URL.Path, URLBase)
+
+			if strings.Count(RelFilename, ".") > 1 {
+				ExitHandler(w, http.StatusBadRequest, "file-server error: Filename [ %s ] cannot have more than 1 [ . ] character", nil)
+				return
+			}
+
 			if RelFilename == "" {
 				RelFilename = "/"
 			}
@@ -255,6 +274,12 @@ func Put(URLBase, ServeBase string) server.SimpleHandler {
 		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
 			RelFilename := strings.TrimPrefix(r.URL.Path, URLBase)
+
+			if strings.Count(RelFilename, ".") > 1 {
+				ExitHandler(w, http.StatusBadRequest, "file-server error: Filename [ %s ] cannot have more than 1 [ . ] character", nil)
+				return
+			}
+
 			if RelFilename == "" {
 				RelFilename = "/"
 			}
@@ -290,6 +315,12 @@ func Patch(URLBase, ServeBase string) server.SimpleHandler {
 		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
 			RelFilename := strings.TrimPrefix(r.URL.Path, URLBase)
+
+			if strings.Count(RelFilename, ".") > 1 {
+				ExitHandler(w, http.StatusBadRequest, "file-server error: Filename [ %s ] cannot have more than 1 [ . ] character", nil)
+				return
+			}
+
 			if RelFilename == "" {
 				RelFilename = "/"
 			}
@@ -324,6 +355,12 @@ func Delete(URLBase, ServeBase string) server.SimpleHandler {
 		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
 			RelFilename := strings.TrimPrefix(r.URL.Path, URLBase)
+
+			if strings.Count(RelFilename, ".") > 1 {
+				ExitHandler(w, http.StatusBadRequest, "file-server error: Filename [ %s ] cannot have more than 1 [ . ] character", nil)
+				return
+			}
+
 			if RelFilename == "" {
 				RelFilename = "/"
 			}

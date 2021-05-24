@@ -2,6 +2,7 @@ package proxy
 
 import (
 	"fmt"
+	"html"
 	"io"
 	"log"
 	"net/http"
@@ -143,7 +144,7 @@ func DoReverseProxy(C *client.SimpleClient, Matcher ReverseProxyRouterFunc, logg
 		if err != nil {
 			logger.Printf("Failed to perform proxy request for URL [ %s ] from %s - %s", r.URL.String(), r.RemoteAddr, err)
 			w.WriteHeader(http.StatusInternalServerError)
-			w.Write([]byte(fmt.Sprintf("Failed to perform proxy request for URL [ %s ] - %s.\n", r.URL.String(), err)))
+			w.Write([]byte(html.EscapeString(fmt.Sprintf("Failed to perform proxy request for URL [ %s ] - %s.\n", r.URL.String(), err))))
 			return
 		}
 
