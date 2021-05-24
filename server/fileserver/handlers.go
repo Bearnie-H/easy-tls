@@ -110,6 +110,11 @@ func Get(URLBase, ServeBase string, ShowHidden bool) server.SimpleHandler {
 
 			Filename := path.Join(ServeBase, RelFilename)
 
+			if !strings.HasPrefix(Filename, ServeBase) {
+				ExitHandler(w, http.StatusBadRequest, "file-server error: Filename attempted to move out of Server filesystem", nil)
+				return
+			}
+
 			Details, err := describeFile(Filename)
 			if os.IsNotExist(err) {
 
@@ -200,6 +205,11 @@ func Head(URLBase, ServeBase string) server.SimpleHandler {
 
 			Filename := path.Join(ServeBase, RelFilename)
 
+			if !strings.HasPrefix(Filename, ServeBase) {
+				ExitHandler(w, http.StatusBadRequest, "file-server error: Filename attempted to move out of Server filesystem", nil)
+				return
+			}
+
 			Details, err := describeFile(Filename)
 			if os.IsNotExist(err) {
 
@@ -238,13 +248,18 @@ func Post(URLBase, ServeBase string) server.SimpleHandler {
 
 			RelFilename := strings.TrimPrefix(r.URL.Path, URLBase)
 
+			if strings.Count(RelFilename, "..") > 0 {
+				ExitHandler(w, http.StatusBadRequest, "file-server error: Filename contains parent directory reference in path", nil)
+				return
+			}
+
 			if RelFilename == "" {
 				RelFilename = "/"
 			}
 			Filename := path.Join(ServeBase, RelFilename)
 
-			if strings.Count(Filename, "..") > 0 {
-				ExitHandler(w, http.StatusBadRequest, "file-server error: Filename contains parent directory reference in path", nil)
+			if !strings.HasPrefix(Filename, ServeBase) {
+				ExitHandler(w, http.StatusBadRequest, "file-server error: Filename attempted to move out of Server filesystem", nil)
 				return
 			}
 
@@ -280,13 +295,18 @@ func Put(URLBase, ServeBase string) server.SimpleHandler {
 
 			RelFilename := strings.TrimPrefix(r.URL.Path, URLBase)
 
+			if strings.Count(RelFilename, "..") > 0 {
+				ExitHandler(w, http.StatusBadRequest, "file-server error: Filename contains parent directory reference in path", nil)
+				return
+			}
+
 			if RelFilename == "" {
 				RelFilename = "/"
 			}
 			Filename := path.Join(ServeBase, RelFilename)
 
-			if strings.Count(Filename, "..") > 0 {
-				ExitHandler(w, http.StatusBadRequest, "file-server error: Filename contains parent directory reference in path", nil)
+			if !strings.HasPrefix(Filename, ServeBase) {
+				ExitHandler(w, http.StatusBadRequest, "file-server error: Filename attempted to move out of Server filesystem", nil)
 				return
 			}
 
@@ -321,13 +341,18 @@ func Patch(URLBase, ServeBase string) server.SimpleHandler {
 
 			RelFilename := strings.TrimPrefix(r.URL.Path, URLBase)
 
+			if strings.Count(RelFilename, "..") > 0 {
+				ExitHandler(w, http.StatusBadRequest, "file-server error: Filename contains parent directory reference in path", nil)
+				return
+			}
+
 			if RelFilename == "" {
 				RelFilename = "/"
 			}
 			Filename := path.Join(ServeBase, RelFilename)
 
-			if strings.Count(Filename, "..") > 0 {
-				ExitHandler(w, http.StatusBadRequest, "file-server error: Filename contains parent directory reference in path", nil)
+			if !strings.HasPrefix(Filename, ServeBase) {
+				ExitHandler(w, http.StatusBadRequest, "file-server error: Filename attempted to move out of Server filesystem", nil)
 				return
 			}
 
@@ -361,13 +386,18 @@ func Delete(URLBase, ServeBase string) server.SimpleHandler {
 
 			RelFilename := strings.TrimPrefix(r.URL.Path, URLBase)
 
+			if strings.Count(RelFilename, "..") > 0 {
+				ExitHandler(w, http.StatusBadRequest, "file-server error: Filename contains parent directory reference in path", nil)
+				return
+			}
+
 			if RelFilename == "" {
 				RelFilename = "/"
 			}
 			Filename := path.Join(ServeBase, RelFilename)
 
-			if strings.Count(Filename, "..") > 0 {
-				ExitHandler(w, http.StatusBadRequest, "file-server error: Filename contains parent directory reference in path", nil)
+			if !strings.HasPrefix(Filename, ServeBase) {
+				ExitHandler(w, http.StatusBadRequest, "file-server error: Filename attempted to move out of Server filesystem", nil)
 				return
 			}
 
