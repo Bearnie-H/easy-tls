@@ -108,15 +108,15 @@ func Get(URLBase, ServeBase string, ShowHidden bool) server.SimpleHandler {
 
 			RelFilename := strings.TrimPrefix(r.URL.Path, URLBase)
 
-			if strings.Count(RelFilename, ".") > 1 {
-				ExitHandler(w, http.StatusBadRequest, "file-server error: Filename [ %s ] cannot have more than 1 [ . ] character", nil)
-				return
-			}
-
 			Filename := path.Join(ServeBase, RelFilename)
 
 			Details, err := describeFile(Filename)
 			if os.IsNotExist(err) {
+
+				if strings.Count(Filename, "..") > 0 {
+					ExitHandler(w, http.StatusBadRequest, "file-server error: Filename contains parent directory reference in path", nil)
+					return
+				}
 				ExitHandler(w, http.StatusNotFound, "file-server error: File [ %s ] does not exist", err, RelFilename)
 				return
 			} else if err != nil {
@@ -198,15 +198,15 @@ func Head(URLBase, ServeBase string) server.SimpleHandler {
 
 			RelFilename := strings.TrimPrefix(r.URL.Path, URLBase)
 
-			if strings.Count(RelFilename, ".") > 1 {
-				ExitHandler(w, http.StatusBadRequest, "file-server error: Filename [ %s ] cannot have more than 1 [ . ] character", nil)
-				return
-			}
-
 			Filename := path.Join(ServeBase, RelFilename)
 
 			Details, err := describeFile(Filename)
 			if os.IsNotExist(err) {
+
+				if strings.Count(Filename, "..") > 0 {
+					ExitHandler(w, http.StatusBadRequest, "file-server error: Filename contains parent directory reference in path", nil)
+					return
+				}
 				ExitHandler(w, http.StatusNotFound, "file-server error: File [ %s ] does not exist", err, RelFilename)
 				return
 			} else if err != nil {
@@ -238,15 +238,15 @@ func Post(URLBase, ServeBase string) server.SimpleHandler {
 
 			RelFilename := strings.TrimPrefix(r.URL.Path, URLBase)
 
-			if strings.Count(RelFilename, ".") > 1 {
-				ExitHandler(w, http.StatusBadRequest, "file-server error: Filename [ %s ] cannot have more than 1 [ . ] character", nil)
-				return
-			}
-
 			if RelFilename == "" {
 				RelFilename = "/"
 			}
 			Filename := path.Join(ServeBase, RelFilename)
+
+			if strings.Count(Filename, "..") > 0 {
+				ExitHandler(w, http.StatusBadRequest, "file-server error: Filename contains parent directory reference in path", nil)
+				return
+			}
 
 			if err := os.MkdirAll(path.Dir(Filename), 0755); err != nil {
 				ExitHandler(w, http.StatusInternalServerError, "file-server error: Failed to assert directory exists for file [ %s ]", err, RelFilename)
@@ -280,15 +280,15 @@ func Put(URLBase, ServeBase string) server.SimpleHandler {
 
 			RelFilename := strings.TrimPrefix(r.URL.Path, URLBase)
 
-			if strings.Count(RelFilename, ".") > 1 {
-				ExitHandler(w, http.StatusBadRequest, "file-server error: Filename [ %s ] cannot have more than 1 [ . ] character", nil)
-				return
-			}
-
 			if RelFilename == "" {
 				RelFilename = "/"
 			}
 			Filename := path.Join(ServeBase, RelFilename)
+
+			if strings.Count(Filename, "..") > 0 {
+				ExitHandler(w, http.StatusBadRequest, "file-server error: Filename contains parent directory reference in path", nil)
+				return
+			}
 
 			f, err := os.Create(Filename)
 			if os.IsNotExist(err) {
@@ -321,15 +321,15 @@ func Patch(URLBase, ServeBase string) server.SimpleHandler {
 
 			RelFilename := strings.TrimPrefix(r.URL.Path, URLBase)
 
-			if strings.Count(RelFilename, ".") > 1 {
-				ExitHandler(w, http.StatusBadRequest, "file-server error: Filename [ %s ] cannot have more than 1 [ . ] character", nil)
-				return
-			}
-
 			if RelFilename == "" {
 				RelFilename = "/"
 			}
 			Filename := path.Join(ServeBase, RelFilename)
+
+			if strings.Count(Filename, "..") > 0 {
+				ExitHandler(w, http.StatusBadRequest, "file-server error: Filename contains parent directory reference in path", nil)
+				return
+			}
 
 			f, err := os.OpenFile(Filename, os.O_APPEND|os.O_WRONLY, 0755)
 			if os.IsNotExist(err) {
@@ -361,15 +361,15 @@ func Delete(URLBase, ServeBase string) server.SimpleHandler {
 
 			RelFilename := strings.TrimPrefix(r.URL.Path, URLBase)
 
-			if strings.Count(RelFilename, ".") > 1 {
-				ExitHandler(w, http.StatusBadRequest, "file-server error: Filename [ %s ] cannot have more than 1 [ . ] character", nil)
-				return
-			}
-
 			if RelFilename == "" {
 				RelFilename = "/"
 			}
 			Filename := path.Join(ServeBase, RelFilename)
+
+			if strings.Count(Filename, "..") > 0 {
+				ExitHandler(w, http.StatusBadRequest, "file-server error: Filename contains parent directory reference in path", nil)
+				return
+			}
 
 			if err := os.Remove(Filename); err != nil {
 				ExitHandler(w, http.StatusInternalServerError, "file-server error: Failed to delete file [ %s ]", err, Filename)
@@ -384,6 +384,10 @@ func Delete(URLBase, ServeBase string) server.SimpleHandler {
 // describeFile will attempt to describe the given filename, returning a
 // struct to be encoded into the returned HTTP headers of the response.
 func describeFile(Filename string) (*fileDetails, error) {
+
+	if strings.Count(Filename, "..") > 0 {
+		return nil, errors.New("file-server error: Filename contains parent directory reference")
+	}
 
 	stat, err := os.Stat(Filename)
 	if err != nil {
