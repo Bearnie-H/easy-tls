@@ -79,13 +79,25 @@ func main() {
 	initSafeShutdown(Agent, S)
 
 	// Add a file-server to serve the full "/tmp" directory based off URL "/tmp"
-	S.AddSubrouter(S.Router(), "/tmp", fileserver.Handlers("/tmp", "/tmp", false, S.Logger())...)
+	Handlers, err := fileserver.Handlers("/tmp", "/tmp", false, S.Logger())
+	if err != nil {
+		panic(err)
+	}
+	S.AddSubrouter(S.Router(), "/tmp", Handlers...)
 
 	// Add a second file-server to serve "/var/log" from "/log"
-	S.AddSubrouter(S.Router(), "/log", fileserver.Handlers("/log", "/var/log", false, S.Logger())...)
+	Handlers, err = fileserver.Handlers("/log", "/var/log", false, S.Logger())
+	if err != nil {
+		panic(err)
+	}
+	S.AddSubrouter(S.Router(), "/log", Handlers...)
 
 	// Add a different file-server to the second server...
-	S.AddSubrouter(S.Router(), "/home", fileserver.Handlers("/home", "/home/", false, S.Logger())...)
+	Handlers, err = fileserver.Handlers("/home", "/home/", false, S.Logger())
+	if err != nil {
+		panic(err)
+	}
+	S.AddSubrouter(S.Router(), "/home", Handlers...)
 
 	// Set up a proxy server, with forwarding rules defined in a live-editable file
 	// to listen and proxy anything coming in on /proxy

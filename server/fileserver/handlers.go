@@ -1,6 +1,7 @@
 package fileserver
 
 import (
+	"errors"
 	"fmt"
 	"html"
 	"io"
@@ -48,7 +49,7 @@ type fileDetails struct {
 //	DELETE:	Delete the file from disk.
 //
 // The server will be based out of the given ServeBase folder.
-func Handlers(URLBase, ServeBase string, ShowHidden bool, Logger *log.Logger) []server.SimpleHandler {
+func Handlers(URLBase, ServeBase string, ShowHidden bool, Logger *log.Logger) ([]server.SimpleHandler, error) {
 	HandlerLogger = Logger
 
 	if !strings.HasSuffix(URLBase, "/") {
@@ -59,6 +60,10 @@ func Handlers(URLBase, ServeBase string, ShowHidden bool, Logger *log.Logger) []
 		ServeBase += "/"
 	}
 
+	if strings.Count(ServeBase, ".") > 0 {
+		return nil, errors.New("file-server error: ServeBase cannot contain [ . ] characters.")
+	}
+
 	return []server.SimpleHandler{
 		Get(URLBase, ServeBase, ShowHidden),
 		Head(URLBase, ServeBase),
@@ -66,7 +71,7 @@ func Handlers(URLBase, ServeBase string, ShowHidden bool, Logger *log.Logger) []
 		Put(URLBase, ServeBase),
 		Patch(URLBase, ServeBase),
 		Delete(URLBase, ServeBase),
-	}
+	}, nil
 }
 
 // ExitHandler is the generic function to simplify failing out of a HTTP Handler within a plugin
@@ -168,7 +173,7 @@ func Get(URLBase, ServeBase string, ShowHidden bool) server.SimpleHandler {
 						continue
 					}
 
-					name = fmt.Sprintf("<a href=\"%s%s\">%s</a><br/>\n", r.URL.Path, html.EscapeString(name), html.EscapeString(name))
+					name = fmt.Sprintf("<a href=\"%s%s\">%s</a><br/>\n", html.EscapeString(r.URL.Path), html.EscapeString(name), html.EscapeString(name))
 					w.Write([]byte(name))
 				}
 				HandlerLogger.Printf("Successfully served directory [ %s ]", Filename)

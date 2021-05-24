@@ -51,7 +51,11 @@ func main() {
 	Server.AddMiddlewares(server.MiddlewareLimitConnectionRate(time.Millisecond*10, time.Minute*15, nil))
 
 	// Add routes
-	Server.AddHandlers(Server.Router(), fileserver.Handlers(*URLRoot, *ServeDir, false, Server.Logger())...)
+	Handlers, err := fileserver.Handlers(*URLRoot, *ServeDir, false, Server.Logger())
+	if err != nil {
+		panic(err)
+	}
+	Server.AddHandlers(Server.Router(), Handlers...)
 
 	// Set the server-side timeouts
 	Server.SetTimeouts(time.Hour, time.Second*15, time.Hour, time.Second*5, 0)
