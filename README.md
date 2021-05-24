@@ -45,7 +45,7 @@ func main() {
     }
 
     // Configure a new HTTPS client
-    Client, err := client.NewClientHTTPS(Bundle, client.NoRetry)
+    Client, err := client.NewClientHTTPS(Bundle)
     if err != nil {
         panic(err)
     }
@@ -80,8 +80,8 @@ func main() {
     // require client certificates.
     Bundle := easytls.NewTLSBundle("","")
 
-    // Build a new HTTPS enabled client, configured to NOT attempt to retry if the server is HTTP-only.
-    Client, err := client.NewClientHTTPS(Bundle, client.NoRetry)
+    // Build a new HTTPS enabled client.
+    Client, err := client.NewClientHTTPS(Bundle)
     if err != nil {
         panic(err)
     }
