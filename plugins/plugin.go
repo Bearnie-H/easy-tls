@@ -307,7 +307,7 @@ func (p *GenericPlugin) Uptime() time.Duration {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	if p.state == stateActive {
-		return time.Now().Sub(p.started)
+		return time.Since(p.started)
 	}
 	return 0
 }
@@ -356,6 +356,7 @@ func (p *GenericPlugin) Done() <-chan struct{} {
 
 // LoadDefaultSymbols will load the generic, default symbols for the following
 // functions into the plugin, returning any errors along the way:
+//
 //	Status
 //	Version
 //	Name
@@ -401,17 +402,17 @@ func (p *GenericPlugin) loadDefaultSymbol(rawPlugin *plugin.Plugin, SymbolName s
 	}
 
 	// Typeswitch to set the corresponding symbol in the plugin
-	switch s.(type) {
+	switch s := s.(type) {
 	case StatusFunc:
-		p.status = s.(StatusFunc)
+		p.status = s
 	case VersionFunc:
-		p.version = s.(VersionFunc)
+		p.version = s
 	case NameFunc:
-		p.name = s.(NameFunc)
+		p.name = s
 	case StopFunc:
-		p.stop = s.(StopFunc)
+		p.stop = s
 	case InitFunc:
-		p.init = s.(InitFunc)
+		p.init = s
 	default:
 		return fmt.Errorf("plugin load error: Unknown type returned for symbol [ %s ] in file [ %s ], got [ %s ]", SymbolName, p.filename, getFuncSignature(s))
 	}

@@ -41,6 +41,7 @@ type fileDetails struct {
 // implement a simple file-system backed HTTP(S) file server.
 //
 // The standard set of handlers are:
+//
 //	GET:	Read the file from disk.
 //	HEAD:	Read out basic details about the file.
 //	POST:	Write the contents of the request body to disk as a new file.
@@ -61,7 +62,7 @@ func Handlers(URLBase, ServeBase string, ShowHidden bool, Logger *log.Logger) ([
 	}
 
 	if strings.Count(ServeBase, ".") > 0 {
-		return nil, errors.New("file-server error: ServeBase cannot contain [ . ] characters.")
+		return nil, errors.New("file-server error: ServeBase cannot contain [ . ] characters")
 	}
 
 	return []server.SimpleHandler{
@@ -95,7 +96,6 @@ func ExitHandler(w http.ResponseWriter, StatusCode int, Message string, err erro
 			HandlerLogger.Print(fmt.Sprintf(Message, args...) + " - " + err.Error())
 		}
 	}
-	return
 }
 
 // Get will attempt to read out the requested file from disk.

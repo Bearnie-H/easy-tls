@@ -148,7 +148,12 @@ func (S *SimpleServer) enableAboutHandler() {
 		}
 	}
 
-	S.Router().Path("/about").HandlerFunc(aboutHandler)
+	S.addHandlers(S.Router(), SimpleHandler{
+		Handler:     http.HandlerFunc(aboutHandler),
+		Path:        "/about",
+		Methods:     []string{http.MethodGet, http.MethodHead},
+		Description: "List the set of available routes on this Server.",
+	})
 }
 
 // RegisterSPAHandler will register an HTTP Handler to allow serving a Single Page Application.

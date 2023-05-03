@@ -240,7 +240,7 @@ func activeHandler(Agent *Agent) http.Handler {
 		}
 
 		if b.Len() == 0 {
-			b.WriteString(fmt.Sprintf("No active modules found"))
+			b.WriteString("No active modules found")
 		}
 
 		exitHandler(w, http.StatusOK, b.String(), nil)
@@ -284,7 +284,7 @@ func loadedHandler(Agent *Agent) http.Handler {
 		}
 
 		if b.Len() == 0 {
-			b.WriteString(fmt.Sprintf("No modules found"))
+			b.WriteString("No modules found")
 		}
 
 		exitHandler(w, http.StatusOK, b.String(), nil)

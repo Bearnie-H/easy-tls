@@ -258,22 +258,6 @@ func (A *Agent) canonicalizeName(Name string) string {
 	return ""
 }
 
-// GetByName will attempt to return a Module with a given Name
-func (A *Agent) getByName(Name string) Module {
-
-	if Name = A.canonicalizeName(Name); Name == "" {
-		return nil
-	}
-
-	for _, M := range A.Modules() {
-		if M.Name() == Name {
-			return M
-		}
-	}
-
-	return nil
-}
-
 func (A *Agent) registerModule(M Module) error {
 
 	A.mu.Lock()

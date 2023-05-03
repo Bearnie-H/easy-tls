@@ -2,7 +2,6 @@ package plugins
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"net"
@@ -17,22 +16,6 @@ type command struct {
 	action    string
 	name      string
 	arguments []string
-}
-
-func newCommand(args ...string) (*command, []string, error) {
-
-	if len(args) < 2 {
-		return nil, nil, errors.New("plugin command error: Not enough arguments to build command")
-	}
-
-	c := &command{
-		action: args[0],
-		name:   args[1],
-	}
-
-	args = args[2:]
-
-	return c, args, nil
 }
 
 func (c *command) url(Agent *Agent) *url.URL {
@@ -86,6 +69,7 @@ func (c *command) do(C *client.SimpleClient, A *Agent) error {
 // Module interface.
 //
 // A given command is composed of 2 strings:
+//
 //	Action
 //	Name
 //
@@ -98,7 +82,7 @@ func (A *Agent) SendCommands(Args ...string) {
 
 	A.Logger().Println("Existing plugin agent active on socket, attempting to send commands.")
 
-	if Args == nil || len(Args) == 0 {
+	if len(Args) == 0 {
 		A.Logger().Println("No arguments provided, exiting.")
 		return
 	}

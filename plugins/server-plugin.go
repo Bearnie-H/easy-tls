@@ -176,11 +176,11 @@ func (p *ServerPlugin) loadServerSymbol(rawPlugin *plugin.Plugin, SymbolName str
 	// Each of the expected or possible symbols must have a corresponding case
 	// As more possible symbols are added, simply extend the logic to account
 	// for all the types.
-	switch s.(type) {
+	switch s := s.(type) {
 	case ServerInitHandlersFunc:
-		p.initHandlers = s.(ServerInitHandlersFunc)
+		p.initHandlers = s
 	case ServerInitSubrouterFunc:
-		p.initSubrouter = s.(ServerInitSubrouterFunc)
+		p.initSubrouter = s
 	default:
 		return fmt.Errorf("plugin load error: Unknown type returned for symbol [ %s ], got [ %s ]", SymbolName, getFuncSignature(s))
 	}

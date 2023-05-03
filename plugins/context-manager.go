@@ -27,7 +27,7 @@ func NewContextManager() *ContextManager {
 	return &ContextManager{
 		Mutex:  &sync.Mutex{},
 		active: make(map[int64]context.CancelFunc),
-		r:      rand.NewSource(time.Now().UnixNano()),
+		r:      rand.NewSource(time.Now().Unix()),
 		closed: false,
 	}
 }
