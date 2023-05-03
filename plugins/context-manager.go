@@ -44,9 +44,11 @@ func (C *ContextManager) NewContext() (ctx context.Context, x int64) {
 	// Create a new context which is able to be cancelled
 	ctx, cancel := context.WithCancel(context.Background())
 
+	var Key int64 = 0
+
 	// Generate a unique token for this context
 	for {
-		x := rand.Int63()
+		Key = rand.Int63()
 		if _, exist := C.active[x]; !exist {
 			break
 		}
@@ -60,10 +62,10 @@ func (C *ContextManager) NewContext() (ctx context.Context, x int64) {
 	}
 
 	// Internalize the returned CancelFunc
-	C.active[x] = cancel
+	C.active[Key] = cancel
 
 	// return the context as well as the key to use to manipulate it later.
-	return ctx, x
+	return ctx, Key
 }
 
 // RemoveContext will remove the CancelFunc for a given key, indicating that
