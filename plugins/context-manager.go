@@ -18,7 +18,7 @@ var ErrNoContext error = errors.New("context manager error: No CancelFunc for ke
 type ContextManager struct {
 	*sync.Mutex
 	active map[int64]context.CancelFunc
-	r      rand.Source
+	r      *rand.Rand
 	closed bool
 }
 
@@ -27,7 +27,7 @@ func NewContextManager() *ContextManager {
 	return &ContextManager{
 		Mutex:  &sync.Mutex{},
 		active: make(map[int64]context.CancelFunc),
-		r:      rand.NewSource(time.Now().Unix()),
+		r:      rand.New(rand.NewSource(time.Now().Unix())),
 		closed: false,
 	}
 }
