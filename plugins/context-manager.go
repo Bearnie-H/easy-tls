@@ -5,7 +5,6 @@ import (
 	"errors"
 	"math/rand"
 	"sync"
-	"time"
 )
 
 // ErrNoContext indicates there is no context for the provided key.
@@ -18,7 +17,6 @@ var ErrNoContext error = errors.New("context manager error: No CancelFunc for ke
 type ContextManager struct {
 	*sync.Mutex
 	active map[int64]context.CancelFunc
-	r      *rand.Rand
 	closed bool
 }
 
@@ -27,7 +25,6 @@ func NewContextManager() *ContextManager {
 	return &ContextManager{
 		Mutex:  &sync.Mutex{},
 		active: make(map[int64]context.CancelFunc),
-		r:      rand.New(rand.NewSource(time.Now().Unix())),
 		closed: false,
 	}
 }
@@ -49,7 +46,7 @@ func (C *ContextManager) NewContext() (ctx context.Context, x int64) {
 
 	// Generate a unique token for this context
 	for {
-		x := C.r.Int63()
+		x := rand.Int63()
 		if _, exist := C.active[x]; !exist {
 			break
 		}
