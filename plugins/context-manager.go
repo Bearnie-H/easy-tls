@@ -49,7 +49,7 @@ func (C *ContextManager) NewContext() (ctx context.Context, x int64) {
 	// Generate a unique token for this context
 	for {
 		Key = rand.Int63()
-		if _, exist := C.active[x]; !exist {
+		if _, exist := C.active[Key]; !exist {
 			break
 		}
 	}
@@ -58,7 +58,7 @@ func (C *ContextManager) NewContext() (ctx context.Context, x int64) {
 	// so anything that uses it will only see the already cancelled context
 	if C.closed {
 		cancel()
-		return ctx, x
+		return ctx, 0
 	}
 
 	// Internalize the returned CancelFunc
